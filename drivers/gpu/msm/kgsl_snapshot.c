@@ -1154,7 +1154,7 @@ int kgsl_device_snapshot_init(struct kgsl_device *device)
 	device->snapshot = NULL;
 	device->snapshot_faultcount = 0;
 	device->force_panic = false;
-	device->snapshot_crashdumper = true;
+	device->snapshot_crashdumper = false;
 	device->snapshot_legacy = false;
 
 	/*
@@ -1199,7 +1199,7 @@ void kgsl_device_snapshot_close(struct kgsl_device *device)
 	device->snapshot_memory.size = 0;
 	device->snapshot_faultcount = 0;
 	device->force_panic = false;
-	device->snapshot_crashdumper = true;
+	device->snapshot_crashdumper = false;
 }
 EXPORT_SYMBOL(kgsl_device_snapshot_close);
 
