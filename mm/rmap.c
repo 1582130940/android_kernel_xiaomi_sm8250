@@ -1350,7 +1350,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 	struct page *subpage;
 	bool ret = true;
 	struct mmu_notifier_range range;
-	enum ttu_flags flags = (enum ttu_flags)arg;
+	enum ttu_flags flags = (enum ttu_flags)(long)arg;
 
 	/*
 	 * When racing against e.g. zap_pte_range() on another cpu,
