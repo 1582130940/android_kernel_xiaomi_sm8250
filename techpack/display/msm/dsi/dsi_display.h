@@ -277,6 +277,7 @@ struct dsi_display {
 	u32 clk_gating_config;
 	bool queue_cmd_waits;
 	struct workqueue_struct *dma_cmd_workq;
+	atomic_t fod_ui;
 
 	int tx_cmd_buf_ndx;
 	struct dsi_panel_cmd_set cmd_set;
@@ -755,5 +756,7 @@ int dsi_display_get_panel_vfp(void *display,
 	int h_active, int v_active);
 
 struct dsi_display *get_main_display(void);
+
+void dsi_display_set_fod_ui(struct dsi_display *display, bool status);
 
 #endif /* _DSI_DISPLAY_H_ */
