@@ -140,6 +140,8 @@ struct xiaomi_touch_pdata {
 	int psensor_value;
 	bool psensor_changed;
 	const char *name;
+	bool set_update;
+	bool bump_sample_rate;
 	u8 debug_log;
 #if XIAOMI_ROI
 	struct xiaomi_diff_data *diff_data;
