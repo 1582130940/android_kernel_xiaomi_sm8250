@@ -87,7 +87,7 @@ INCS +=		$(COMMON_INC) \
 
 EXTRA_CFLAGS += $(INCS)
 
-ifeq ($(TARGET_PRODUCT), $(filter $(TARGET_PRODUCT), umi cmi cas apollo alioth thyme enuma))
+ifeq ($(CONFIG_ARCH_KONA), y)
        CDEFINES += -DCONFIG_AUDIO_SMARTPA_STEREO
 endif
 
@@ -115,7 +115,7 @@ ifeq ($(TARGET_PRODUCT), alioth)
 	CDEFINES += -DCONFIG_TARGET_PRODUCT_ALIOTH
 endif
 
-ifeq ($(TARGET_PRODUCT), enuma)
+ifeq ($(CONFIG_ARCH_KONA), y)
 	CDEFINES += -DCONFIG_TARGET_PRODUCT_ENUMA
 endif
 
