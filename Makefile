@@ -626,7 +626,7 @@ endif
 all: vmlinux
 
 CFLAGS_GCOV	:= --coverage \
-	$(call cc-option,-fno-tree-loop-im) \
+	$(call cc-option,-fno-tree-loop-im)
 export CFLAGS_GCOV
 
 # The arch Makefiles can override CC_FLAGS_FTRACE. We may also append it later.
