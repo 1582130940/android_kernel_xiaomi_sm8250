@@ -260,7 +260,7 @@
 			<&clock_audio_native 0>;
 
 		cdc-vdd-mic-bias-supply = <&pm660l_bob>;
-		qcom,cdc-vdd-mic-bias-voltage = <3300000 3300000>;
+		qcom,cdc-vdd-mic-bias-voltage = <3300000 3600000>;
 		qcom,cdc-vdd-mic-bias-current = <30400>;
 
 		qcom,cdc-static-supplies = "cdc-vdd-mic-bias";
@@ -292,7 +292,7 @@
 		clocks = <&clock_audio_lnbb 0>;
 
 		cdc-vdd-mic-bias-supply = <&pm660l_bob>;
-		qcom,cdc-vdd-mic-bias-voltage = <3300000 3300000>;
+		qcom,cdc-vdd-mic-bias-voltage = <3300000 3600000>;
 		qcom,cdc-vdd-mic-bias-current = <30400>;
 
 		qcom,cdc-static-supplies = "cdc-vdd-mic-bias";
