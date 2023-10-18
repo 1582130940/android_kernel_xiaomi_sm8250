@@ -4234,7 +4234,7 @@ CONFIG_TYPEC=y
 #
 # USB Type-C Alternate Mode drivers
 #
-# CONFIG_TYPEC_DP_ALTMODE is not set
+CONFIG_TYPEC_DP_ALTMODE=y
 # CONFIG_USB_ROLE_SWITCH is not set
 
 #
