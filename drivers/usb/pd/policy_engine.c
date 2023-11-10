@@ -25,7 +25,9 @@
 #endif
 #include "usbpd.h"
 #ifdef CONFIG_MACH_XIAOMI
+#ifdef CONFIG_PS5169
 #include "ps5169.h"
+#endif
 #endif
 
 enum usbpd_state {
