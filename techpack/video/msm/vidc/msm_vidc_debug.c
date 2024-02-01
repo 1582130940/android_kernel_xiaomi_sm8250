@@ -697,7 +697,7 @@ void msm_vidc_ftrace(const char *debug_level, u32 sid, const char *codec_name, c
 	int log_length;
 
 	va_start(args, fmt);
-	log_length = snprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
+	log_length = scnprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
 		VIDC_DBG_TAG, debug_level, sid, codec_name);
 	log_length += vsnprintf(trace_logbuf+log_length, MAX_TRACER_LOG_LENGTH-log_length,
 		fmt, args);
@@ -712,7 +712,7 @@ void msm_fw_ftrace(const char *name, const char *fmt, ...)
 	int log_length;
 
 	va_start(args, fmt);
-	log_length = snprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
+	log_length = scnprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
 		FW_DBG_TAG, name);
 	log_length += vsnprintf(trace_logbuf+log_length, MAX_TRACER_LOG_LENGTH-log_length,
 		fmt, args);
