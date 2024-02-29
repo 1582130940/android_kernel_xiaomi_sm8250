@@ -4,8 +4,16 @@ config AFE_HWDEP
 	tristate "AFE_HWDEP"
 config AUDIO_EXT_CLK
 	tristate "AUDIO_EXT_CLK"
+config AUXPCM_DISABLE
+	tristate "AUXPCM_DISABLE"
 config AVTIMER_LEGACY
 	tristate "AVTIMER_LEGACY"
+config CDC_DMA_DISABLE
+	tristate "CDC_DMA_DISABLE"
+config DIGITAL_CDC_RSC_MGR
+	tristate "DIGITAL_CDC_RSC_MGR"
+config DOA_PARAMS_ENABLED
+	tristate "DOA_PARAMS_ENABLED"
 config DOLBY_DS2
 	tristate "DOLBY_DS2"
 config DOLBY_LICENSE
@@ -14,6 +22,8 @@ config DTS_EAGLE
 	tristate "DTS_EAGLE"
 config DTS_SRS_TM
 	tristate "DTS_SRS_TM"
+config MI2S_DISABLE
+	tristate "MI2S_DISABLE"
 config MSM_ADSP_LOADER
 	tristate "MSM_ADSP_LOADER"
 config MSM_AVTIMER
@@ -28,6 +38,8 @@ config MSM_QDSP6_APRV2_GLINK
 	tristate "MSM_QDSP6_APRV2_GLINK"
 config MSM_QDSP6_APRV2_RPMSG
 	tristate "MSM_QDSP6_APRV2_RPMSG"
+config MSM_QDSP6_APRV2_VM
+	tristate "MSM_QDSP6_APRV2_VM"
 config MSM_QDSP6_APRV3_GLINK
 	tristate "MSM_QDSP6_APRV3_GLINK"
 config MSM_QDSP6_NOTIFIER
@@ -46,8 +58,12 @@ config PINCTRL_LPI_LEGACY
 	tristate "PINCTRL_LPI_LEGACY"
 config PINCTRL_WCD
 	tristate "PINCTRL_WCD"
+config PM2250_SPMI
+	tristate "PM2250_SPMI"
 config QTI_PP
 	tristate "QTI_PP"
+config QTI_PP_AUDIOSPHERE
+	tristate "QTI_PP_AUDIOSPHERE"
 config REGMAP_SWR
 	tristate "REGMAP_SWR"
 config RX_MACRO
@@ -58,6 +74,8 @@ config SND_HWDEP_ROUTING
 	tristate "SND_HWDEP_ROUTING"
 config SND_SOC_ANALOG_CDC
 	tristate "SND_SOC_ANALOG_CDC"
+config SND_SOC_BENGAL
+	tristate "SND_SOC_BENGAL"
 config SND_SOC_BOLERO
 	tristate "SND_SOC_BOLERO"
 config SND_SOC_CPE
@@ -66,14 +84,22 @@ config SND_SOC_CSRA66X0
 	tristate "SND_SOC_CSRA66X0"
 config SND_SOC_DIGITAL_CDC
 	tristate "SND_SOC_DIGITAL_CDC"
+config SND_SOC_DIGITAL_CDC_LEGACY
+	tristate "SND_SOC_DIGITAL_CDC_LEGACY"
 config SND_SOC_EP92
 	tristate "SND_SOC_EP92"
 config SND_SOC_EXT_CODEC
 	tristate "SND_SOC_EXT_CODEC"
+config SND_SOC_EXT_CODEC_SDM450
+	tristate "SND_SOC_EXT_CODEC_SDM450"
 config SND_SOC_FOR_ULTRASOUND_PATH
 	tristate "SND_SOC_FOR_ULTRASOUND_PATH"
 config SND_SOC_INT_CODEC
 	tristate "SND_SOC_INT_CODEC"
+config SND_SOC_KONA
+	tristate "SND_SOC_KONA"
+config SND_SOC_LITO
+	tristate "SND_SOC_LITO"
 config SND_SOC_MACHINE_SDXPOORWILLS
 	tristate "SND_SOC_MACHINE_SDXPOORWILLS"
 config SND_SOC_MSM_HDMI_CODEC_RX
@@ -82,6 +108,8 @@ config SND_SOC_MSM_HOSTLESS_PCM
 	tristate "SND_SOC_MSM_HOSTLESS_PCM"
 config SND_SOC_MSM_QDSP6V2_INTF
 	tristate "SND_SOC_MSM_QDSP6V2_INTF"
+config SND_SOC_MSM_QDSP6V2_VM
+	tristate "SND_SOC_MSM_QDSP6V2_VM"
 config SND_SOC_MSM_SDW
 	tristate "SND_SOC_MSM_SDW"
 config SND_SOC_MSM_STUB
@@ -92,6 +120,14 @@ config SND_SOC_QCS405
 	tristate "SND_SOC_QCS405"
 config SND_SOC_QDSP6V2
 	tristate "SND_SOC_QDSP6V2"
+config SND_SOC_ROULEUR
+	tristate "SND_SOC_ROULEUR"
+config SND_SOC_ROULEUR_SLAVE
+	tristate "SND_SOC_ROULEUR_SLAVE"
+config SND_SOC_SA6155
+	tristate "SND_SOC_SA6155"
+config SND_SOC_SDM450
+	tristate "SND_SOC_SDM450"
 config SND_SOC_SDM660_CDC
 	tristate "SND_SOC_SDM660_CDC"
 config SND_SOC_SDM660
@@ -118,6 +154,10 @@ config SND_SOC_WCD937X
 	tristate "SND_SOC_WCD937X"
 config SND_SOC_WCD937X_SLAVE
 	tristate "SND_SOC_WCD937X_SLAVE"
+config SND_SOC_WCD938X
+	tristate "SND_SOC_WCD938X"
+config SND_SOC_WCD938X_SLAVE
+	tristate "SND_SOC_WCD938X_SLAVE"
 config SND_SOC_WCD9XXX_V2
 	tristate "SND_SOC_WCD9XXX_V2"
 config SND_SOC_WCD_CPE
@@ -136,12 +176,18 @@ config SND_SOC_WCD_SPI
 	tristate "SND_SOC_WCD_SPI"
 config SND_SOC_WSA881X
 	tristate "SND_SOC_WSA881X"
+config SND_SOC_WSA881X_ANALOG
+	tristate "SND_SOC_WSA881X_ANALOG"
+config SND_SOC_WSA883X
+	tristate "SND_SOC_WSA883X"
 config SOUNDWIRE
 	tristate "SOUNDWIRE"
 config SOUNDWIRE_MSTR_CTRL
 	tristate "SOUNDWIRE_MSTR_CTRL"
 config SOUNDWIRE_WCD_CTRL
 	tristate "SOUNDWIRE_WCD_CTRL"
+config TDM_DISABLE
+	tristate "TDM_DISABLE"
 config TFA_NON_DSP_SOLUTION
 	tristate"TFA_NON_DSP_SOLUTION"
 config TX_MACRO
@@ -150,10 +196,16 @@ config USE_Q6_32CH_SUPPORT
 	tristate "USE_Q6_32CH_SUPPORT"
 config VA_MACRO
 	tristate "VA_MACRO"
+config VOICE_MHI
+	tristate "VOICE_MHI"
 config WCD9XXX_CODEC_CORE
 	tristate "WCD9XXX_CODEC_CORE"
+config WCD9XXX_CODEC_CORE_V2
+	tristate "WCD9XXX_CODEC_CORE_V2"
 config WCD_DSP_GLINK
 	tristate "WCD_DSP_GLINK"
+config WCD_SPI_DMA_MASKING
+	tristate "WCD_SPI_DMA_MASKING"
 config WSA_MACRO
 	tristate "WSA_MACRO"
 
