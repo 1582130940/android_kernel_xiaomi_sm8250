@@ -399,6 +399,10 @@ struct drm_bridge {
 	const struct drm_bridge_funcs *funcs;
 	/** @driver_private: pointer to the bridge driver's internal context */
 	void *driver_private;
+#ifdef CONFIG_MACH_XIAOMI
+	struct mutex lock;
+	bool is_dsi_drm_bridge;
+#endif
 };
 
 void drm_bridge_add(struct drm_bridge *bridge);
@@ -419,6 +423,9 @@ void drm_bridge_mode_set(struct drm_bridge *bridge,
 			 struct drm_display_mode *adjusted_mode);
 void drm_bridge_pre_enable(struct drm_bridge *bridge);
 void drm_bridge_enable(struct drm_bridge *bridge);
+#ifdef CONFIG_MACH_XIAOMI
+int dsi_bridge_interface_enable(int timeout);
+#endif
 
 void drm_atomic_bridge_disable(struct drm_bridge *bridge,
 			       struct drm_atomic_state *state);
