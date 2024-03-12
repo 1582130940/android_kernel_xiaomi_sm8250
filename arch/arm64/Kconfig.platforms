@@ -428,4 +428,22 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config MACH_XIAOMI
+	bool "Xiaomi Family"
+	depends on ARCH_QCOM
+	help
+	  This enables support for Xiaomi Family
+
+config MACH_XIAOMI_ELISH
+	bool "Elish Platform"
+	select MACH_XIAOMI
+	help
+	  This enables support for Xiaomi Mi Pad 5 Pro
+
+config MACH_XIAOMI_ENUMA
+	bool "Enuma Platform"
+	select MACH_XIAOMI
+	help
+	  This enables support for Xiaomi Mi Pad 5 Pro 5G
+
 endmenu
