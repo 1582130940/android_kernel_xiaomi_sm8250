@@ -1483,6 +1483,11 @@ int mhi_process_bw_scale_ev_ring(struct mhi_controller *mhi_cntrl,
 	struct mhi_link_info link_info, *cur_info = &mhi_cntrl->mhi_link_info;
 	int result, ret = 0;
 
+#if defined(CONFIG_MACH_XIAOMI_ELISH) || defined(CONFIG_MACH_XIAOMI_ENUMA)
+	if (mhi_cntrl->need_force_m3 && !mhi_cntrl->force_m3_done)
+		goto exit_bw_scale_process;
+#endif
+
 	spin_lock_bh(&mhi_event->lock);
 	if (!is_valid_ring_ptr(ev_ring, er_ctxt->rp)) {
 		MHI_ERR(
