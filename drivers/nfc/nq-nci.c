@@ -21,7 +21,9 @@
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
 #endif
+#ifdef NQ_READ_INT
 #include <linux/jiffies.h>
+#endif
 #include <linux/regulator/consumer.h>
 
 struct nqx_platform_data {
@@ -1050,6 +1052,7 @@ static const struct file_operations nfc_dev_fops = {
 #endif
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * function: get_nfcc_hw_info()
  *
@@ -1178,16 +1181,25 @@ err_nfcc_hw_info:
 
 	return ret;
 }
+#endif
 
 /* Check for availability of NQ_ NFC controller hardware */
 static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 {
 	int ret = 0;
 
+#ifdef CONFIG_MACH_XIAOMI
+	int gpio_retry_count = 0;
+	int send_retry_count = 0;
+	unsigned char reset_ntf_len = 0;
+#endif
 
 	unsigned int enable_gpio = nqx_dev->en_gpio;
 	char *nci_reset_cmd = NULL;
 	char *nci_reset_rsp = NULL;
+#ifdef CONFIG_MACH_XIAOMI
+	char *nci_reset_ntf = NULL;
+#endif
 
 	char *nci_get_version_cmd = NULL;
 	char *nci_get_version_rsp = NULL;
@@ -1203,6 +1215,15 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 		ret = -ENOMEM;
 		goto done;
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	nci_reset_ntf = kzalloc(NCI_RESET_NTF_LEN + 1,  GFP_DMA | GFP_KERNEL);
+	if (!nci_reset_ntf) {
+		ret = -ENOMEM;
+		goto done;
+	}
+#endif
+
 	nci_get_version_cmd = kzalloc(NCI_GET_VERSION_CMD_LEN + 1,
 					GFP_DMA | GFP_KERNEL);
 	if (!nci_get_version_cmd) {
@@ -1217,10 +1238,15 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 		goto done;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+reset_enable_gpio:
+#endif
 	/* making sure that the NFCC starts in a clean state. */
+#ifdef NQ_READ_INT
 	gpio_set_value(enable_gpio, 1);/* HPD : Enable*/
 	/* hardware dependent delay */
 	usleep_range(10000, 10100);
+#endif
 	gpio_set_value(enable_gpio, 0);/* ULPM: Disable */
 	/* hardware dependent delay */
 	usleep_range(10000, 10100);
@@ -1237,6 +1263,21 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 	if (ret < 0) {
 		dev_err(&client->dev,
 		"%s: - i2c_master_send core reset Error\n", __func__);
+
+#ifdef CONFIG_MACH_XIAOMI
+		if (send_retry_count < MAX_RETRY_COUNT) {
+			send_retry_count  += 1;
+			goto reset_enable_gpio;
+		} else {
+			dev_warn(&client->dev,
+				"%s: - send core reset retry Max times, go on\n", __func__);
+			nqx_dev->nqx_info.info.chip_type = NFCC_SN100_A;
+			nqx_dev->nqx_info.info.rom_version = 0;
+			nqx_dev->nqx_info.info.fw_minor = 0;
+			nqx_dev->nqx_info.info.fw_major = 0;
+			goto err_nfcc_reset_failed;
+		}
+#endif
 
 		if (gpio_is_valid(nqx_dev->firm_gpio)) {
 			gpio_set_value(nqx_dev->firm_gpio, 1);
@@ -1286,14 +1327,35 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 		}
 		goto err_nfcc_reset_failed;
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	/* hardware dependent delay */
+	msleep(60);
+#endif
 
+#ifdef NQ_READ_INT
 	ret = is_data_available_for_read(nqx_dev);
 	if (ret <= 0) {
 		nqx_disable_irq(nqx_dev);
 		goto err_nfcc_hw_check;
 	}
+#endif
 
 
+#ifdef CONFIG_MACH_XIAOMI
+	/* Read Response of RESET command */
+	ret = i2c_master_recv(client, nci_reset_rsp, NCI_RESET_RSP_LEN);
+	if (ret < 0) {
+		dev_err(&client->dev,
+		"%s: - i2c_master_recv Error\n", __func__);
+		gpio_retry_count = gpio_retry_count + 1;
+		if (gpio_retry_count < MAX_RETRY_COUNT)
+			goto reset_enable_gpio;
+		goto err_nfcc_hw_check;
+	}
+
+	/* hardware dependent delay */
+	msleep(30);
+#else
 	/* Read Header of RESET command */
 	ret = i2c_master_recv(client, nci_reset_rsp, NCI_HEADER_LEN);
 	if (ret != NCI_HEADER_LEN) {
@@ -1308,7 +1370,17 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 		"%s: - i2c_master_recv get RESET rsp data Error\n", __func__);
 		goto err_nfcc_hw_check;
 	}
+#endif
 
+#ifdef NQ_READ_INT
+	ret = is_data_available_for_read(nqx_dev);
+	if (ret <= 0) {
+		nqx_disable_irq(nqx_dev);
+		goto err_nfcc_hw_check;
+	}
+#endif
+
+#ifndef CONFIG_MACH_XIAOMI
 	/* Retrieve NFCC HW info */
 	ret = get_nfcc_hw_info(client, nqx_dev,
 			nci_reset_rsp[NCI_PAYLOAD_LENGTH_INDEX]);
@@ -1317,7 +1389,31 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 			"%s: - Error in getting NFCC HW info\n", __func__);
 		goto err_nfcc_hw_check;
 	}
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+	/* Read Notification of RESET command */
+	ret = i2c_master_recv(client, nci_reset_ntf, NCI_RESET_NTF_LEN);
+	if (ret < 0) {
+		dev_err(&client->dev,
+		"%s: - i2c_master_recv Error\n", __func__);
+		goto err_nfcc_hw_check;
+	}
+#endif
+
+#ifdef CONFIG_MACH_XIAOMI
+	reset_ntf_len = 2 + nci_reset_ntf[2]; /*payload + len*/
+	if (reset_ntf_len > PAYLOAD_HEADER_LENGTH) {
+		nqx_dev->nqx_info.info.chip_type =
+				nci_reset_ntf[reset_ntf_len - 3];
+		nqx_dev->nqx_info.info.rom_version =
+				nci_reset_ntf[reset_ntf_len - 2];
+		nqx_dev->nqx_info.info.fw_major =
+				nci_reset_ntf[reset_ntf_len - 1];
+		nqx_dev->nqx_info.info.fw_minor =
+				nci_reset_ntf[reset_ntf_len];
+	}
+#endif
 
 	dev_dbg(&client->dev,
 		"%s: - nq - reset cmd answer : NfcNciRx %x %x %x\n",
@@ -1367,6 +1463,9 @@ err_nfcc_hw_check:
 
 done:
 	kfree(nci_reset_rsp);
+#ifdef CONFIG_MACH_XIAOMI
+	kfree(nci_reset_ntf);
+#endif
 	kfree(nci_reset_cmd);
 	kfree(nci_get_version_cmd);
 	kfree(nci_get_version_rsp);
