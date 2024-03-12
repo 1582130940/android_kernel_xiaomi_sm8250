@@ -31,6 +31,13 @@ kona-xrfusion-ult-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 kona-arglass-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 kona-xrsku4-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 kona-hdk-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+endif
+ifeq ($(CONFIG_MACH_XIAOMI),y)
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+dtbo-$(CONFIG_ARCH_KONA) += kona-mtp-elish-overlay.dtbo kona-mtp-enuma-overlay.dtbo
+kona-mtp-elish-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+kona-mtp-enuma-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+endif # CONFIG_BUILD_ARM64_DT_OVERLAY
 else
 dtb-$(CONFIG_ARCH_KONA) += kona-rumi.dtb \
         kona-mtp.dtb \
