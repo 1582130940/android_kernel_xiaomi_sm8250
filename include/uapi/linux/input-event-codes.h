@@ -419,6 +419,9 @@
 #define BTN_WHEEL		0x150
 #define BTN_GEAR_DOWN		0x150
 #define BTN_GEAR_UP		0x151
+#ifdef CONFIG_MACH_XIAOMI
+#define BTN_INFO		0x152
+#endif
 
 #define KEY_OK			0x160
 #define KEY_SELECT		0x161
