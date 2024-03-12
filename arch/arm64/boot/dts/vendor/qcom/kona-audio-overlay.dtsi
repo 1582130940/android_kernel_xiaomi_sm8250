@@ -9,7 +9,8 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 
-	qcom,num-macros = <4>;
+//	qcom,num-macros = <4>;
+	qcom,num-macros = <3>;
 	bolero-clk-rsc-mngr {
 		compatible = "qcom,bolero-clk-rsc-mngr";
 		qcom,fs-gen-sequence = <0x3000 0x1>,
@@ -112,6 +113,7 @@
 	};
 
 	wsa_macro: wsa-macro@3240000 {
+		status = "disabled";
 		compatible = "qcom,wsa-macro";
 		reg = <0x3240000 0x0>;
 		clock-names = "wsa_core_clk", "wsa_npl_clk";
@@ -349,6 +351,7 @@
 	};
 
 	cdc_dmic45_gpios: cdc_dmic45_pinctrl {
+		status = "disabled";
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&cdc_dmic45_clk_active &cdc_dmic45_data_active>;
@@ -358,6 +361,7 @@
 	};
 
 	wsa_swr_gpios: wsa_swr_clk_data_pinctrl {
+		status = "disabled";
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&wsa_swr_clk_active &wsa_swr_data_active>;
@@ -389,6 +393,7 @@
 
 &soc {
 	wsa_spkr_en1: wsa_spkr_en1_pinctrl {
+		status = "disabled";
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&spkr_1_sd_n_active>;
@@ -396,6 +401,7 @@
 	};
 
 	wsa_spkr_en2: wsa_spkr_en2_pinctrl {
+		status = "disabled";
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&spkr_2_sd_n_active>;
