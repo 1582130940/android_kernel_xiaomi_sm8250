@@ -20,6 +20,8 @@ fw-external-y := $(subst $(quote),,$(CONFIG_EXTRA_FIRMWARE))
 # For the former two cases we want $(fw-shipped-y) and $(fw-shipped-m) to be
 # accurate. In the latter case it doesn't matter -- it'll use $(fw-shipped-all).
 # But be aware that the config file might not be included at all.
+fw-shipped-$(CONFIG_TOUCHSCREEN_NT36523_HOSTDL_SPI) += novatek_ts_fw_k81.bin novatek_ts_mp_k81.bin novatek_nt36523_k81_fw01.bin novatek_nt36523_k81_mp01.bin novatek_nt36523_k81a_fw02.bin novatek_nt36523_k81a_mp02.bin novatek_nt36523_k81a_fw01.bin novatek_nt36523_k81a_mp01.bin
+fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)
 
 quiet_cmd_ihex  = IHEX    $@
       cmd_ihex  = $(OBJCOPY) -Iihex -Obinary $< $@
