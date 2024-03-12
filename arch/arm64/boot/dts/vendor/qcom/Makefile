@@ -1,5 +1,16 @@
 ifeq (,$(filter y, $(CONFIG_BOARD_BRAMBLE) $(CONFIG_BOARD_REDFIN) $(CONFIG_BOARD_BARBET)))
 
+ifeq ($(CONFIG_MACH_XIAOMI),y)
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+        dtbo-$(CONFIG_ARCH_KONA) += \
+                elish-sm8250-overlay.dtbo \
+                enuma-sm8250-overlay.dtbo
+
+elish-sm8250-overlay.dtbo-base := kona-v2.1.dtb
+enuma-sm8250-overlay.dtbo-base := kona-v2.1.dtb
+
+endif # CONFIG_BUILD_ARM64_DT_OVERLAY
+else # CONFIG_MACH_XIAOMI
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
         dtbo-$(CONFIG_ARCH_KONA) += \
                 kona-cdp-overlay.dtbo \
@@ -7,7 +18,7 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
                 kona-cdp-lcd-tron-overlay.dtbo \
                 kona-mtp-overlay.dtbo \
                 kona-mtp-ws-overlay.dtbo \
-		kona-sa-mtp-overlay.dtbo \
+                kona-sa-mtp-overlay.dtbo \
                 kona-xr-overlay.dtbo \
                 kona-rumi-overlay.dtbo \
                 kona-qrd-overlay.dtbo \
@@ -512,6 +523,7 @@ dtb-$(CONFIG_ARCH_SDM429) += sdm429-mtp.dtb \
 	sda429-mtp.dtb \
 	sda429-cdp.dtb
 endif
+endif # CONFIG_MACH_XIAOMI
 endif #CONFIG_BOARD_BRAMBLE CONFIG_BOARD_REDFIN CONFIG_BOARD_BARBET
 
 always		:= $(dtb-y)
