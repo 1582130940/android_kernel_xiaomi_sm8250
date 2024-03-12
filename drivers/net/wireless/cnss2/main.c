@@ -38,7 +38,11 @@
 #define CNSS_MHI_TIMEOUT_DEFAULT	0
 #endif
 #define CNSS_MHI_M2_TIMEOUT_DEFAULT	25
+#ifdef CONFIG_MACH_XIAOMI
+#define CNSS_QMI_TIMEOUT_DEFAULT	20000
+#else
 #define CNSS_QMI_TIMEOUT_DEFAULT	10000
+#endif
 #define CNSS_BDF_TYPE_DEFAULT		CNSS_BDF_ELF
 #define CNSS_TIME_SYNC_PERIOD_DEFAULT	900000
 #define CNSS_MIN_TIME_SYNC_PERIOD	2000
@@ -65,6 +69,11 @@ struct cnss_driver_event {
 	int ret;
 	void *data;
 };
+
+#ifdef CONFIG_MACH_XIAOMI
+static bool disable_nv_mac;
+module_param(disable_nv_mac, bool, 0444);
+#endif
 
 static void cnss_set_plat_priv(struct platform_device *plat_dev,
 			       struct cnss_plat_data *plat_priv)
@@ -2609,6 +2618,12 @@ static void cnss_init_control_params(struct cnss_plat_data *plat_priv)
 				  "cnss-daemon-support"))
 		plat_priv->ctrl_params.quirks |= BIT(ENABLE_DAEMON_SUPPORT);
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				  "cnss-enable-self-recovery"))
+		plat_priv->ctrl_params.quirks |= BIT(LINK_DOWN_SELF_RECOVERY);
+#endif
+
 	plat_priv->ctrl_params.mhi_timeout = CNSS_MHI_TIMEOUT_DEFAULT;
 	plat_priv->ctrl_params.mhi_m2_timeout = CNSS_MHI_M2_TIMEOUT_DEFAULT;
 	plat_priv->ctrl_params.qmi_timeout = CNSS_QMI_TIMEOUT_DEFAULT;
@@ -2704,7 +2719,15 @@ static int cnss_probe(struct platform_device *plat_dev)
 	plat_priv->plat_dev = plat_dev;
 	plat_priv->device_id = device_id->driver_data;
 	plat_priv->bus_type = cnss_get_bus_type(plat_priv->device_id);
+#ifdef CONFIG_MACH_XIAOMI
+	if (disable_nv_mac) {
+		plat_priv->use_nv_mac = false;
+	} else {
+		plat_priv->use_nv_mac = cnss_use_nv_mac(plat_priv);
+	}
+#else
 	plat_priv->use_nv_mac = cnss_use_nv_mac(plat_priv);
+#endif
 	if (cnss_get_cal_duration(plat_priv) != 0)
 		plat_priv->cal_duration = CNSS_INVALID_CAL_DURATION;
 
