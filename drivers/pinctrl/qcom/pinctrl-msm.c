@@ -571,8 +571,21 @@ static void msm_gpio_dbg_show(struct seq_file *s, struct gpio_chip *chip)
 	unsigned gpio = chip->base;
 	unsigned i;
 
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < chip->ngpio; i++, gpio++) {
+		/**
+		 * bypass NFC SPI GPIO: 28-31 is NFC SE SPI
+		 * bypass FP SPI GPIO: 40-43 is FP SPI
+		 */
+		if ((i >= 28 && i <= 31) || (i >= 40 && i <= 43)) {
+			continue;
+		}
+		msm_gpio_dbg_show_one(s, NULL, chip, i, gpio);
+	}
+#else
 	for (i = 0; i < chip->ngpio; i++, gpio++)
 		msm_gpio_dbg_show_one(s, NULL, chip, i, gpio);
+#endif
 }
 
 #else
