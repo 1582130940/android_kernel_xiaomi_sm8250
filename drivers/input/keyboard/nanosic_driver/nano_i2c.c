@@ -215,6 +215,7 @@ int Nanosic_i2c_write(struct nano_i2c_client *i2c_client, void *buf, size_t len)
 		return -1;
 	}
 
+	Nanosic_PM_try_wakeup();
 	adap = i2c_get_adapter(i2c_client->i2c_bus_id);
 
 	tmp_buf[0] = i2c_client->i2c_slave_addr;
@@ -383,6 +384,7 @@ int Nanosic_i2c_read_handler(void *data)
 		return -1;
 	}
 
+	Nanosic_PM_try_wakeup();
 	datalen = Nanosic_i2c_read(i2c_client, buf, sizeof(buf));
 	if (datalen > 0) {
 		Nanosic_i2c_parse(buf, datalen);

@@ -46,8 +46,8 @@ bool g_panel_status = false; /*1:on, 0:off*/
  ** */
 irqreturn_t Nanosic_wakeup_irq(int irq, void *dev_id)
 {
-	if (g_panel_status == false) {
-		pm_wakeup_event(gI2c_client->dev, 0);
+	if (g_panel_status == false && gI2c_client != NULL) {
+		pm_wakeup_event(gI2c_client->dev, 1000);
 
 		spin_lock(&gI2c_client->input_report_lock);
 
@@ -339,15 +339,39 @@ int Nanosic_GPIO_recovery(struct nano_i2c_client *client, char *data,
  ** */
 void Nanosic_GPIO_sleep(bool sleep)
 {
+	static int status = -1;
+
 	if (registered == false) {
 		dbgprint(ERROR_LEVEL, "need register first\n");
 		return;
 	}
 
+	if ((status == 0 && sleep == false) || (status == 1 && sleep == true)) {
+		return;
+	}
+
 	/*GPIO_SLEEP set*/
 	gpio_set_value(gpio_sleep_pin, sleep);
-	g_panel_status = sleep;
-	dbgprint(DEBUG_LEVEL, "set gpio sleep pin %d\n", sleep);
+	/*update sleep status*/
+	status = sleep ? 1 : 0;
+	dbgprint(INFO_LEVEL, "set gpio sleep pin %d\n", sleep);
+}
+
+int Nanosic_GPIO_irqget(void)
+{
+	return gpio_irq_pin;
+}
+
+void Nanosic_GPIO_reset(void)
+{
+	// output reset pin 0 for 100ms
+	gpio_set_value(gpio_reset_pin, 0);
+	mdelay(100);
+	gpio_set_value(gpio_reset_pin, 1);
+
+	// delay 500ms for iic ready
+	mdelay(500);
+	dbgprint(ALERT_LEVEL, "reset wn8030\n");
 }
 
 /** ************************************************************************/ /**
@@ -403,7 +427,7 @@ int Nanosic_Hall_notify(int hall_n_pin, int hall_s_pin)
 */
 	hall_n_value = gpio_get_value(hall_n_pin);
 	hall_s_value = gpio_get_value(hall_s_pin);
-	dbgprint(DEBUG_LEVEL, "hall_n:%d hall_s:%d\n", hall_n_value,
+	dbgprint(INFO_LEVEL, "hall_n:%d hall_s:%d\n", hall_n_value,
 		 hall_s_value);
 
 	spin_lock(&gI2c_client->input_report_lock);
@@ -421,7 +445,7 @@ int Nanosic_Hall_notify(int hall_n_pin, int hall_s_pin)
 	err = Nanosic_chardev_client_write(hall_data, sizeof(hall_data));
 
 	dbgprint(
-		DEBUG_LEVEL,
+		INFO_LEVEL,
 		"Hall notify, err:%d report 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n",
 		err, hall_data[0], hall_data[1], hall_data[2], hall_data[3],
 		hall_data[4], hall_data[5], hall_data[6], hall_data[7],
@@ -450,7 +474,7 @@ int Nanosic_RequestGensor_notify(void)
 				sizeof(requestgensor_data));
 
 	dbgprint(
-		DEBUG_LEVEL,
+		INFO_LEVEL,
 		"Nanosic_RequestGensor_notify, err:%d report 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n",
 		err, requestgensor_data[0], requestgensor_data[1],
 		requestgensor_data[2], requestgensor_data[3],
