@@ -487,6 +487,12 @@ struct kgsl_process_private {
 	 * @cmd_count: The number of cmds that are active for the process
 	 */
 	atomic_t cmd_count;
+#ifdef CONFIG_MACH_XIAOMI
+	/**
+	 * @private_mutex: Mutex lock to protect kgsl_process_private
+	 */
+	struct mutex private_mutex;
+#endif
 };
 
 /**

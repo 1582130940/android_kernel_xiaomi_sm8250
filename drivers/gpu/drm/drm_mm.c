@@ -118,7 +118,11 @@ static noinline void save_stack(struct drm_mm_node *node)
 		trace.nr_entries--;
 
 	/* May be called under spinlock, so avoid sleeping */
+#ifdef CONFIG_MACH_XIAOMI
+	node->stack = depot_save_stack(&trace, GFP_NOWAIT, 0);
+#else
 	node->stack = depot_save_stack(&trace, GFP_NOWAIT);
+#endif
 }
 
 static void show_leaks(struct drm_mm *mm)

@@ -7,6 +7,9 @@
 #include <uapi/linux/sched/types.h>
 #include <linux/ctype.h>
 #include <linux/debugfs.h>
+#ifdef CONFIG_MACH_XIAOMI
+#include <linux/delay.h>
+#endif
 #include <linux/dma-buf.h>
 #include <linux/fdtable.h>
 #include <linux/io.h>
@@ -237,6 +240,9 @@ static struct kgsl_mem_entry *kgsl_mem_entry_create(void)
 		atomic_set(&entry->map_count, 0);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	atomic_set(&entry->map_count, 0);
+#endif
 	return entry;
 }
 
@@ -980,7 +986,22 @@ static struct kgsl_process_private *kgsl_process_private_new(
 	list_for_each_entry(private, &kgsl_driver.process_list, list) {
 		if (private->pid == cur_pid) {
 			if (!kgsl_process_private_get(private)) {
+#ifdef CONFIG_MACH_XIAOMI
+				/*
+				* This will happen only if refcount is zero
+				* i.e. destroy is triggered but didn't complete
+				* yet. Return -EEXIST to indicate caller that
+				* destroy is pending to allow caller to take
+				* appropriate action.
+				*/
+				private = ERR_PTR(-EEXIST);
+			} else {
+				mutex_lock(&private->private_mutex);
+				private->fd_count++;
+				mutex_unlock(&private->private_mutex);
+#else
 				private = ERR_PTR(-EINVAL);
+#endif
 			}
 			/*
 			 * We need to hold only one reference to the PID for
@@ -1001,6 +1022,9 @@ static struct kgsl_process_private *kgsl_process_private_new(
 
 	kref_init(&private->refcount);
 
+#ifdef CONFIG_MACH_XIAOMI
+	private->fd_count = 1;
+#endif
 	private->pid = cur_pid;
 	get_task_comm(private->comm, current->group_leader);
 
@@ -1093,7 +1117,43 @@ static void kgsl_process_private_close(struct kgsl_device_private *dev_priv,
 	kgsl_process_private_put(private);
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+static struct kgsl_process_private *_process_private_open(
+		struct kgsl_device *device)
+{
+	struct kgsl_process_private *private;
 
+	mutex_lock(&kgsl_driver.process_mutex);
+	private = kgsl_process_private_new(device);
+	mutex_unlock(&kgsl_driver.process_mutex);
+
+	return private;
+}
+
+static struct kgsl_process_private *kgsl_process_private_open(
+		struct kgsl_device *device)
+{
+	struct kgsl_process_private *private;
+	int i;
+
+	private = _process_private_open(device);
+
+	/*
+	 * If we get error and error is -EEXIST that means previous process
+	 * private destroy is triggered but didn't complete. Retry creating
+	 * process private after sometime to allow previous destroy to complete.
+	 */
+	for (i = 0; (PTR_ERR_OR_ZERO(private) == -EEXIST) && (i < 100); i++) {
+		usleep_range(10, 100);
+		private = _process_private_open(device);
+	}
+	if (i >= 100) {
+		pr_info("kgsl: kgsl_process_private_open times = %d\n", i);
+	}
+
+	return private;
+}
+#else
 static struct kgsl_process_private *kgsl_process_private_open(
 		struct kgsl_device *device)
 {
@@ -1118,6 +1178,7 @@ done:
 	mutex_unlock(&kgsl_driver.process_mutex);
 	return private;
 }
+#endif
 
 static int kgsl_close_device(struct kgsl_device *device)
 {
