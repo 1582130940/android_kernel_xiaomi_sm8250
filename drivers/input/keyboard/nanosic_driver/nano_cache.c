@@ -56,10 +56,10 @@ void Nanosic_cache_expire(struct timer_list *t)
 	cahae_buffer_t *cache_node;
 	__u8 read_pos;
 
-	dbgprint(DEBUG_LEVEL, "cache time expire\n");
+	dbgprint(INFO_LEVEL, "cache time expire\n");
 
 	if (IS_ERR_OR_NULL(input_cache)) {
-		dbgprint(DEBUG_LEVEL, "invalid cache struct\n");
+		dbgprint(ERROR_LEVEL, "invalid cache struct\n");
 		return;
 	}
 
@@ -93,7 +93,7 @@ int Nanosic_cache_put(void)
 	__u8 read_pos;
 
 	if (IS_ERR_OR_NULL(input_cache)) {
-		dbgprint(DEBUG_LEVEL, "invalid cache struct\n");
+		dbgprint(ERROR_LEVEL, "invalid cache struct\n");
 		return 0;
 	}
 
@@ -139,17 +139,17 @@ int Nanosic_cache_insert(EM_PacketType type, void *data, size_t datalen)
 
 	if (input_cache->cache_cnt < MAX_CACHE_BLOCKS) {
 		write_pos = input_cache->cache_write_pos % MAX_CACHE_BLOCKS;
-		dbgprint(DEBUG_LEVEL, "cache write_pos %d\n", write_pos);
+		dbgprint(INFO_LEVEL, "cache write_pos %d\n", write_pos);
 		memcpy(input_cache->cache_buf[write_pos].data, data, datalen);
 		input_cache->cache_buf[write_pos].datalen = datalen;
 		input_cache->cache_buf[write_pos].type = type;
 		input_cache->cache_write_pos++;
 		input_cache->cache_cnt++;
 		mod_timer(&input_cache->cache_timer, jiffies + 2 * HZ);
-		dbgprint(DEBUG_LEVEL, "cache time update\n");
+		dbgprint(INFO_LEVEL, "cache time update\n");
 	} else {
 		ret = -1;
-		dbgprint(DEBUG_LEVEL, "cache is full\n");
+		dbgprint(INFO_LEVEL, "cache is full\n");
 	}
 	spin_unlock(&input_cache->cache_spinlock);
 
@@ -175,7 +175,7 @@ int Nanosic_cache_init(void)
 #else
 	timer_setup(&input_cache->cache_timer, Nanosic_cache_expire, 0);
 #endif
-	dbgprint(DEBUG_LEVEL, "cache init ok\n");
+	dbgprint(INFO_LEVEL, "cache init ok\n");
 
 	return 0;
 }
@@ -193,6 +193,6 @@ int Nanosic_cache_release(void)
 	if (timer_pending(&input_cache->cache_timer)) {
 		del_timer(&input_cache->cache_timer);
 	}
-	dbgprint(DEBUG_LEVEL, "cache release ok\n");
+	dbgprint(INFO_LEVEL, "cache release ok\n");
 	return 0;
 }

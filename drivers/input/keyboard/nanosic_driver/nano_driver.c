@@ -109,6 +109,9 @@ static int nanosic_803_probe(struct i2c_client *client,
         return -1;
     }
 #endif
+	/*initialize 8030 pm*/
+	Nanosic_PM_init();
+
 	/*initialize i2c module*/
 	I2client = Nanosic_i2c_register(irq_pin, irq_flags, client->adapter->nr,
 					client->addr);
@@ -118,6 +121,9 @@ static int nanosic_803_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, I2client);
 	gI2c_client = I2client;
 	gI2c_client->dev = &(client->dev);
+
+	/*i2c device can wakeup system*/
+	device_init_wakeup(gI2c_client->dev, 1);
 
 	xiaomi_keyboard_init(I2client);
 	/*initialize timer for test*/
@@ -135,6 +141,7 @@ static int nanosic_803_probe(struct i2c_client *client,
 
 _err4:
 	Nanosic_cache_release();
+	device_init_wakeup(gI2c_client->dev, 0);
 _err3:
 	Nanosic_input_release();
 _err2:
@@ -153,6 +160,8 @@ static int nanosic_803_remove(struct i2c_client *client)
 
 	I2client = i2c_get_clientdata(client);
 
+	Nanosic_PM_free();
+
 	/*release chardev module*/
 	Nanosic_chardev_release();
 
@@ -168,6 +177,8 @@ static int nanosic_803_remove(struct i2c_client *client)
 	Nanosic_GPIO_release();
 
 	Nanosic_cache_release();
+
+	device_init_wakeup(gI2c_client->dev, 0);
 
 	initial = false;
 
@@ -255,6 +266,28 @@ err_register_drm_notif_failed:
 	return ret;
 }
 
+static int Nanosic_state_write(Screen_StatusType state)
+{
+	int i = 0, ret = 0;
+	struct nano_i2c_client *I2c_client = gI2c_client;
+	char cmd[I2C_DATA_LENGTH_WRITE] = { 0x32, 0x00,	      0x4E, 0x31,
+					    0x80, FIELD_176X, 0x25, 0x01 };
+
+	if (IS_ERR_OR_NULL(I2c_client)) {
+		goto err_I2c_client;
+	}
+
+	cmd[SCREEN_STATUS_OFFSET] = (char)state;
+	for (i = 2; i < SCREEN_DATA_LENGTH; i++) {
+		cmd[SCREEN_DATA_LENGTH] += cmd[i];
+	} /*cal sum*/
+	rawdata_show("write screen state cmd", cmd, sizeof(cmd));
+	ret = Nanosic_i2c_write(I2c_client, cmd, sizeof(cmd));
+
+err_I2c_client:
+	return ret;
+}
+
 static void keyboard_resume_work(struct work_struct *work)
 {
 	int ret = 0;
@@ -265,6 +298,7 @@ static void keyboard_resume_work(struct work_struct *work)
 			 "keyboard_resume_work: Nanosic_cache_put err:%d\n",
 			 ret);
 	Nanosic_GPIO_sleep(true);
+	g_panel_status = true;
 	Nanosic_workQueue_schedule(gI2c_client->worker);
 	ret = Nanosic_RequestGensor_notify();
 	if (ret < 0)
@@ -283,6 +317,7 @@ static void keyboard_suspend_work(struct work_struct *work)
 {
 	dbgprint(ALERT_LEVEL, "keyboard_suspend_work: enter\n");
 	Nanosic_GPIO_sleep(false);
+	g_panel_status = false;
 }
 
 static int xiaomi_keyboard_pm_suspend(struct device *dev)
@@ -344,6 +379,7 @@ static int xiaomi_keyboard_remove(void)
 static int keyboard_drm_notifier_callback(struct notifier_block *self,
 					  unsigned long event, void *data)
 {
+	int ret = 0;
 	struct mi_drm_notifier *evdata = data;
 	int *blank;
 	struct xiaomi_keyboard_data *mdata =
@@ -356,21 +392,33 @@ static int keyboard_drm_notifier_callback(struct notifier_block *self,
 		blank = evdata->data;
 		flush_workqueue(mdata->event_wq);
 		if (event == MI_DRM_EARLY_EVENT_BLANK) {
-			if (*blank == MI_DRM_BLANK_POWERDOWN) {
+			if (*blank == MI_DRM_BLANK_UNBLANK) {
+				dbgprint(
+					ALERT_LEVEL,
+					"keyboard_drm_notifier_callback keyboard early resume");
+				flush_workqueue(mdata->event_wq);
+				queue_work(mdata->event_wq,
+					   &mdata->resume_work);
+			} else if (*blank == MI_DRM_BLANK_POWERDOWN) {
+				ret = Nanosic_state_write(SCREEN_OFF);
+				dbgprint(
+					ALERT_LEVEL,
+					"keyboard_drm_notifier_callback keyboard early suspend: write screen off:%d\n",
+					ret);
+			}
+		} else if (event == MI_DRM_EVENT_BLANK) {
+			if (*blank == MI_DRM_BLANK_UNBLANK) {
+				ret = Nanosic_state_write(SCREEN_ON);
+				dbgprint(
+					ALERT_LEVEL,
+					"keyboard_drm_notifier_callback keyboard resume: write screen on:%d\n",
+					ret);
+			} else if (*blank == MI_DRM_BLANK_POWERDOWN) {
 				dbgprint(
 					ALERT_LEVEL,
 					"keyboard_drm_notifier_callback keyboard suspend");
 				queue_work(mdata->event_wq,
 					   &mdata->suspend_work);
-			}
-		} else if (event == MI_DRM_EVENT_BLANK) {
-			if (*blank == MI_DRM_BLANK_UNBLANK) {
-				dbgprint(
-					ALERT_LEVEL,
-					"keyboard_drm_notifier_callback keyboard resume");
-				flush_workqueue(mdata->event_wq);
-				queue_work(mdata->event_wq,
-					   &mdata->resume_work);
 			}
 		}
 	}

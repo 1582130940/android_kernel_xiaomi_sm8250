@@ -19,7 +19,7 @@
 #include <linux/rtc.h>
 
 /*SDK版本号*/
-#define DRV_VERSION "1.3.2"
+#define DRV_VERSION "1.3.3"
 
 #define DRV_TOKEN "nanodev"
 
@@ -104,6 +104,15 @@ typedef enum {
 	EM_PACKET_UNKOWN, /*未知*/
 } EM_PacketType;
 ;
+
+/*screen status*/
+typedef enum {
+	SCREEN_OFF,
+	SCREEN_ON,
+} Screen_StatusType;
+
+#define SCREEN_DATA_LENGTH (9)
+#define SCREEN_STATUS_OFFSET (8)
 
 /*
  * Logging and Debugging
@@ -230,7 +239,7 @@ static inline void rawdata_show(const char *descp, char *buf, size_t size)
 	}
 	strcat(display, "]]]");
 
-	dbgprint(DEBUG_LEVEL, "%s -> %s\n", descp, display);
+	dbgprint(INFO_LEVEL, "%s -> %s\n", descp, display);
 }
 
 extern int Nanosic_chardev_register(void);
@@ -271,12 +280,17 @@ extern int Nanosic_Hall_notify(int hall_n_pin, int hall_s_pin);
 extern int Nanosic_RequestGensor_notify(void);
 extern void Nanosic_GPIO_release(void);
 extern void Nanosic_GPIO_sleep(bool sleep);
+extern int Nanosic_GPIO_irqget(void);
+extern void Nanosic_GPIO_reset(void);
 extern void Nanosic_GPIO_set(int gpio_pin, bool gpio_level);
 extern void Nanosic_cache_expire(struct timer_list *t);
 extern int Nanosic_cache_insert(EM_PacketType type, void *data, size_t datalen);
 extern int Nanosic_cache_init(void);
 extern int Nanosic_cache_release(void);
 extern int Nanosic_cache_put(void);
+extern void Nanosic_PM_init(void);
+extern void Nanosic_PM_free(void);
+extern void Nanosic_PM_try_wakeup(void);
 
 extern char gVers803x[21];
 extern char gVers176x[21];
