@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 menu "Device Drivers"
 
+source "drivers/airoha/Kconfig"
+
 source "drivers/amba/Kconfig"
 
 source "drivers/base/Kconfig"
