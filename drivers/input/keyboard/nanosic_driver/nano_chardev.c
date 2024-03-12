@@ -180,7 +180,7 @@ int Nanosic_chardev_client_write(char *data, size_t datalen)
 					 datalen;
 			memcpy(client->buffer[pos].data, data, length);
 			client->buffer[pos].datalen = length;
-			dbgprint(DEBUG_LEVEL, "current length %d\n", length);
+			dbgprint(INFO_LEVEL, "current length %d\n", length);
 			client->write_pos = pos;
 			wake_up_interruptible(&client->waitq);
 			//dbgprint(DEBUG_LEVEL,"update write_pos %d\n",client->write_pos);
@@ -369,7 +369,7 @@ static ssize_t Nanosic_chardev_fops_read(struct file *file, char __user *user,
 _out:
 	spin_unlock(&client_registry_lock);
 	/*size_t 使用%zu进行打印*/
-	dbgprint(DEBUG_LEVEL, "retval %d\n", retval);
+	dbgprint(INFO_LEVEL, "retval %d\n", retval);
 
 	mutex_unlock(&client->read_mutex);
 

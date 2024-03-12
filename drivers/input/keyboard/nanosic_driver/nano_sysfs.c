@@ -27,7 +27,7 @@
 #include <linux/kdev_t.h>
 #include "nano_macro.h"
 
-int debuglevel = 7;
+int debuglevel = INFO_LEVEL;
 
 /** ************************************************************************/ /**
  * @func debuglevel_show
@@ -51,12 +51,15 @@ static ssize_t debuglevel_store(struct device *dev,
 {
 	int ret;
 	unsigned int i;
+	char debuglevel_data[16] = { 0x27, 0x00, 0xFF, 0xFF };
 
 	ret = kstrtouint(buf, 10, &i);
 	if (ret)
 		return 0;
 
 	debuglevel = i;
+	debuglevel_data[1] = (char)i;
+	Nanosic_chardev_client_write(debuglevel_data, 16);
 
 	return count;
 }
@@ -371,6 +374,41 @@ static ssize_t dispatch_keycode_store(struct device *dev,
 	return count;
 }
 
+/** ************************************************************************/ /**
+ * @func _reset8030
+ *
+ * @brief null
+ ** */
+static ssize_t reset_8030_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "Usage: echo 1 > _reset8030\n");
+}
+
+/** ************************************************************************/ /**
+ * @func _reset8030
+ *
+ * @brief reset wn8030
+ ** */
+static ssize_t reset_8030_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	int ret;
+	unsigned int cmd;
+
+	ret = kstrtouint(buf, 10, &cmd);
+	if (ret) {
+		return 0;
+	}
+
+	if (cmd == 1) {
+		Nanosic_GPIO_reset();
+	}
+
+	return count;
+}
+
 /*设置调试级别*/
 static DEVICE_ATTR(_debuglevel, 0600, debuglevel_show, debuglevel_store);
 
@@ -395,6 +433,9 @@ static DEVICE_ATTR(_sleep803x, 0600, sleep_803x_show, sleep_803x_store);
 
 /*gpio set method*/
 static DEVICE_ATTR(_gpioset, 0600, gpio_set_show, gpio_set_store);
+
+/*reset 8030*/
+static DEVICE_ATTR(_reset8030, 0600, reset_8030_show, reset_8030_store);
 
 static struct device_attribute *sysfs_device_attr_debuglevel = {
 	&dev_attr__debuglevel,
@@ -428,6 +469,10 @@ static struct device_attribute *sysfs_device_attr_gpio_set = {
 	&dev_attr__gpioset,
 };
 
+static struct device_attribute *sysfs_device_attr_reset_8030 = {
+	&dev_attr__reset8030,
+};
+
 /** ************************************************************************/ /**
  * @func Nanosic_Sysfs_create
  *
@@ -451,6 +496,8 @@ void Nanosic_sysfs_create(struct device *dev)
 	device_create_file(dev, sysfs_device_attr_sleep_803x);
 	/* Create /sys/class/nanodev/nanodev0/_gpioset*/
 	device_create_file(dev, sysfs_device_attr_gpio_set);
+	/* Create /sys/class/nanodev/nanodev0/_reset8030*/
+	device_create_file(dev, sysfs_device_attr_reset_8030);
 }
 
 /** ************************************************************************/ /**
@@ -468,4 +515,5 @@ void Nanosic_sysfs_release(struct device *dev)
 	device_remove_file(dev, sysfs_device_attr_version_176x);
 	device_remove_file(dev, sysfs_device_attr_sleep_803x);
 	device_remove_file(dev, sysfs_device_attr_gpio_set);
+	device_remove_file(dev, sysfs_device_attr_reset_8030);
 }
