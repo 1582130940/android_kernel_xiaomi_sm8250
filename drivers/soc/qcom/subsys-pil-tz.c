@@ -24,6 +24,9 @@
 
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
+#ifdef CONFIG_MACH_XIAOMI
+#include <linux/signal.h>
+#endif
 
 #include "peripheral-loader.h"
 
@@ -614,6 +617,10 @@ static int pil_init_image_trusted(struct pil_desc *pil,
 	void *mdata_buf;
 	int ret;
 	struct scm_desc desc = {0};
+#ifdef CONFIG_MACH_XIAOMI
+	sigset_t new_sigset;
+	sigset_t old_sigset;
+#endif
 	struct pil_map_fw_info map_fw_info = {
 		.attrs = pil->attrs,
 		.region = region,
@@ -629,7 +636,21 @@ static int pil_init_image_trusted(struct pil_desc *pil,
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_MACH_XIAOMI
+	/* Initialize the new signal mask with all signals*/
+	sigfillset(&new_sigset);
+
+	/* Block all signals */
+	sigprocmask(SIG_SETMASK, &new_sigset, &old_sigset);
+#endif
+
 	mdata_buf = pil->map_fw_mem(mdata_phys, size, map_data);
+
+#ifdef CONFIG_MACH_XIAOMI
+	/* Restore signal mask */
+	sigprocmask(SIG_SETMASK, &old_sigset, NULL);
+#endif
+
 	if (!mdata_buf) {
 		dev_err(pil->dev, "Failed to map memory for metadata.\n");
 		scm_pas_disable_bw();
