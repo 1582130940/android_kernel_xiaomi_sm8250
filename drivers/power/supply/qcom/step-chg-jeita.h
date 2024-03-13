@@ -6,13 +6,24 @@
 #ifndef __STEP_CHG_H__
 #define __STEP_CHG_H__
 
+#ifdef CONFIG_MACH_XIAOMI
+#define MAX_STEP_CHG_ENTRIES	6
+#define MAX_COLD_STEP_CHG_ENTRIES	2
+#define BATT_COOL_THRESHOLD		150
+#define BATT_WARM_THRESHOLD		450
+#else
 #define MAX_STEP_CHG_ENTRIES	8
+#endif
 
 struct step_chg_jeita_param {
 	u32			psy_prop;
 	char			*prop_name;
+#ifdef CONFIG_MACH_XIAOMI
+	int			hysteresis;
+#else
 	int			rise_hys;
 	int			fall_hys;
+#endif
 	bool			use_bms;
 };
 
