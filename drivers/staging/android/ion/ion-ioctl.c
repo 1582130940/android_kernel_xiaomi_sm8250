@@ -75,9 +75,22 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		int fd;
 
+#ifdef CONFIG_MACH_XIAOMI
+		if (data.allocation.unused > 0) {
+			fd = ion_alloc_fd_with_caller_pid(
+				data.allocation.len,
+				data.allocation.heap_id_mask,
+				data.allocation.flags, data.allocation.unused);
+		} else {
+			fd = ion_alloc_fd(data.allocation.len,
+					  data.allocation.heap_id_mask,
+					  data.allocation.flags);
+		}
+#else
 		fd = ion_alloc_fd(data.allocation.len,
 				  data.allocation.heap_id_mask,
 				  data.allocation.flags);
+#endif
 		if (fd < 0)
 			return fd;
 
