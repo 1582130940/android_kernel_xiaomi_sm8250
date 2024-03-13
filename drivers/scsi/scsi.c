@@ -68,6 +68,9 @@
 
 #include "scsi_priv.h"
 #include "scsi_logging.h"
+#ifdef CONFIG_MACH_XIAOMI
+#include "ufs/ufshcd.h"
+#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/scsi.h>
