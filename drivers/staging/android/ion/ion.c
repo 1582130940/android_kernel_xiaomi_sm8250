@@ -1034,7 +1034,11 @@ static const struct dma_buf_ops dma_buf_ops = {
 };
 
 struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
+#ifdef CONFIG_MACH_XIAOMI
+				 unsigned int flags, int pid_info)
+#else
 				 unsigned int flags)
+#endif
 {
 	struct ion_device *dev = internal_dev;
 	struct ion_buffer *buffer = NULL;
@@ -1042,6 +1046,13 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	struct dma_buf *dmabuf;
 	char task_comm[TASK_COMM_LEN];
+#ifdef CONFIG_MACH_XIAOMI
+	char caller_task_comm[TASK_COMM_LEN];
+	bool camera_heap_found = false;
+	struct task_struct *p = current->group_leader;
+	unsigned int system_heap_id = ION_HEAP(ION_SYSTEM_HEAP_ID);
+	unsigned int system_heap_id1 = ION_HEAP(ION_SYSTEM_HEAP_ID) | ION_HEAP(ION_CAMERA_HEAP_ID);
+#endif
 
 	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
 		 len, heap_id_mask, flags);
@@ -1055,6 +1066,37 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 
 	if (!len)
 		return ERR_PTR(-EINVAL);
+
+#ifdef CONFIG_MACH_XIAOMI
+	down_read(&dev->lock);
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		if ((1 << heap->id) & (1 << ION_CAMERA_HEAP_ID))
+			camera_heap_found = true;
+		}
+	up_read(&dev->lock);
+
+	if (pid_info <= 0) {
+		get_task_comm(task_comm, p);
+		if (strstr(task_comm, "provider@") || strstr(task_comm, ".android.camera")) {
+			if ((heap_id_mask == system_heap_id || heap_id_mask == system_heap_id1) && camera_heap_found == true)
+				heap_id_mask = 1 << ION_CAMERA_HEAP_ID;
+		}
+	} else {
+		get_task_comm(task_comm, p);
+		p = find_get_task_by_vpid(pid_info);
+		if (p) {
+			get_task_comm(caller_task_comm, p);
+			put_task_struct(p);
+		} else {
+			p = current->group_leader;
+			get_task_comm(caller_task_comm, p);
+		}
+		if (strstr(caller_task_comm, "provider@") || strstr(caller_task_comm, ".android.camera")) {
+			if ((heap_id_mask == system_heap_id || heap_id_mask == system_heap_id1) && camera_heap_found == true)
+                                heap_id_mask = 1 << ION_CAMERA_HEAP_ID;
+		}
+	}
+#endif
 
 	down_read(&dev->lock);
 	plist_for_each_entry(heap, &dev->heaps, node) {
@@ -1073,14 +1115,26 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	if (IS_ERR(buffer))
 		return ERR_CAST(buffer);
 
+#ifndef CONFIG_MACH_XIAOMI
 	get_task_comm(task_comm, current->group_leader);
+#endif
 
 	exp_info.ops = &dma_buf_ops;
 	exp_info.size = buffer->size;
 	exp_info.flags = O_RDWR;
 	exp_info.priv = buffer;
+#ifdef CONFIG_MACH_XIAOMI
+	if (pid_info <= 0) {
+		exp_info.exp_name = kasprintf(GFP_KERNEL, "%s-%s-%d-%s", KBUILD_MODNAME,
+				      heap->name, current->tgid, task_comm);
+	} else {
+		exp_info.exp_name = kasprintf(GFP_KERNEL, "%s-%s-%d-%s-caller|%d-%s|", KBUILD_MODNAME,
+				      heap->name, current->tgid, task_comm, pid_info, caller_task_comm);
+	}
+#else
 	exp_info.exp_name = kasprintf(GFP_KERNEL, "%s-%s-%d-%s", KBUILD_MODNAME,
 				      heap->name, current->tgid, task_comm);
+#endif
 
 	dmabuf = dma_buf_export(&exp_info);
 	if (IS_ERR(dmabuf)) {
@@ -1113,7 +1167,13 @@ struct dma_buf *ion_alloc(size_t len, unsigned int heap_id_mask,
 		if (heap->type == ION_HEAP_TYPE_SYSTEM ||
 		    heap->type == (enum ion_heap_type)ION_HEAP_TYPE_HYP_CMA ||
 		    heap->type ==
+#ifdef CONFIG_MACH_XIAOMI
+			(enum ion_heap_type)ION_HEAP_TYPE_SYSTEM_SECURE ||
+			heap->type ==
+			(enum ion_heap_type)ION_HEAP_TYPE_CAMERA) {
+#else
 			(enum ion_heap_type)ION_HEAP_TYPE_SYSTEM_SECURE) {
+#endif
 			type_valid = true;
 		} else {
 			pr_warn("%s: heap type not supported, type:%d\n",
@@ -1126,7 +1186,11 @@ struct dma_buf *ion_alloc(size_t len, unsigned int heap_id_mask,
 	if (!type_valid)
 		return ERR_PTR(-EINVAL);
 
+#ifdef CONFIG_MACH_XIAOMI
+	return ion_alloc_dmabuf(len, heap_id_mask, flags, 0);
+#else
 	return ion_alloc_dmabuf(len, heap_id_mask, flags);
+#endif
 }
 EXPORT_SYMBOL(ion_alloc);
 
@@ -1135,7 +1199,11 @@ int ion_alloc_fd(size_t len, unsigned int heap_id_mask, unsigned int flags)
 	int fd;
 	struct dma_buf *dmabuf;
 
+#ifdef CONFIG_MACH_XIAOMI
+	dmabuf = ion_alloc_dmabuf(len, heap_id_mask, flags, 0);
+#else
 	dmabuf = ion_alloc_dmabuf(len, heap_id_mask, flags);
+#endif
 	if (IS_ERR(dmabuf))
 		return PTR_ERR(dmabuf);
 
@@ -1145,6 +1213,24 @@ int ion_alloc_fd(size_t len, unsigned int heap_id_mask, unsigned int flags)
 
 	return fd;
 }
+
+#ifdef CONFIG_MACH_XIAOMI
+int ion_alloc_fd_with_caller_pid(size_t len, unsigned int heap_id_mask, unsigned int flags, int pid_info)
+{
+	int fd;
+	struct dma_buf *dmabuf;
+
+	dmabuf = ion_alloc_dmabuf(len, heap_id_mask, flags, pid_info);
+	if (IS_ERR(dmabuf))
+		return PTR_ERR(dmabuf);
+
+	fd = dma_buf_fd(dmabuf, O_CLOEXEC);
+	if (fd < 0)
+		dma_buf_put(dmabuf);
+
+	return fd;
+}
+#endif
 
 int ion_query_heaps(struct ion_heap_query *query)
 {
