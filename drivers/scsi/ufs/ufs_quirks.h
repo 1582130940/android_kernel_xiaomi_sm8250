@@ -157,6 +157,7 @@ struct ufs_dev_fix {
 #define UFS_DEVICE_QUIRK_WAIT_AFTER_REF_CLK_UNGATE	(1 << 11)
 
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * Few samsung UFS device models advertise PA_HIBERN8TIME as
  * 200us during handshaking in link establishment b/w host and device but
@@ -165,6 +166,7 @@ struct ufs_dev_fix {
  * 300us even if device advertises PA_HIBERN8TIME of 200us.
  */
 #define UFS_DEVICE_QUIRK_PA_HIBER8TIME   (1 << 12)
+#endif
 
 
 #endif /* UFS_QUIRKS_H_ */
