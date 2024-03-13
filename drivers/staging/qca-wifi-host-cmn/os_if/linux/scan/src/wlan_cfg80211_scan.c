@@ -43,6 +43,9 @@
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "host_diag_core_event.h"
 #endif
+#ifdef CONFIG_MACH_XIAOMI
+#include "wlan_hdd_scan.h"
+#endif
 
 static const
 struct nla_policy scan_policy[QCA_WLAN_VENDOR_ATTR_SCAN_MAX + 1] = {
@@ -1065,6 +1068,13 @@ static void wlan_cfg80211_scan_done_callback(
 		osif_err("Failed to get vdev reference: scan Id: %d", scan_id);
 		goto allow_suspend;
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+#ifdef CFG_SUPPORT_SCAN_EXT_FLAG
+	/* restore latency mode after scan */
+	hdd_scan_event_callback(netdev);
+#endif
+#endif
 
 	/*
 	 * Scan can be triggred from NL or vendor scan
