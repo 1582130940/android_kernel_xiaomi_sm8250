@@ -1177,6 +1177,9 @@ enum qdisc_filter_status {
 				 for the adapter.
  * @gro_disallowed: Flag to check if GRO is enabled or disable for adapter
  * @gro_flushed: Flag to indicate if GRO explicit flush is done or not
+#if defined(CONFIG_MACH_XIAOMI_DAGU) || defined(CONFIG_MACH_XIAOMI_ELISH) || defined(CONFIG_MACH_XIAOMI_ENUMA)
+ * @install_key_complete: Completion variable for wlan install key
+#endif
  * @delete_in_progress: Flag to indicate that the adapter delete is in
  *			progress, and any operation using rtnl lock inside
  *			the driver can be avoided/skipped.
@@ -1482,8 +1485,16 @@ struct hdd_adapter {
 	qdf_work_t netdev_features_update_work;
 	qdf_atomic_t gro_disallowed;
 	uint8_t gro_flushed[DP_MAX_RX_THREADS];
+#if defined(CONFIG_MACH_XIAOMI_DAGU) || defined(CONFIG_MACH_XIAOMI_ELISH) || defined(CONFIG_MACH_XIAOMI_ENUMA)
+	qdf_event_t install_key_complete;
+#endif
 	bool delete_in_progress;
 	qdf_atomic_t net_dev_hold_ref_count[NET_DEV_HOLD_ID_MAX];
+#ifdef CONFIG_MACH_XIAOMI
+#ifdef CFG_SUPPORT_SCAN_EXT_FLAG
+	uint8_t scan_ext_flag;
+#endif
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(adapter) (&(adapter)->session.station)
@@ -4764,5 +4775,27 @@ void hdd_init_start_completion(void);
  * Return: None
  */
 void hdd_netdev_update_features(struct hdd_adapter *adapter);
+
+#if defined(CONFIG_MACH_XIAOMI_DAGU) || defined(CONFIG_MACH_XIAOMI_ELISH) || defined(CONFIG_MACH_XIAOMI_ENUMA)
+/**
+ * hdd_start_install_key - indicate install key start
+ * @adapter: Adapter upon which the command was received
+ *
+ * This func indicates install key start.
+ *
+ * Return: None
+ */
+void hdd_start_install_key(struct hdd_adapter *adapter);
+
+/**
+ * hdd_wait_for_install_key_complete - wait for result of install key
+ * @adapter: Adapter upon which the command was received
+ *
+ * This func waits until install key complete/timeout.
+ *
+ * Return: 0 on success and errno on failure
+ */
+int hdd_wait_for_install_key_complete(struct hdd_adapter *adapter);
+#endif
 
 #endif /* end #if !defined(WLAN_HDD_MAIN_H) */
