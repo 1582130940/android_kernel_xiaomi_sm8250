@@ -418,6 +418,42 @@ CFG_INI_UINT("gDualMacFeatureDisable", 0, 6, 6, CFG_VALUE_OR_DEFAULT, \
 CFG_INI_UINT("g_sta_sap_scc_on_dfs_chan", 0, 2, 2, CFG_VALUE_OR_DEFAULT, \
 	     "Allow STA+SAP SCC on DFS channel with master mode disable")
 
+#ifdef CONFIG_MACH_XIAOMI
+/*
+ * <ini>
+ * mi_sap_only_allow_sta_dfs_indoor_chan - Only when mac is already working
+ * in the dfs/indoor channel, sap are allowed to work in the same channel.
+ * @Min: 0
+ * @Max: 1
+ * @Default: 1
+ *
+ * One of wlan interface work on dfs channel or indoor channel,
+ * then, sap can work on this channel.
+ * If not, dfs and indoor channels cannot be used by sap.
+ *
+ * 0 - No restrictions on dfs/indoor channels.
+ * 1 - Only when mac is already working in the dfs/indoor channel,
+ * sap are allowed to work in the same channel. Note that
+ * need to enable three related configurations
+ *
+ * Related:
+ * gEnableDFSMasterCap=1
+ * g_sta_sap_scc_on_dfs_chan=2
+ * gindoor_channel_support=1
+
+ *
+ * Supported Feature: Non-DBS, DBS
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_SAP_ONLY_ALLOW_STA_DFS_INDOOR_CHAN \
+CFG_INI_UINT("mi_sap_only_allow_sta_dfs_indoor_chan", 0, 1, 1, CFG_VALUE_OR_DEFAULT, \
+	     "Do not allow go/p2p to work on dfs/indoor chan outside mac working freq")
+#endif
+
 /*
  * <ini>
  * gForce1x1Exception - force 1x1 when connecting to certain peer
@@ -612,6 +648,32 @@ CFG_INI_UINT("g_pcl_band_priority", 0, 1, 0, CFG_VALUE_OR_DEFAULT, \
 CFG_INI_UINT("g_prefer_5g_scc_to_dbs", 0, 0xFFFFFFFF, 0, CFG_VALUE_OR_DEFAULT, \
 	     "5G SCC has higher priority than DBS")
 
+#ifdef CONFIG_MACH_XIAOMI
+#define CFG_POLICY_MGR_ALL \
+		CFG(CFG_MCC_TO_SCC_SWITCH) \
+		CFG(CFG_CONC_SYS_PREF) \
+		CFG(CFG_MAX_CONC_CXNS) \
+		CFG(CFG_DBS_SELECTION_PLCY) \
+		CFG(CFG_VDEV_CUSTOM_PRIORITY_LIST) \
+		CFG(CFG_CHNL_SELECT_LOGIC_CONC) \
+		CFG(CFG_ENABLE_CONC_RULE1) \
+		CFG(CFG_ENABLE_CONC_RULE2) \
+		CFG(CFG_ENABLE_MCC_ADAPTIVE_SCH_ENABLED_NAME)\
+		CFG(CFG_ENABLE_STA_CONNECTION_IN_5GHZ)\
+		CFG(CFG_ENABLE_OVERLAP_CH)\
+		CFG(CFG_DUAL_MAC_FEATURE_DISABLE)\
+		CFG(CFG_STA_SAP_SCC_ON_DFS_CHAN)\
+		CFG(CFG_SAP_ONLY_ALLOW_STA_DFS_INDOOR_CHAN)\
+		CFG(CFG_FORCE_1X1_FEATURE)\
+		CFG(CFG_ENABLE_SAP_MANDATORY_CHAN_LIST)\
+		CFG(CFG_STA_SAP_SCC_ON_LTE_COEX_CHAN)\
+		CFG(CFG_NAN_SAP_SCC_ON_LTE_COEX_CHAN) \
+		CFG(CFG_MARK_INDOOR_AS_DISABLE_FEATURE)\
+		CFG(CFG_ALLOW_MCC_GO_DIFF_BI) \
+		CFG(CFG_P2P_GO_ENABLE_FORCE_SCC) \
+		CFG(CFG_PCL_BAND_PRIORITY) \
+		CFG(CFG_PREFER_5G_SCC_TO_DBS)
+#else
 #define CFG_POLICY_MGR_ALL \
 		CFG(CFG_MCC_TO_SCC_SWITCH) \
 		CFG(CFG_CONC_SYS_PREF) \
@@ -635,4 +697,5 @@ CFG_INI_UINT("g_prefer_5g_scc_to_dbs", 0, 0xFFFFFFFF, 0, CFG_VALUE_OR_DEFAULT, \
 		CFG(CFG_P2P_GO_ENABLE_FORCE_SCC) \
 		CFG(CFG_PCL_BAND_PRIORITY) \
 		CFG(CFG_PREFER_5G_SCC_TO_DBS)
+#endif
 #endif

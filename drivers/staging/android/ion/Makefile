@@ -6,3 +6,4 @@ ion-alloc-objs += ion.o ion-ioctl.o ion_heap.o \
 			ion_system_secure_heap.o ion_cma_heap.o \
 			ion_secure_util.o ion_cma_secure_heap.o msm/msm_ion_of.o
 
+obj-$(CONFIG_MACH_XIAOMI) += ion_camera_heap.o

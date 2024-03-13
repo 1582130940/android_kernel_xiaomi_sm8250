@@ -275,6 +275,9 @@ struct policy_mgr_cfg {
 	uint32_t vdev_priority_list;
 	uint32_t chnl_select_plcy;
 	uint8_t go_force_scc;
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t sap_only_allow_sta_dfs_indoor_chan;
+#endif
 	enum policy_mgr_pcl_band_priority pcl_band_priority;
 	uint32_t prefer_5g_scc_to_dbs;
 };
