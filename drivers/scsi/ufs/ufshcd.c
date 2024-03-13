@@ -465,10 +465,12 @@ static struct ufs_dev_fix ufs_fixups[] = {
 		UFS_DEVICE_QUIRK_HS_G1_TO_HS_G3_SWITCH),
 	UFS_FIX(UFS_VENDOR_SKHYNIX, "hC8HL1",
 		UFS_DEVICE_QUIRK_HS_G1_TO_HS_G3_SWITCH),
+#ifndef CONFIG_MACH_XIAOMI
 	UFS_FIX(UFS_VENDOR_SAMSUNG, "KLUEG8UHDB-C2D1",
 		UFS_DEVICE_QUIRK_PA_HIBER8TIME),
 	UFS_FIX(UFS_VENDOR_SAMSUNG, "KLUDG4UHDB-B2D1",
 		UFS_DEVICE_QUIRK_PA_HIBER8TIME),
+#endif
 	END_FIX
 };
 
@@ -4625,6 +4627,13 @@ int ufshcd_read_device_desc(struct ufs_hba *hba, u8 *buf, u32 size)
 	return ufshcd_read_desc(hba, QUERY_DESC_IDN_DEVICE, 0, buf, size);
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int ufshcd_read_health_desc(struct ufs_hba *hba, u8 *buf, u32 size)
+{
+	return ufshcd_read_desc(hba, QUERY_DESC_IDN_HEALTH, 0, buf, size);
+}
+#endif
+
 /**
  * ufshcd_read_string_desc - read string descriptor
  * @hba: pointer to adapter instance
@@ -8502,6 +8511,7 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	model_index = desc_buf[DEVICE_DESC_PARAM_PRDCT_NAME];
 
 
+#ifndef CONFIG_MACH_XIAOMI
 	/* Enable WB only for UFS-3.1 or UFS-2.2 OR if desc len >= 0x59 */
 	if ((dev_desc->wspecversion >= 0x310) ||
 	    (dev_desc->wspecversion == 0x220) ||
@@ -8540,6 +8550,7 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 			}
 		}
 	}
+#endif
 
 skip_unit_desc:
 	/* Zero-pad entire buffer for string termination. */
@@ -8634,6 +8645,7 @@ static int ufshcd_tune_pa_hibern8time(struct ufs_hba *hba)
 	int ret = 0;
 	u32 local_tx_hibern8_time_cap = 0, peer_rx_hibern8_time_cap = 0;
 	u32 max_hibern8_time, tuned_pa_hibern8time;
+#ifndef CONFIG_MACH_XIAOMI
 	u32 pa_hibern8time_quirk_enabled = hba->dev_info.quirks &
 		UFS_DEVICE_QUIRK_PA_HIBER8TIME;
 
@@ -8641,6 +8653,7 @@ static int ufshcd_tune_pa_hibern8time(struct ufs_hba *hba)
 	    !pa_hibern8time_quirk_enabled) {
 		return 0;
 	}
+#endif
 
 	ret = ufshcd_dme_get(hba,
 			     UIC_ARG_MIB_SEL(TX_HIBERN8TIME_CAPABILITY,
@@ -8661,6 +8674,7 @@ static int ufshcd_tune_pa_hibern8time(struct ufs_hba *hba)
 	/* make sure proper unit conversion is applied */
 	tuned_pa_hibern8time = ((max_hibern8_time * HIBERN8TIME_UNIT_US)
 				/ PA_HIBERN8_TIME_UNIT_US);
+#ifndef CONFIG_MACH_XIAOMI
 	/* PA_HIBERN8TIME is product of tuned_pa_hibern8time * granularity,
 	 * setting tuned_pa_hibern8time as 3 and since granularity is 100us
 	 * for both host and device side, 3 *100us = 300us is set as
@@ -8668,6 +8682,7 @@ static int ufshcd_tune_pa_hibern8time(struct ufs_hba *hba)
 	 */
 	if (pa_hibern8time_quirk_enabled)
 		tuned_pa_hibern8time = 3; /* 3 *100us =300us */
+#endif
 	ret = ufshcd_dme_set(hba, UIC_ARG_MIB(PA_HIBERN8TIME),
 			     tuned_pa_hibern8time);
 out:
@@ -8692,6 +8707,10 @@ static int ufshcd_quirk_tune_host_pa_tactivate(struct ufs_hba *hba)
 	u32 pa_tactivate, peer_pa_tactivate;
 	u32 pa_tactivate_us, peer_pa_tactivate_us;
 	u8 gran_to_us_table[] = {1, 4, 8, 16, 32, 100};
+#ifdef CONFIG_MACH_XIAOMI
+	u32 pa_hibern8time_quirk_enabled = hba->dev_quirks &
+		UFS_DEVICE_QUIRK_PA_SYNCLENGTH;
+#endif
 
 	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
 				  &granularity);
@@ -8740,16 +8759,31 @@ static int ufshcd_quirk_tune_host_pa_tactivate(struct ufs_hba *hba)
 					  new_peer_pa_tactivate);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (pa_hibern8time_quirk_enabled) {
+		// Synclength G4
+		ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(0x15D0), 0x4F);
+		// Synclength G1
+		ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(0x1552), 0x4F);
+	}
+#endif
 out:
 	return ret;
 }
 
 static void ufshcd_tune_unipro_params(struct ufs_hba *hba)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	if (ufshcd_is_unipro_pa_params_tuning_req(hba)) {
+		ufshcd_tune_pa_tactivate(hba);
+		ufshcd_tune_pa_hibern8time(hba);
+	}
+#else
 	if (ufshcd_is_unipro_pa_params_tuning_req(hba))
 		ufshcd_tune_pa_tactivate(hba);
 
 	ufshcd_tune_pa_hibern8time(hba);
+#endif
 	if (hba->dev_info.quirks & UFS_DEVICE_QUIRK_PA_TACTIVATE)
 		/* set 1ms timeout for PA_TACTIVATE */
 		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE), 10);
@@ -8847,6 +8881,49 @@ void ufshcd_apply_pm_quirks(struct ufs_hba *hba)
 	}
 }
 EXPORT_SYMBOL(ufshcd_apply_pm_quirks);
+
+#ifdef CONFIG_MACH_XIAOMI
+static char serial[QUERY_DESC_MAX_SIZE] = { 0 };
+
+char *ufs_get_serial(void)
+{
+	return serial;
+}
+
+static int ufs_init_serial(struct ufs_hba *hba)
+{
+	int err, i;
+	u8 model_index;
+	u8 str_desc_buf[QUERY_DESC_MAX_SIZE + 1];
+	u8 desc_buf[QUERY_DESC_DEVICE_DEF_SIZE];
+
+	err = ufshcd_read_device_desc(hba, desc_buf,
+				      QUERY_DESC_DEVICE_DEF_SIZE);
+	if (err) {
+		pr_err("read device_desc failed\n");
+		goto out;
+	}
+
+	/*SerialNumber*/
+	model_index = desc_buf[DEVICE_DESC_PARAM_SN];
+	memset(str_desc_buf, 0, QUERY_DESC_MAX_SIZE);
+	err = ufshcd_read_string_desc(hba, model_index, str_desc_buf,
+				      QUERY_DESC_MAX_SIZE, FALSE);
+	if (err)
+		goto out;
+
+	for (i = 2; ((i < str_desc_buf[QUERY_DESC_LENGTH_OFFSET]) &&
+		     (i < QUERY_DESC_MAX_SIZE / 2));
+	     i += 2) {
+		snprintf(serial + i * 2 - 4, QUERY_DESC_MAX_SIZE, "%02x%02x",
+			 str_desc_buf[i], str_desc_buf[i + 1]);
+	}
+	pr_info("SerialNumber:%s\n", serial);
+
+out:
+	return err;
+}
+#endif
 
 /**
  * ufshcd_set_dev_ref_clk - set the device bRefClkFreq
@@ -9063,6 +9140,9 @@ reinit:
 
 	ufs_fixup_device_setup(hba, &card);
 	ufshcd_tune_unipro_params(hba);
+#ifdef CONFIG_MACH_XIAOMI
+	ufs_init_serial(hba);
+#endif
 
 	ufshcd_apply_pm_quirks(hba);
 	if (card.wspecversion < 0x300) {
@@ -9176,6 +9256,14 @@ reinit:
 		scsi_scan_host(hba->host);
 		pm_runtime_put_sync(hba->dev);
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	/*
+	 * Enable auto hibern8 if supported, after full host and
+	 * device initialization.
+	 */
+	ufshcd_set_auto_hibern8_timer(hba);
+#endif
 
 out:
 	if (ret) {

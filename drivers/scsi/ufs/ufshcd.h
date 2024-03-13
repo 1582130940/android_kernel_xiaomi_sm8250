@@ -585,6 +585,10 @@ struct debugfs_files {
 	struct dentry *show_hba;
 	struct dentry *host_regs;
 	struct dentry *dump_dev_desc;
+#ifdef CONFIG_MACH_XIAOMI
+	struct dentry *dump_string_desc_serial;
+	struct dentry *dump_heatlth_desc;
+#endif
 	struct dentry *power_mode;
 	struct dentry *dme_local_read;
 	struct dentry *dme_peer_read;
@@ -930,6 +934,14 @@ struct ufs_hba {
 	 * enabled via HCE register.
 	 */
 	#define UFSHCI_QUIRK_BROKEN_HCE				0x400
+
+#ifdef CONFIG_MACH_XIAOMI
+	/*
+	* This quirk needs to be enabled if the host controller cannot
+	* support SAMSUNG and WDC interface configuration.
+	*/
+	#define UFS_DEVICE_QUIRK_PA_SYNCLENGTH			0x700
+#endif
 
 	/* HIBERN8 support is broken */
 	#define UFSHCD_QUIRK_BROKEN_HIBERN8			0x800
@@ -1350,6 +1362,12 @@ out:
 }
 
 int ufshcd_read_device_desc(struct ufs_hba *hba, u8 *buf, u32 size);
+#ifdef CONFIG_MACH_XIAOMI
+int ufshcd_read_health_desc(struct ufs_hba *hba, u8 *buf, u32 size);
+char *ufs_get_serial(void);
+int ufshcd_read_string_desc(struct ufs_hba *hba, int desc_index,
+				   u8 *buf, u32 size, bool ascii);
+#endif
 
 static inline bool ufshcd_is_hs_mode(struct ufs_pa_layer_attr *pwr_info)
 {
