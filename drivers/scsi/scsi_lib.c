@@ -277,6 +277,13 @@ int __scsi_execute(struct scsi_device *sdev, const unsigned char *cmd,
 		goto out;
 
 	rq->cmd_len = COMMAND_SIZE(cmd[0]);
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (cmd[0] == 0xc0) {
+		rq->cmd_len = 16;
+	}
+#endif
+
 	memcpy(rq->cmd, cmd, rq->cmd_len);
 	rq->retries = retries;
 	if (likely(!sdev->timeout_override))
