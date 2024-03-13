@@ -2024,7 +2024,12 @@ QDF_STATUS policy_mgr_valid_sap_conc_channel_check(
 		    (!enable_srd_channel &&
 		     wlan_reg_is_etsi13_srd_chan_for_freq(pm_ctx->pdev,
 							  ch_freq))) {
+#ifdef CONFIG_MACH_XIAOMI
+			if ((wlan_reg_is_dfs_for_freq(pm_ctx->pdev, ch_freq) ||
+			    wlan_reg_is_freq_indoor(pm_ctx->pdev, ch_freq)) &&
+#else
 			if (wlan_reg_is_dfs_for_freq(pm_ctx->pdev, ch_freq) &&
+#endif
 			    sta_sap_scc_on_dfs_chan) {
 				policy_mgr_debug("STA SAP SCC is allowed on DFS channel");
 				goto update_chan;
