@@ -1042,6 +1042,11 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	struct dma_buf *dmabuf;
 	char task_comm[TASK_COMM_LEN];
+#ifdef CONFIG_MACH_XIAOMI
+	bool camera_heap_found = false;
+	unsigned int system_heap_id = ION_HEAP(ION_SYSTEM_HEAP_ID);
+	unsigned int system_heap_id1 = ION_HEAP(ION_SYSTEM_HEAP_ID) | ION_HEAP(ION_CAMERA_HEAP_ID);
+#endif
 
 	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
 		 len, heap_id_mask, flags);
@@ -1055,6 +1060,21 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 
 	if (!len)
 		return ERR_PTR(-EINVAL);
+
+#ifdef CONFIG_MACH_XIAOMI
+	down_read(&dev->lock);
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		if ((1 << heap->id) & (1 << ION_CAMERA_HEAP_ID))
+			camera_heap_found = true;
+		}
+	up_read(&dev->lock);
+
+	get_task_comm(task_comm, current->group_leader);
+	if (strstr(task_comm, "provider@") || strstr(task_comm, ".android.camera")) {
+		if ((heap_id_mask == system_heap_id || heap_id_mask == system_heap_id1) && camera_heap_found == true)
+			heap_id_mask = 1 << ION_CAMERA_HEAP_ID;
+	}
+#endif
 
 	down_read(&dev->lock);
 	plist_for_each_entry(heap, &dev->heaps, node) {
@@ -1073,7 +1093,9 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	if (IS_ERR(buffer))
 		return ERR_CAST(buffer);
 
+#ifndef CONFIG_MACH_XIAOMI
 	get_task_comm(task_comm, current->group_leader);
+#endif
 
 	exp_info.ops = &dma_buf_ops;
 	exp_info.size = buffer->size;
@@ -1113,7 +1135,13 @@ struct dma_buf *ion_alloc(size_t len, unsigned int heap_id_mask,
 		if (heap->type == ION_HEAP_TYPE_SYSTEM ||
 		    heap->type == (enum ion_heap_type)ION_HEAP_TYPE_HYP_CMA ||
 		    heap->type ==
+#ifdef CONFIG_MACH_XIAOMI
+			(enum ion_heap_type)ION_HEAP_TYPE_SYSTEM_SECURE ||
+			heap->type ==
+			(enum ion_heap_type)ION_HEAP_TYPE_CAMERA) {
+#else
 			(enum ion_heap_type)ION_HEAP_TYPE_SYSTEM_SECURE) {
+#endif
 			type_valid = true;
 		} else {
 			pr_warn("%s: heap type not supported, type:%d\n",
