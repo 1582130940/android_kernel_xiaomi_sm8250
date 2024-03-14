@@ -34,7 +34,9 @@
 
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 
+#ifndef CONFIG_MACH_XIAOMI
 #define ADSP_MODULES_READY_AVS_STATE 5
+#endif
 
 #define APR_ENOTREADY 10
 #define MEMPOOL_ID_MASK 0xFF
@@ -984,13 +986,16 @@ int32_t q6core_avcs_load_unload_modules(struct avcs_load_unload_modules_payload
 	size_t packet_size = 0,  payload_size = 0;
 	struct avcs_cmd_dynamic_modules *mod = NULL;
 	int num_modules;
+#ifndef CONFIG_MACH_XIAOMI
 	unsigned long timeout;
+#endif
 
 	if (payload == NULL) {
 		pr_err("%s: payload is null\n", __func__);
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if ((q6core_lcl.avs_state != ADSP_MODULES_READY_AVS_STATE)
 		&& (preload_type == AVCS_LOAD_MODULES)) {
 		timeout = jiffies +
@@ -1017,6 +1022,7 @@ int32_t q6core_avcs_load_unload_modules(struct avcs_load_unload_modules_payload
 			pr_err("%s: all modules might be not loaded yet on ADSP\n",
 				__func__);
 	}
+#endif
 	mutex_lock(&(q6core_lcl.cmd_lock));
 	num_modules = payload->num_modules;
 	ocm_core_open();
@@ -2030,7 +2036,11 @@ static int q6core_is_avs_up(int32_t *avs_state)
 		msleep(50);
 	} while (time_after(timeout, jiffies));
 
+#ifdef CONFIG_MACH_XIAOMI
+	*avs_state = adsp_ready;
+#else
 	*avs_state = q6core_lcl.param;
+#endif
 	pr_debug("%s: ADSP Audio is %s\n", __func__,
 	       adsp_ready ? "ready" : "not ready");
 
