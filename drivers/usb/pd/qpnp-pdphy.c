@@ -74,7 +74,11 @@
 #define PD_MSG_HDR_REV(hdr)		(((hdr) >> 6) & 3)
 
 /* timers */
+#ifdef CONFIG_MACH_XIAOMI
+#define RECEIVER_RESPONSE_TIME		30	/* tReceiverResponse */
+#else
 #define RECEIVER_RESPONSE_TIME		15	/* tReceiverResponse */
+#endif
 #define HARD_RESET_COMPLETE_TIME	5	/* tHardResetComplete */
 
 struct usb_pdphy {
@@ -125,6 +129,15 @@ struct usb_pdphy {
 	unsigned int msg_tx_discarded_cnt;
 	unsigned int msg_rx_discarded_cnt;
 };
+
+#ifdef CONFIG_MACH_XIAOMI
+#undef dev_dbg
+#define dev_dbg dev_err
+#undef pr_debug
+#define pr_debug pr_err
+#undef pr_info
+#define pr_info pr_err
+#endif
 
 static struct usb_pdphy *__pdphy;
 
