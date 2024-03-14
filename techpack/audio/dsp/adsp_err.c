@@ -125,9 +125,16 @@ static inline void adsp_err_check_panic(u32 adsp_error)
 static inline void adsp_err_check_panic(u32 adsp_error) {}
 #endif
 
+#ifdef CONFIG_MACH_XIAOMI
+static void adsp_err_check_restart(u32 adsp_error) {}
+#endif
+
 int adsp_err_get_lnx_err_code(u32 adsp_error)
 {
 	adsp_err_check_panic(adsp_error);
+#ifdef CONFIG_MACH_XIAOMI
+	adsp_err_check_restart(adsp_error);
+#endif
 
 	if (adsp_error > ADSP_ERR_MAX)
 		return adsp_err_code_info[ADSP_ERR_MAX].lnx_err_code;

@@ -351,7 +351,9 @@ struct rx_macro_bcl_pmic_params {
 	u8 ppid;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 static int rx_macro_core_vote(void *handle, bool enable);
+#endif
 static int rx_macro_hw_params(struct snd_pcm_substream *substream,
 			       struct snd_pcm_hw_params *params,
 			       struct snd_soc_dai *dai);
@@ -1232,12 +1234,16 @@ static int rx_macro_mclk_enable(struct rx_macro_priv *rx_priv,
 		if (rx_priv->rx_mclk_users == 0) {
 			if (rx_priv->is_native_on)
 				rx_priv->clk_id = RX_CORE_CLK;
+#ifndef CONFIG_MACH_XIAOMI
 			rx_macro_core_vote(rx_priv, true);
+#endif
 			ret = bolero_clk_rsc_request_clock(rx_priv->dev,
 							   rx_priv->default_clk_id,
 							   rx_priv->clk_id,
 							   true);
+#ifndef CONFIG_MACH_XIAOMI
 			rx_macro_core_vote(rx_priv, false);
+#endif
 			if (ret < 0) {
 				dev_err(rx_priv->dev,
 					"%s: rx request clock enable failed\n",
@@ -1287,12 +1293,16 @@ static int rx_macro_mclk_enable(struct rx_macro_priv *rx_priv,
 				0x01, 0x00);
 			bolero_clk_rsc_fs_gen_request(rx_priv->dev,
 			   false);
+#ifndef CONFIG_MACH_XIAOMI
 			rx_macro_core_vote(rx_priv, true);
+#endif
 			bolero_clk_rsc_request_clock(rx_priv->dev,
 						 rx_priv->default_clk_id,
 						 rx_priv->clk_id,
 						 false);
+#ifndef CONFIG_MACH_XIAOMI
 			rx_macro_core_vote(rx_priv, false);
+#endif
 			rx_priv->clk_id = rx_priv->default_clk_id;
 		}
 	}
@@ -1401,7 +1411,9 @@ static int rx_macro_event_handler(struct snd_soc_component *component,
 		}
 		break;
 	case BOLERO_MACRO_EVT_PRE_SSR_UP:
+#ifndef CONFIG_MACH_XIAOMI
 		rx_macro_core_vote(rx_priv, true);
+#endif
 		/* enable&disable RX_CORE_CLK to reset GFMUX reg */
 		ret = bolero_clk_rsc_request_clock(rx_priv->dev,
 						rx_priv->default_clk_id,
@@ -1415,7 +1427,9 @@ static int rx_macro_event_handler(struct snd_soc_component *component,
 						rx_priv->default_clk_id,
 						RX_CORE_CLK, false);
 		}
+#ifndef CONFIG_MACH_XIAOMI
 		rx_macro_core_vote(rx_priv, false);
+#endif
 		break;
 	case BOLERO_MACRO_EVT_SSR_UP:
 		rx_priv->dev_up = true;
@@ -3680,7 +3694,9 @@ static const struct snd_soc_dapm_route rx_audio_map[] = {
 
 static int rx_macro_core_vote(void *handle, bool enable)
 {
+#ifndef CONFIG_MACH_XIAOMI
 	int rc = 0;
+#endif
 	struct rx_macro_priv *rx_priv = (struct rx_macro_priv *) handle;
 
 	if (rx_priv == NULL) {
@@ -3690,15 +3706,24 @@ static int rx_macro_core_vote(void *handle, bool enable)
 
 	if (enable) {
 		pm_runtime_get_sync(rx_priv->dev);
+#ifndef CONFIG_MACH_XIAOMI
 		if (bolero_check_core_votes(rx_priv->dev))
 			rc = 0;
 		else
 			rc = -ENOTSYNC;
 	} else {
+#endif
 		pm_runtime_put_autosuspend(rx_priv->dev);
 		pm_runtime_mark_last_busy(rx_priv->dev);
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	if (bolero_check_core_votes(rx_priv->dev))
+		return 0;
+	else
+		return -EINVAL;
+#else
 	return rc;
+#endif
 }
 
 static int rx_swrm_clock(void *handle, bool enable)
@@ -4172,12 +4197,17 @@ static int rx_macro_probe(struct platform_device *pdev)
 			"%s: register macro failed\n", __func__);
 		goto err_reg_macro;
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	schedule_work(&rx_priv->rx_macro_add_child_devices_work);
+#endif
 	pm_runtime_set_autosuspend_delay(&pdev->dev, AUTO_SUSPEND_DELAY);
 	pm_runtime_use_autosuspend(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
 	pm_suspend_ignore_children(&pdev->dev, true);
 	pm_runtime_enable(&pdev->dev);
+#ifndef CONFIG_MACH_XIAOMI
 	schedule_work(&rx_priv->rx_macro_add_child_devices_work);
+#endif
 
 	return 0;
 

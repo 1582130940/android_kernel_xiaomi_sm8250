@@ -591,7 +591,9 @@ int __init audio_cal_init(void)
 
 	pr_debug("%s\n", __func__);
 
+#ifndef CONFIG_MACH_XIAOMI
 	cal_utils_init();
+#endif
 	memset(&audio_cal, 0, sizeof(audio_cal));
 	mutex_init(&audio_cal.common_lock);
 	for (; i < MAX_CAL_TYPES; i++) {
@@ -623,8 +625,10 @@ void audio_cal_exit(void)
 	misc_deregister(&audio_cal_misc);
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 subsys_initcall(audio_cal_init);
 module_exit(audio_cal_exit);
+#endif
 
 MODULE_DESCRIPTION("SoC QDSP6v2 Audio Calibration driver");
 MODULE_LICENSE("GPL v2");

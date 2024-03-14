@@ -1378,6 +1378,9 @@ static int bolero_probe(struct platform_device *pdev)
 	mutex_init(&priv->vote_lock);
 	INIT_WORK(&priv->bolero_add_child_devices_work,
 		  bolero_add_child_devices);
+#ifdef CONFIG_MACH_XIAOMI
+	schedule_work(&priv->bolero_add_child_devices_work);
+#endif
 
 	/* Register LPASS core hw vote */
 	lpass_core_hw_vote = devm_clk_get(&pdev->dev, "lpass_core_hw_vote");
@@ -1401,7 +1404,9 @@ static int bolero_probe(struct platform_device *pdev)
 	}
 	priv->lpass_audio_hw_vote = lpass_audio_hw_vote;
 
+#ifndef CONFIG_MACH_XIAOMI
 	schedule_work(&priv->bolero_add_child_devices_work);
+#endif
 	return 0;
 }
 

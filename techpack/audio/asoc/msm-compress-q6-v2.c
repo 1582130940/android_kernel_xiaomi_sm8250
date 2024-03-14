@@ -441,8 +441,13 @@ static int msm_compr_set_volume(struct snd_compr_stream *cstream,
 		gain_list[0] = volume_l;
 		gain_list[1] = volume_r;
 		gain_list[2] = volume_l;
+#ifdef CONFIG_MACH_XIAOMI
+		num_channels = 3;
+		use_default = true;
+#else
 		if (use_default)
 			num_channels = 3;
+#endif
 		rc = q6asm_set_multich_gain(prtd->audio_client, num_channels,
 					gain_list, chmap, use_default);
 	}
