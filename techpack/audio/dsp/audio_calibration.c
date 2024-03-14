@@ -591,7 +591,9 @@ int __init audio_cal_init(void)
 
 	pr_debug("%s\n", __func__);
 
+#ifndef CONFIG_MACH_XIAOMI
 	cal_utils_init();
+#endif
 	memset(&audio_cal, 0, sizeof(audio_cal));
 	mutex_init(&audio_cal.common_lock);
 	for (; i < MAX_CAL_TYPES; i++) {
