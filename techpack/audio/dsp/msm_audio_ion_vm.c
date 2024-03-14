@@ -544,10 +544,12 @@ static int msm_audio_ion_map_buf(void *handle, dma_addr_t *paddr,
 {
 	int rc = 0;
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (!handle || !paddr || !vaddr || !plen) {
 		pr_err("%s: Invalid params\n", __func__);
 		return -EINVAL;
 	}
+#endif
 
 	rc = msm_audio_ion_get_phys((struct dma_buf*) handle, paddr, plen);
 	if (rc) {

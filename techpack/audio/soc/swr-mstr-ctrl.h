@@ -51,7 +51,9 @@ enum {
 	SWR_MSTR_UP,
 	SWR_MSTR_DOWN,
 	SWR_MSTR_SSR,
+#ifndef CONFIG_MACH_XIAOMI
 	SWR_MSTR_SSR_RESET,
+#endif
 };
 
 enum swrm_pm_state {
