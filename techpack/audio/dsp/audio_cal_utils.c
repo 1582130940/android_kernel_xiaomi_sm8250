@@ -10,7 +10,9 @@
 #include <linux/mutex.h>
 #include <dsp/audio_cal_utils.h>
 
+#ifndef CONFIG_MACH_XIAOMI
 struct mutex cal_lock;
+#endif
 
 static int unmap_memory(struct cal_type_data *cal_type,
 			struct cal_block_data *cal_block);
@@ -948,9 +950,13 @@ int cal_utils_dealloc_cal(size_t data_size, void *data,
 	if (ret < 0)
 		goto err;
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&cal_lock);
+#endif
 	delete_cal_block(cal_block);
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&cal_lock);
+#endif
 err:
 	mutex_unlock(&cal_type->lock);
 done:
@@ -1065,11 +1071,13 @@ void cal_utils_mark_cal_used(struct cal_block_data *cal_block)
 }
 EXPORT_SYMBOL(cal_utils_mark_cal_used);
 
+#ifndef CONFIG_MACH_XIAOMI
 int __init cal_utils_init(void)
 {
 	mutex_init(&cal_lock);
 	return 0;
 }
+#endif
 /**
  * cal_utils_is_cal_stale
  *
@@ -1079,6 +1087,12 @@ int __init cal_utils_init(void)
  */
 bool cal_utils_is_cal_stale(struct cal_block_data *cal_block)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	if ((cal_block) && (cal_block->cal_stale))
+		return true;
+
+	return false;
+#else
 	bool ret = false;
 
 	mutex_lock(&cal_lock);
@@ -1093,5 +1107,6 @@ bool cal_utils_is_cal_stale(struct cal_block_data *cal_block)
 unlock:
 	mutex_unlock(&cal_lock);
 	return ret;
+#endif
 }
 EXPORT_SYMBOL(cal_utils_is_cal_stale);

@@ -2464,7 +2464,9 @@ int q6lsm_get_one_param(struct lsm_client *client,
 {
 	struct param_hdr_v3 param_info;
 	int rc = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	bool iid_supported = q6common_is_instance_id_supported();
+#endif
 
 	memset(&param_info, 0, sizeof(param_info));
 
@@ -2474,10 +2476,14 @@ int q6lsm_get_one_param(struct lsm_client *client,
 		param_info.instance_id = p_info->instance_id;
 		param_info.param_id = p_info->param_id;
 
+#ifdef CONFIG_MACH_XIAOMI
+		param_info.param_size = p_info->param_size + sizeof(param_info);
+#else
 		if (iid_supported)
 			param_info.param_size = p_info->param_size + sizeof(struct param_hdr_v3);
 		else
 			param_info.param_size = p_info->param_size + sizeof(struct param_hdr_v2);
+#endif
 
 		rc = q6lsm_get_params(client, NULL, &param_info);
 		if (rc) {

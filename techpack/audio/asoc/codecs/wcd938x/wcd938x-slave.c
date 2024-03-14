@@ -4,7 +4,9 @@
  */
 
 #include <linux/module.h>
+#ifndef CONFIG_MACH_XIAOMI
 #include <linux/delay.h>
+#endif
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/device.h>
@@ -25,7 +27,9 @@
 #define SWR_SLV_MAX_DEVICES     2
 #endif /* CONFIG_DEBUG_FS */
 
+#ifndef CONFIG_MACH_XIAOMI
 #define SWR_MAX_RETRY 5
+#endif
 struct wcd938x_slave_priv {
 	struct swr_device *swr_slave;
 #ifdef CONFIG_DEBUG_FS
@@ -280,24 +284,32 @@ static int wcd938x_slave_bind(struct device *dev,
 	int ret = 0;
 	uint8_t devnum = 0;
 	struct swr_device *pdev = to_swr_device(dev);
+#ifndef CONFIG_MACH_XIAOMI
 	int retry = SWR_MAX_RETRY;
+#endif
 
 	if (!pdev) {
 		pr_err("%s: invalid swr device handle\n", __func__);
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	ret = swr_get_logical_dev_num(pdev, pdev->addr, &devnum);
+#else
 	do {
 		/* Add delay for soundwire enumeration */
 		usleep_range(100, 110);
 		ret = swr_get_logical_dev_num(pdev, pdev->addr, &devnum);
 	} while (ret && --retry);
+#endif
 
 	if (ret) {
 		dev_dbg(&pdev->dev,
 			"%s get devnum %d for dev addr %llx failed\n",
 			__func__, devnum, pdev->addr);
+#ifndef CONFIG_MACH_XIAOMI
 		ret = -EPROBE_DEFER;
+#endif
 		return ret;
 	}
 	pdev->dev_num = devnum;
