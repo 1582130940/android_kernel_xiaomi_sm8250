@@ -149,9 +149,14 @@ struct usb_hub *usb_hub_to_struct_hub(struct usb_device *hdev)
 
 int usb_device_supports_lpm(struct usb_device *udev)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	/* Some devices have trouble with LPM so can't support lpm*/
+	return 0;
+#else
 	/* Some devices have trouble with LPM */
 	if (udev->quirks & USB_QUIRK_NO_LPM)
 		return 0;
+#endif
 
 	/* Skip if the device BOS descriptor couldn't be read */
 	if (!udev->bos)
@@ -2196,6 +2201,17 @@ void usb_disconnect(struct usb_device **pdev)
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
 
+#ifdef CONFIG_MACH_XIAOMI
+	if(udev->parent){
+		hub = usb_hub_to_struct_hub(udev->parent);
+		if(hub->asuspend && hub->addr_number == udev->devnum){
+			hub->asuspend = 0;
+			hub->addr_number = 0;
+			dev_info(&udev->dev,"usb_disconnect reset asuspend and addr_number\n");
+		}
+	}
+#endif
+
 	/*
 	 * Ensure that the pm runtime code knows that the USB device
 	 * is in the process of being disconnected.
@@ -2504,6 +2520,9 @@ static void set_usb_port_removable(struct usb_device *udev)
 int usb_new_device(struct usb_device *udev)
 {
 	int err;
+#ifdef CONFIG_MACH_XIAOMI
+	struct usb_hub *temp_hub = NULL;
+#endif
 
 	if (udev->parent) {
 		/* Initialize non-root-hub device wakeup to disabled;
@@ -2536,6 +2555,16 @@ int usb_new_device(struct usb_device *udev)
 
 	/* Tell the world! */
 	announce_device(udev);
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (udev->parent){
+		temp_hub = usb_hub_to_struct_hub(udev->parent);
+		if(le16_to_cpu(udev->descriptor.idVendor) == 0x0bda && 0x4b79 == le16_to_cpu(udev->descriptor.idProduct)){
+			temp_hub->asuspend = 1;
+			temp_hub->addr_number = udev->devnum;
+		}
+	}
+#endif
 
 	if (udev->serial)
 		add_device_randomness(udev->serial, strlen(udev->serial));
@@ -4931,7 +4960,13 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	/* notify HCD that we have a device connected and addressed */
 	if (hcd->driver->update_device)
 		hcd->driver->update_device(hcd, udev);
+#ifdef CONFIG_MACH_XIAOMI
+	/*skip this initial*/
+	if (0)
+		hub_set_initial_usb2_lpm_policy(udev);
+#else
 	hub_set_initial_usb2_lpm_policy(udev);
+#endif
 fail:
 	if (retval) {
 		hub_port_disable(hub, port1, 0);

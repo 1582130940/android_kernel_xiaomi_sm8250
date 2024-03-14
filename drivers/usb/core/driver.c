@@ -32,7 +32,11 @@
 #include <linux/usb/quirks.h>
 #include <linux/usb/hcd.h>
 
+#ifdef CONFIG_MACH_XIAOMI
+#include "hub.h"
+#else
 #include "usb.h"
+#endif
 
 
 /*
@@ -1787,10 +1791,22 @@ static int autosuspend_check(struct usb_device *udev)
 {
 	int			w, i;
 	struct usb_interface	*intf;
+#ifdef CONFIG_MACH_XIAOMI
+	struct usb_hub *hub = NULL;
+#endif
 
 	if (udev->state == USB_STATE_NOTATTACHED)
 		return -ENODEV;
 
+#ifdef CONFIG_MACH_XIAOMI
+	if(udev->parent){
+		hub = usb_hub_to_struct_hub(udev->parent);
+		if(hub->asuspend){
+			dev_info(&udev->dev,"autosuspend_check dont autosuspend\n");
+			return -EBUSY;
+		}
+	}
+#endif
 	/* Fail if autosuspend is disabled, or any interfaces are in use, or
 	 * any interface drivers require remote wakeup but it isn't available.
 	 */
