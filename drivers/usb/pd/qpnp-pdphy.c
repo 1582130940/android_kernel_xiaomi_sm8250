@@ -74,7 +74,11 @@
 #define PD_MSG_HDR_REV(hdr)		(((hdr) >> 6) & 3)
 
 /* timers */
+#ifdef CONFIG_MACH_XIAOMI
+#define RECEIVER_RESPONSE_TIME		30	/* tReceiverResponse */
+#else
 #define RECEIVER_RESPONSE_TIME		15	/* tReceiverResponse */
+#endif
 #define HARD_RESET_COMPLETE_TIME	5	/* tHardResetComplete */
 
 struct usb_pdphy {
