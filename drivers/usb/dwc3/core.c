@@ -1036,6 +1036,9 @@ int dwc3_core_init(struct dwc3 *dwc)
 		 */
 		if (!dwc3_is_usb31(dwc)) {
 			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_SS;
+#ifdef CONFIG_MACH_XIAOMI
+			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_HS;
+#endif
 			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_FSLS;
 		}
 
