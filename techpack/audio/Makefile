@@ -7,9 +7,13 @@ USERINCLUDE     += \
 # Needed to be compatible with the O= option
 LINUXINCLUDE    += \
                 -I$(srctree)/techpack/audio/include/uapi \
+                -I$(srctree)/techpack/audio/include/elliptic \
+                -I$(srctree)/techpack/audio/include/mius \
                 -I$(srctree)/techpack/audio/include
 
 obj-y += soc/
 obj-y += dsp/
+obj-y += dsp/elliptic
+obj-y += dsp/mius
 obj-y += ipc/
 obj-y += asoc/

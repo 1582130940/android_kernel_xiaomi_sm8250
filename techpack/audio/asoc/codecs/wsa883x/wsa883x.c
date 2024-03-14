@@ -108,7 +108,9 @@ static const struct wsa_reg_mask_val reg_init[] = {
 	{WSA883X_ADC_7, 0x04, 0x04},
 	{WSA883X_ADC_7, 0x02, 0x02},
 	{WSA883X_CKWD_CTL_0, 0x60, 0x00},
+#ifndef CONFIG_MACH_XIAOMI
 	{WSA883X_DRE_CTL_1, 0x3E, 0x20},
+#endif
 	{WSA883X_CKWD_CTL_1, 0x1F, 0x1B},
 	{WSA883X_GMAMP_SUP1, 0x60, 0x60},
 };
@@ -481,6 +483,10 @@ static irqreturn_t wsa883x_uvlo_handle_irq(int irq, void *data)
 
 static irqreturn_t wsa883x_pa_on_err_handle_irq(int irq, void *data)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	pr_err_ratelimited("%s: interrupt for irq =%d triggered\n",
+			   __func__, irq);
+#else
 	u8 pa_fsm_sta = 0, pa_fsm_err = 0;
 	struct wsa883x_priv *wsa883x = data;
 	struct snd_soc_component *component = NULL;
@@ -507,6 +513,7 @@ static irqreturn_t wsa883x_pa_on_err_handle_irq(int irq, void *data)
 					0x10, 0x10);
 	snd_soc_component_update_bits(component, WSA883X_PA_FSM_CTL,
 					0x10, 0x00);
+#endif
 
 	return IRQ_HANDLED;
 }
@@ -795,6 +802,7 @@ int wsa883x_codec_info_create_codec_entry(struct snd_info_entry *codec_root,
 }
 EXPORT_SYMBOL(wsa883x_codec_info_create_codec_entry);
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * wsa883x_codec_get_dev_num - returns swr device number
  * @component: Codec instance
@@ -818,6 +826,7 @@ int wsa883x_codec_get_dev_num(struct snd_soc_component *component)
 	return wsa883x->swr_slave->dev_num;
 }
 EXPORT_SYMBOL(wsa883x_codec_get_dev_num);
+#endif
 
 static int wsa883x_get_compander(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
@@ -1036,6 +1045,8 @@ static int wsa883x_spkr_event(struct snd_soc_dapm_widget *w,
 		swr_slvdev_datapath_control(wsa883x->swr_slave,
 					    wsa883x->swr_slave->dev_num,
 					    true);
+#ifndef CONFIG_MACH_XIAOMI
+#endif
 		/* Added delay as per HW sequence */
 		usleep_range(250, 300);
 		snd_soc_component_update_bits(component, WSA883X_DRE_CTL_1,
@@ -1046,12 +1057,14 @@ static int wsa883x_spkr_event(struct snd_soc_dapm_widget *w,
 		/* Force remove group */
 		swr_remove_from_group(wsa883x->swr_slave,
 				      wsa883x->swr_slave->dev_num);
+#ifndef CONFIG_MACH_XIAOMI
 		snd_soc_component_update_bits(component,
 				WSA883X_VBAT_ADC_FLT_CTL,
 				0x0E, 0x06);
 		snd_soc_component_update_bits(component,
 				WSA883X_VBAT_ADC_FLT_CTL,
 				0x01, 0x01);
+#endif
 		if (test_bit(SPKR_ADIE_LB, &wsa883x->status_mask))
 			snd_soc_component_update_bits(component,
 				WSA883X_PA_FSM_CTL, 0x01, 0x01);
@@ -1060,23 +1073,29 @@ static int wsa883x_spkr_event(struct snd_soc_dapm_widget *w,
 		if (!test_bit(SPKR_ADIE_LB, &wsa883x->status_mask))
 			wcd_disable_irq(&wsa883x->irq_info,
 					WSA883X_IRQ_INT_PDM_WD);
+#ifndef CONFIG_MACH_XIAOMI
 		snd_soc_component_update_bits(component,
 				WSA883X_VBAT_ADC_FLT_CTL,
 				0x01, 0x00);
 		snd_soc_component_update_bits(component,
 				WSA883X_VBAT_ADC_FLT_CTL,
 				0x0E, 0x00);
+#endif
 		snd_soc_component_update_bits(component, WSA883X_PA_FSM_CTL,
 				0x01, 0x00);
+#ifndef CONFIG_MACH_XIAOMI
 		snd_soc_component_update_bits(component, WSA883X_PA_FSM_CTL,
 				0x10, 0x00);
 		snd_soc_component_update_bits(component, WSA883X_PA_FSM_CTL,
 				0x10, 0x10);
 		snd_soc_component_update_bits(component, WSA883X_PA_FSM_CTL,
 				0x10, 0x00);
+#endif
 		snd_soc_component_update_bits(wsa883x->component, WSA883X_PDM_WD_CTL,
 				0x01, 0x00);
+#ifndef CONFIG_MACH_XIAOMI
 		wcd_disable_irq(&wsa883x->irq_info, WSA883X_IRQ_INT_PA_ON_ERR);
+#endif
 		clear_bit(SPKR_STATUS, &wsa883x->status_mask);
 		clear_bit(SPKR_ADIE_LB, &wsa883x->status_mask);
 		break;
@@ -1468,6 +1487,7 @@ static int wsa883x_event_notify(struct notifier_block *nb,
 						0x01, 0x01);
 			wcd_enable_irq(&wsa883x->irq_info,
 					WSA883X_IRQ_INT_PDM_WD);
+#ifndef CONFIG_MACH_XIAOMI
 			/* Added delay as per HW sequence */
 			usleep_range(3000, 3100);
 			snd_soc_component_update_bits(wsa883x->component,
@@ -1475,6 +1495,7 @@ static int wsa883x_event_notify(struct notifier_block *nb,
 						0x01, 0x00);
 			/* Added delay as per HW sequence */
 			usleep_range(5000, 5050);
+#endif
 		}
 		break;
 	case BOLERO_WSA_EVT_PA_ON_POST_FSCLK_ADIE_LB:
@@ -1626,7 +1647,11 @@ static int wsa883x_swr_probe(struct swr_device *pdev)
 			"WSA UVLO", wsa883x_uvlo_handle_irq, NULL);
 
 	wcd_request_irq(&wsa883x->irq_info, WSA883X_IRQ_INT_PA_ON_ERR,
+#ifdef CONFIG_MACH_XIAOMI
+			"WSA PA ERR", wsa883x_pa_on_err_handle_irq, NULL);
+#else
 			"WSA PA ERR", wsa883x_pa_on_err_handle_irq, wsa883x);
+#endif
 
 	wcd_disable_irq(&wsa883x->irq_info, WSA883X_IRQ_INT_PA_ON_ERR);
 
