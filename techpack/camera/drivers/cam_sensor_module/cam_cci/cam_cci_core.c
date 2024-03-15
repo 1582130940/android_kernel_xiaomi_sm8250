@@ -12,6 +12,11 @@ static uint32_t cam_cci_retry(struct cci_device *cci_dev,
 	enum cci_i2c_master_t master,
 	enum cci_i2c_queue_t queue);
 
+#ifdef CONFIG_MACH_XIAOMI
+static int disable_optmz;
+module_param(disable_optmz, int, 0644);
+#endif
+
 static int32_t cam_cci_convert_type_to_num_bytes(
 	enum camera_sensor_i2c_type type)
 {
@@ -31,7 +36,11 @@ static int32_t cam_cci_convert_type_to_num_bytes(
 		num_bytes = 4;
 		break;
 	default:
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_CCI, "failed: %d", type);
+#else
 		CAM_ERR(CAM_CCI, "Wrong Sensor I2c Type: %d", type);
+#endif
 		num_bytes = 0;
 		break;
 	}
@@ -232,8 +241,10 @@ static void cam_cci_dump_registers(struct cci_device *cci_dev,
 	uint32_t reg_offset = 0;
 	void __iomem *base = cci_dev->soc_info.reg_map[0].mem_base;
 
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_INFO(CAM_CCI, "**** CCI:%d register dump ****",
 		cci_dev->soc_info->index);
+#endif
 
 	/* CCI Top Registers */
 	CAM_INFO(CAM_CCI, "****CCI TOP Registers ****");
@@ -248,8 +259,10 @@ static void cam_cci_dump_registers(struct cci_device *cci_dev,
 	CAM_INFO(CAM_CCI, "****CCI MASTER %d Registers ****",
 		master);
 	for (i = 0; i < DEBUG_MASTER_REG_COUNT; i++) {
+#ifndef CONFIG_MACH_XIAOMI
 		if ((i * 4) == 0x18)
 			continue;
+#endif
 
 		reg_offset = DEBUG_MASTER_REG_START + master*0x100 + i * 4;
 		read_val = cam_io_r_mb(base + reg_offset);
@@ -594,11 +607,16 @@ static int32_t cam_cci_calc_cmd_len(struct cci_device *cci_dev,
 	 struct cam_sensor_i2c_reg_array *i2c_cmd, uint32_t *pack)
 {
 	uint8_t i;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_sensor_i2c_reg_array *cmd = i2c_cmd;
+#endif
 	uint32_t len = 0;
 	uint8_t data_len = 0, addr_len = 0;
 	uint8_t pack_max_len;
 	struct cam_sensor_i2c_reg_setting *msg;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_sensor_i2c_reg_array *cmd = i2c_cmd;
+#endif
 	uint32_t size = cmd_size;
 
 	if (!cci_dev || !c_ctrl) {
@@ -620,6 +638,29 @@ static int32_t cam_cci_calc_cmd_len(struct cci_device *cci_dev,
 		len = data_len + addr_len;
 		pack_max_len = size < (cci_dev->payload_size-len) ?
 			size : (cci_dev->payload_size-len);
+#ifdef CONFIG_MACH_XIAOMI
+		if ((!c_ctrl->cci_info->disable_optmz) && (!disable_optmz))
+		{
+			CAM_DBG(CAM_CCI, "enable writing optimization for 0x%02X", c_ctrl->cci_info->sid<<1);
+			for (i = 0; i < pack_max_len;) {
+				if (cmd->delay || ((cmd - i2c_cmd) >= (cmd_size - 1)))
+					break;
+				if (cmd->reg_addr + 1 ==
+					(cmd+1)->reg_addr) {
+					len += data_len;
+					if (len > cci_dev->payload_size) {
+						len = len - data_len;
+						break;
+					}
+					(*pack)++;
+				} else {
+					break;
+				}
+				i += data_len;
+				cmd++;
+			}
+		}
+#else
 		for (i = 0; i < pack_max_len;) {
 			if (cmd->delay || ((cmd - i2c_cmd) >= (cmd_size - 1)))
 				break;
@@ -637,6 +678,7 @@ static int32_t cam_cci_calc_cmd_len(struct cci_device *cci_dev,
 			i += data_len;
 			cmd++;
 		}
+#endif
 	}
 
 	if (len > cci_dev->payload_size) {
@@ -719,14 +761,21 @@ static int32_t cam_cci_set_clk_param(struct cci_device *cci_dev,
 	struct cam_cci_clk_params_t *clk_params = NULL;
 	enum cci_i2c_master_t master = c_ctrl->cci_info->cci_i2c_master;
 	enum i2c_freq_mode i2c_freq_mode = c_ctrl->cci_info->i2c_freq_mode;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_hw_soc_info *soc_info =
+		&cci_dev->soc_info;
+	void __iomem *base = soc_info->reg_map[0].mem_base;
+#else
 	void __iomem *base = cci_dev->soc_info.reg_map[0].mem_base;
 	struct cam_cci_master_info *cci_master =
 		&cci_dev->cci_master_info[master];
+#endif
 
 	if ((i2c_freq_mode >= I2C_MAX_MODES) || (i2c_freq_mode < 0)) {
 		CAM_ERR(CAM_CCI, "invalid i2c_freq_mode = %d", i2c_freq_mode);
 		return -EINVAL;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	/*
 	 * If no change in i2c freq, then acquire semaphore only for the first
 	 * i2c transaction to indicate I2C transaction is in progress, else
@@ -752,9 +801,14 @@ static int32_t cam_cci_set_clk_param(struct cci_device *cci_dev,
 	spin_lock(&cci_master->freq_cnt_lock);
 	cci_master->freq_ref_cnt++;
 	spin_unlock(&cci_master->freq_cnt_lock);
+#endif
 
 	clk_params = &cci_dev->cci_clk_params[i2c_freq_mode];
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (cci_dev->i2c_freq_mode[master] == i2c_freq_mode)
+		return 0;
+#endif
 	if (master == MASTER_0) {
 		cam_io_w_mb(clk_params->hw_thigh << 16 |
 			clk_params->hw_tlow,
@@ -788,7 +842,9 @@ static int32_t cam_cci_set_clk_param(struct cci_device *cci_dev,
 	}
 	cci_dev->i2c_freq_mode[master] = i2c_freq_mode;
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&cci_master->mutex);
+#endif
 	return 0;
 }
 
@@ -1069,18 +1125,55 @@ static int32_t cam_cci_burst_read(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	soc_info = &cci_dev->soc_info;
+	base = soc_info->reg_map[0].mem_base;
+
+	mutex_lock(&cci_dev->cci_master_info[master].mutex);
+	if (cci_dev->cci_master_info[master].is_first_req) {
+		cci_dev->cci_master_info[master].is_first_req = false;
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else if (c_ctrl->cci_info->i2c_freq_mode
+		!= cci_dev->i2c_freq_mode[master]) {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+		cci_dev->cci_master_info[master].freq_ref_cnt++;
+		spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+	}
+#endif
+
 	/* Set the I2C Frequency */
 	rc = cam_cci_set_clk_param(cci_dev, c_ctrl);
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "cam_cci_set_clk_param failed rc = %d", rc);
+#ifdef CONFIG_MACH_XIAOMI
+		mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+		goto rel_master;
+#else
 		return rc;
+#endif
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+#endif
 
 	mutex_lock(&cci_dev->cci_master_info[master].mutex_q[queue]);
 	reinit_completion(&cci_dev->cci_master_info[master].report_q[queue]);
 
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = &cci_dev->soc_info;
 	base = soc_info->reg_map[0].mem_base;
+#endif
 
 	/*
 	 * Call validate queue to make sure queue is empty before starting.
@@ -1297,10 +1390,20 @@ static int32_t cam_cci_burst_read(struct v4l2_subdev *sd,
 rel_mutex_q:
 	mutex_unlock(&cci_dev->cci_master_info[master].mutex_q[queue]);
 
+#ifdef CONFIG_MACH_XIAOMI
+rel_master:
+	spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+	if (cci_dev->cci_master_info[master].freq_ref_cnt == 0)
+		up(&cci_dev->cci_master_info[master].master_sem);
+	else
+		cci_dev->cci_master_info[master].freq_ref_cnt--;
+	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+#else
 	spin_lock(&cci_dev->cci_master_info[master].freq_cnt_lock);
 	if (--cci_dev->cci_master_info[master].freq_ref_cnt == 0)
 		up(&cci_dev->cci_master_info[master].master_sem);
 	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt_lock);
+#endif
 	return rc;
 }
 
@@ -1325,23 +1428,66 @@ static int32_t cam_cci_read(struct v4l2_subdev *sd,
 
 	if (c_ctrl->cci_info->cci_i2c_master >= MASTER_MAX
 		|| c_ctrl->cci_info->cci_i2c_master < 0) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_CCI, "Invalid I2C master addr");
+#else
 		CAM_ERR(CAM_CCI, "Invalid I2C master addr:%d",
 			c_ctrl->cci_info->cci_i2c_master);
+#endif
 		return -EINVAL;
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	soc_info = &cci_dev->soc_info;
+	base = soc_info->reg_map[0].mem_base;
+
+	mutex_lock(&cci_dev->cci_master_info[master].mutex);
+	if (cci_dev->cci_master_info[master].is_first_req) {
+		cci_dev->cci_master_info[master].is_first_req = false;
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else if (c_ctrl->cci_info->i2c_freq_mode
+		!= cci_dev->i2c_freq_mode[master]) {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+		cci_dev->cci_master_info[master].freq_ref_cnt++;
+		spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+	}
+#endif
 
 	/* Set the I2C Frequency */
 	rc = cam_cci_set_clk_param(cci_dev, c_ctrl);
 	if (rc < 0) {
+#ifdef CONFIG_MACH_XIAOMI
+		mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+#endif
 		CAM_ERR(CAM_CCI, "cam_cci_set_clk_param failed rc = %d", rc);
+#ifdef CONFIG_MACH_XIAOMI
+		goto rel_master;
+#else
 		return rc;
+#endif
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+#endif
 
 	mutex_lock(&cci_dev->cci_master_info[master].mutex_q[queue]);
 	reinit_completion(&cci_dev->cci_master_info[master].report_q[queue]);
 
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = &cci_dev->soc_info;
 	base = soc_info->reg_map[0].mem_base;
+#endif
 
 	/*
 	 * Call validate queue to make sure queue is empty before starting.
@@ -1500,10 +1646,20 @@ static int32_t cam_cci_read(struct v4l2_subdev *sd,
 rel_mutex_q:
 	mutex_unlock(&cci_dev->cci_master_info[master].mutex_q[queue]);
 
+#ifdef CONFIG_MACH_XIAOMI
+rel_master:
+	spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+	if (cci_dev->cci_master_info[master].freq_ref_cnt == 0)
+		up(&cci_dev->cci_master_info[master].master_sem);
+	else
+		cci_dev->cci_master_info[master].freq_ref_cnt--;
+	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+#else
 	spin_lock(&cci_dev->cci_master_info[master].freq_cnt_lock);
 	if (--cci_dev->cci_master_info[master].freq_ref_cnt == 0)
 		up(&cci_dev->cci_master_info[master].master_sem);
 	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt_lock);
+#endif
 	return rc;
 }
 
@@ -1527,12 +1683,44 @@ static int32_t cam_cci_i2c_write(struct v4l2_subdev *sd,
 		c_ctrl->cci_info->sid, c_ctrl->cci_info->retries,
 		c_ctrl->cci_info->id_map);
 
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_lock(&cci_dev->cci_master_info[master].mutex);
+	if (cci_dev->cci_master_info[master].is_first_req) {
+		cci_dev->cci_master_info[master].is_first_req = false;
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else if (c_ctrl->cci_info->i2c_freq_mode
+		!= cci_dev->i2c_freq_mode[master]) {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		down(&cci_dev->cci_master_info[master].master_sem);
+	} else {
+		CAM_DBG(CAM_CCI, "Master: %d, curr_freq: %d, req_freq: %d",
+			master, cci_dev->i2c_freq_mode[master],
+			c_ctrl->cci_info->i2c_freq_mode);
+		spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+		cci_dev->cci_master_info[master].freq_ref_cnt++;
+		spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+	}
+#endif
+
 	/* Set the I2C Frequency */
 	rc = cam_cci_set_clk_param(cci_dev, c_ctrl);
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "cam_cci_set_clk_param failed rc = %d", rc);
+#ifdef CONFIG_MACH_XIAOMI
+		mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+		goto ERROR;
+#else
 		return rc;
+#endif
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+#endif
 	reinit_completion(&cci_dev->cci_master_info[master].report_q[queue]);
 	/*
 	 * Call validate queue to make sure queue is empty before starting.
@@ -1558,10 +1746,19 @@ static int32_t cam_cci_i2c_write(struct v4l2_subdev *sd,
 	}
 
 ERROR:
+#ifdef CONFIG_MACH_XIAOMI
+	spin_lock(&cci_dev->cci_master_info[master].freq_cnt);
+	if (cci_dev->cci_master_info[master].freq_ref_cnt == 0)
+		up(&cci_dev->cci_master_info[master].master_sem);
+	else
+		cci_dev->cci_master_info[master].freq_ref_cnt--;
+	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt);
+#else
 	spin_lock(&cci_dev->cci_master_info[master].freq_cnt_lock);
 	if (--cci_dev->cci_master_info[master].freq_ref_cnt == 0)
 		up(&cci_dev->cci_master_info[master].master_sem);
 	spin_unlock(&cci_dev->cci_master_info[master].freq_cnt_lock);
+#endif
 	return rc;
 }
 
@@ -1694,10 +1891,14 @@ static int32_t cam_cci_read_bytes(struct v4l2_subdev *sd,
 	 * THRESHOLD irq's, we reinit the threshold wait before
 	 * we load the burst read cmd.
 	 */
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&cci_dev->cci_master_info[master].mutex_q[QUEUE_1]);
+#endif
 	reinit_completion(&cci_dev->cci_master_info[master].rd_done);
 	reinit_completion(&cci_dev->cci_master_info[master].th_complete);
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&cci_dev->cci_master_info[master].mutex_q[QUEUE_1]);
+#endif
 
 	CAM_DBG(CAM_CCI, "Bytes to read %u", read_bytes);
 	do {
@@ -1752,15 +1953,23 @@ static int32_t cam_cci_i2c_set_sync_prms(struct v4l2_subdev *sd,
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+static int32_t cam_cci_release(struct v4l2_subdev *sd)
+#else
 static int32_t cam_cci_release(struct v4l2_subdev *sd,
 	enum cci_i2c_master_t master)
+#endif
 {
 	uint8_t rc = 0;
 	struct cci_device *cci_dev;
 
 	cci_dev = v4l2_get_subdevdata(sd);
 
+#ifdef CONFIG_MACH_XIAOMI
+	rc = cam_cci_soc_release(cci_dev);
+#else
 	rc = cam_cci_soc_release(cci_dev, master);
+#endif
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "Failed in releasing the cci: %d", rc);
 		return rc;
@@ -1883,11 +2092,27 @@ int32_t cam_cci_core_cfg(struct v4l2_subdev *sd,
 		break;
 	case MSM_CCI_RELEASE:
 		mutex_lock(&cci_dev->init_mutex);
+#ifdef CONFIG_MACH_XIAOMI
+		rc = cam_cci_release(sd);
+#else
 		rc = cam_cci_release(sd, master);
+#endif
 		mutex_unlock(&cci_dev->init_mutex);
 		break;
 	case MSM_CCI_I2C_READ:
+#ifdef CONFIG_MACH_XIAOMI
+		mutex_lock(&cci_dev->init_mutex);
+#endif
 		rc = cam_cci_read_bytes(sd, cci_ctrl);
+#ifdef CONFIG_MACH_XIAOMI
+		if (rc < 0) {
+			CAM_ERR(CAM_CCI, "cam cci err %d , read, slav 0x%x on dev/master %d/%d",
+				rc, cci_ctrl->cci_info->sid << 1,
+				cci_ctrl->cci_info->cci_device,
+				cci_ctrl->cci_info->cci_i2c_master);
+		}
+		mutex_unlock(&cci_dev->init_mutex);
+#endif
 		break;
 	case MSM_CCI_I2C_WRITE:
 	case MSM_CCI_I2C_WRITE_SEQ:
@@ -1895,7 +2120,20 @@ int32_t cam_cci_core_cfg(struct v4l2_subdev *sd,
 	case MSM_CCI_I2C_WRITE_SYNC:
 	case MSM_CCI_I2C_WRITE_ASYNC:
 	case MSM_CCI_I2C_WRITE_SYNC_BLOCK:
+#ifdef CONFIG_MACH_XIAOMI
+		mutex_lock(&cci_dev->init_mutex);
+#endif
 		rc = cam_cci_write(sd, cci_ctrl);
+#ifdef CONFIG_MACH_XIAOMI
+		if (rc < 0) {
+			CAM_ERR(CAM_CCI, "cam cci err %d , write type %d , slav 0x%x on dev/master %d/%d",
+				rc, cci_ctrl->cmd,
+				cci_ctrl->cci_info->sid << 1,
+				cci_ctrl->cci_info->cci_device,
+				cci_ctrl->cci_info->cci_i2c_master);
+		}
+		mutex_unlock(&cci_dev->init_mutex);
+#endif
 		break;
 	case MSM_CCI_GPIO_WRITE:
 		break;

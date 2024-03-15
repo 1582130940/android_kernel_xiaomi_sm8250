@@ -45,7 +45,9 @@ enum cam_isp_hw_err_type {
 	CAM_ISP_HW_ERROR_P2I_ERROR,
 	CAM_ISP_HW_ERROR_VIOLATION,
 	CAM_ISP_HW_ERROR_BUSIF_OVERFLOW,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_HW_ERROR_CSID_FATAL,
+#endif
 	CAM_ISP_HW_ERROR_MAX,
 };
 
@@ -136,9 +138,11 @@ struct cam_isp_bw_config_internal {
 struct cam_isp_prepare_hw_update_data {
 	struct cam_ife_hw_mgr_ctx            *ife_mgr_ctx;
 	uint32_t                              packet_opcode_type;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                             *frame_header_cpu_addr;
 	uint64_t                              frame_header_iova;
 	uint32_t                              frame_header_res_id;
+#endif
 	uint32_t                              bw_config_version;
 	struct cam_isp_bw_config_internal     bw_config[CAM_IFE_HW_NUM_MAX];
 	struct cam_isp_bw_config_internal_v2  bw_config_v2[CAM_IFE_HW_NUM_MAX];
@@ -180,7 +184,9 @@ struct cam_isp_hw_reg_update_event_data {
  */
 struct cam_isp_hw_epoch_event_data {
 	uint64_t       timestamp;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t       frame_id_meta;
+#endif
 };
 
 /**
@@ -196,8 +202,10 @@ struct cam_isp_hw_done_event_data {
 	uint32_t             num_handles;
 	uint32_t             resource_handle[
 				CAM_NUM_OUT_PER_COMP_IRQ_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t             last_consumed_addr[
 				CAM_NUM_OUT_PER_COMP_IRQ_MAX];
+#endif
 	uint64_t       timestamp;
 };
 
@@ -234,8 +242,10 @@ enum cam_isp_hw_mgr_command {
 	CAM_ISP_HW_MGR_CMD_RESUME_HW,
 	CAM_ISP_HW_MGR_CMD_SOF_DEBUG,
 	CAM_ISP_HW_MGR_CMD_CTX_TYPE,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_HW_MGR_GET_PACKET_OPCODE,
 	CAM_ISP_HW_MGR_GET_LAST_CDM_DONE,
+#endif
 	CAM_ISP_HW_MGR_CMD_MAX,
 };
 
@@ -243,7 +253,9 @@ enum cam_isp_ctx_type {
 	CAM_ISP_CTX_FS2 = 1,
 	CAM_ISP_CTX_RDI,
 	CAM_ISP_CTX_PIX,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_CTX_OFFLINE,
+#endif
 	CAM_ISP_CTX_MAX,
 };
 /**
@@ -258,12 +270,16 @@ enum cam_isp_ctx_type {
  */
 struct cam_isp_hw_cmd_args {
 	uint32_t                          cmd_type;
+#ifndef CONFIG_MACH_XIAOMI
 	void                             *cmd_data;
+#endif
 	union {
 		uint32_t                      sof_irq_enable;
 		uint32_t                      ctx_type;
+#ifndef CONFIG_MACH_XIAOMI
 		uint32_t                      packet_op_code;
 		uint64_t                      last_cdm_done;
+#endif
 	} u;
 };
 

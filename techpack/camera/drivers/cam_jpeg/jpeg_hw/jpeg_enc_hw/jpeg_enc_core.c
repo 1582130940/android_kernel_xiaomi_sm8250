@@ -42,7 +42,9 @@ int cam_jpeg_enc_init_hw(void *device_priv,
 	struct cam_jpeg_enc_device_core_info *core_info = NULL;
 	struct cam_ahb_vote ahb_vote;
 	struct cam_axi_vote axi_vote = {0};
+#ifndef CONFIG_MACH_XIAOMI
 	unsigned long flags;
+#endif
 	int rc;
 
 	if (!device_priv) {
@@ -93,9 +95,11 @@ int cam_jpeg_enc_init_hw(void *device_priv,
 		CAM_ERR(CAM_JPEG, "soc enable is failed %d", rc);
 		goto soc_failed;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock_irqsave(&jpeg_enc_dev->hw_lock, flags);
 	jpeg_enc_dev->hw_state = CAM_HW_STATE_POWER_UP;
 	spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 
 	mutex_unlock(&core_info->core_mutex);
 
@@ -116,7 +120,9 @@ int cam_jpeg_enc_deinit_hw(void *device_priv,
 	struct cam_hw_info *jpeg_enc_dev = device_priv;
 	struct cam_hw_soc_info *soc_info = NULL;
 	struct cam_jpeg_enc_device_core_info *core_info = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 	unsigned long flags;
+#endif
 	int rc;
 
 	if (!device_priv) {
@@ -146,9 +152,11 @@ int cam_jpeg_enc_deinit_hw(void *device_priv,
 		return -EFAULT;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock_irqsave(&jpeg_enc_dev->hw_lock, flags);
 	jpeg_enc_dev->hw_state = CAM_HW_STATE_POWER_DOWN;
 	spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 	rc = cam_jpeg_enc_disable_soc_resources(soc_info);
 	if (rc)
 		CAM_ERR(CAM_JPEG, "soc disable failed %d", rc);
@@ -182,19 +190,23 @@ irqreturn_t cam_jpeg_enc_irq(int irq_num, void *data)
 	hw_info = core_info->jpeg_enc_hw_info;
 	mem_base = soc_info->reg_map[0].mem_base;
 
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock(&jpeg_enc_dev->hw_lock);
 	if (jpeg_enc_dev->hw_state == CAM_HW_STATE_POWER_DOWN) {
 		CAM_ERR(CAM_JPEG, "JPEG HW is in off state");
 		spin_unlock(&jpeg_enc_dev->hw_lock);
 		return IRQ_HANDLED;
 	}
+#endif
 	irq_status = cam_io_r_mb(mem_base +
 		core_info->jpeg_enc_hw_info->reg_offset.int_status);
 
 	cam_io_w_mb(irq_status,
 		soc_info->reg_map[0].mem_base +
 		core_info->jpeg_enc_hw_info->reg_offset.int_clr);
+#ifndef CONFIG_MACH_XIAOMI
 	spin_unlock(&jpeg_enc_dev->hw_lock);
+#endif
 
 	CAM_DBG(CAM_JPEG, "irq_num %d  irq_status = %x , core_state %d",
 		irq_num, irq_status, core_info->core_state);
@@ -270,7 +282,9 @@ int cam_jpeg_enc_reset_hw(void *data,
 	struct cam_jpeg_enc_device_hw_info *hw_info = NULL;
 	void __iomem *mem_base;
 	unsigned long rem_jiffies;
+#ifndef CONFIG_MACH_XIAOMI
 	unsigned long flags;
+#endif
 
 	if (!jpeg_enc_dev) {
 		CAM_ERR(CAM_JPEG, "Invalid args");
@@ -284,6 +298,9 @@ int cam_jpeg_enc_reset_hw(void *data,
 	mem_base = soc_info->reg_map[0].mem_base;
 
 	mutex_lock(&core_info->core_mutex);
+#ifdef CONFIG_MACH_XIAOMI
+	spin_lock(&jpeg_enc_dev->hw_lock);
+#else
 	spin_lock_irqsave(&jpeg_enc_dev->hw_lock, flags);
 	if (jpeg_enc_dev->hw_state == CAM_HW_STATE_POWER_DOWN) {
 		CAM_ERR(CAM_JPEG, "JPEG HW is in off state");
@@ -291,16 +308,25 @@ int cam_jpeg_enc_reset_hw(void *data,
 		mutex_unlock(&core_info->core_mutex);
 		return -EINVAL;
 	}
+#endif
 	if (core_info->core_state == CAM_JPEG_ENC_CORE_RESETTING) {
 		CAM_ERR(CAM_JPEG, "alrady resetting");
+#ifdef CONFIG_MACH_XIAOMI
+		spin_unlock(&jpeg_enc_dev->hw_lock);
+#else
 		spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 		mutex_unlock(&core_info->core_mutex);
 		return 0;
 	}
 
 	reinit_completion(&jpeg_enc_dev->hw_complete);
 	core_info->core_state = CAM_JPEG_ENC_CORE_RESETTING;
+#ifdef CONFIG_MACH_XIAOMI
+	spin_unlock(&jpeg_enc_dev->hw_lock);
+#else
 	spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 
 	cam_io_w_mb(hw_info->reg_val.int_mask_disable_all,
 		mem_base + hw_info->reg_offset.int_mask);
@@ -330,7 +356,9 @@ int cam_jpeg_enc_start_hw(void *data,
 	struct cam_hw_soc_info *soc_info = NULL;
 	struct cam_jpeg_enc_device_hw_info *hw_info = NULL;
 	void __iomem *mem_base;
+#ifndef CONFIG_MACH_XIAOMI
 	unsigned long flags;
+#endif
 
 	if (!jpeg_enc_dev) {
 		CAM_ERR(CAM_JPEG, "Invalid args");
@@ -343,18 +371,26 @@ int cam_jpeg_enc_start_hw(void *data,
 	hw_info = core_info->jpeg_enc_hw_info;
 	mem_base = soc_info->reg_map[0].mem_base;
 
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock_irqsave(&jpeg_enc_dev->hw_lock, flags);
 	if (jpeg_enc_dev->hw_state == CAM_HW_STATE_POWER_DOWN) {
 		CAM_ERR(CAM_JPEG, "JPEG HW is in off state");
 		spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
 		return -EINVAL;
 	}
+#endif
 	if (core_info->core_state != CAM_JPEG_ENC_CORE_READY) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_JPEG, "Error not ready");
+#else
 		CAM_ERR(CAM_JPEG, "Error not ready: %d", core_info->core_state);
 		spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 		return -EINVAL;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 
 	cam_io_w_mb(hw_info->reg_val.hw_cmd_start,
 		mem_base + hw_info->reg_offset.hw_cmd);
@@ -384,6 +420,9 @@ int cam_jpeg_enc_stop_hw(void *data,
 	mem_base = soc_info->reg_map[0].mem_base;
 
 	mutex_lock(&core_info->core_mutex);
+#ifdef CONFIG_MACH_XIAOMI
+	spin_lock(&jpeg_enc_dev->hw_lock);
+#else
 	spin_lock_irqsave(&jpeg_enc_dev->hw_lock, flags);
 	if (jpeg_enc_dev->hw_state == CAM_HW_STATE_POWER_DOWN) {
 		CAM_ERR(CAM_JPEG, "JPEG HW is in off state");
@@ -391,16 +430,25 @@ int cam_jpeg_enc_stop_hw(void *data,
 		mutex_unlock(&core_info->core_mutex);
 		return -EINVAL;
 	}
+#endif
 	if (core_info->core_state == CAM_JPEG_ENC_CORE_ABORTING) {
 		CAM_ERR(CAM_JPEG, "alrady stopping");
+#ifdef CONFIG_MACH_XIAOMI
+		spin_unlock(&jpeg_enc_dev->hw_lock);
+#else
 		spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 		mutex_unlock(&core_info->core_mutex);
 		return 0;
 	}
 
 	reinit_completion(&jpeg_enc_dev->hw_complete);
 	core_info->core_state = CAM_JPEG_ENC_CORE_ABORTING;
+#ifdef CONFIG_MACH_XIAOMI
+	spin_unlock(&jpeg_enc_dev->hw_lock);
+#else
 	spin_unlock_irqrestore(&jpeg_enc_dev->hw_lock, flags);
+#endif
 
 	cam_io_w_mb(hw_info->reg_val.hw_cmd_stop,
 		mem_base + hw_info->reg_offset.hw_cmd);
@@ -416,6 +464,7 @@ int cam_jpeg_enc_stop_hw(void *data,
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_jpeg_enc_hw_dump(
 	struct cam_hw_info           *jpeg_enc_dev,
 	struct cam_jpeg_hw_dump_args *dump_args)
@@ -490,6 +539,7 @@ int cam_jpeg_enc_hw_dump(
 
 	return 0;
 }
+#endif
 
 int cam_jpeg_enc_process_cmd(void *device_priv, uint32_t cmd_type,
 	void *cmd_args, uint32_t arg_size)
@@ -531,12 +581,14 @@ int cam_jpeg_enc_process_cmd(void *device_priv, uint32_t cmd_type,
 		rc = 0;
 		break;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_JPEG_CMD_HW_DUMP:
 	{
 		rc = cam_jpeg_enc_hw_dump(jpeg_enc_dev,
 			cmd_args);
 		break;
 	}
+#endif
 	default:
 		rc = -EINVAL;
 		break;

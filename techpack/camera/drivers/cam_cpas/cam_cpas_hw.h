@@ -165,10 +165,14 @@ struct cam_cpas_axi_port {
 	struct device_node *axi_port_node;
 	uint64_t ab_bw;
 	uint64_t ib_bw;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t camnoc_bw;
+#endif
 	uint64_t additional_bw;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t applied_ab_bw;
 	uint64_t applied_ib_bw;
+#endif
 };
 
 /**
@@ -202,20 +206,26 @@ struct cam_cpas {
 	struct mutex tree_lock;
 	uint32_t num_clients;
 	uint32_t num_axi_ports;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t num_camnoc_axi_ports;
+#endif
 	uint32_t registered_clients;
 	uint32_t streamon_clients;
 	int32_t regbase_index[CAM_CPAS_REG_MAX];
 	struct cam_cpas_bus_client ahb_bus_client;
 	struct cam_cpas_axi_port axi_port[CAM_CPAS_MAX_AXI_PORTS];
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_cpas_axi_port camnoc_axi_port[CAM_CPAS_MAX_AXI_PORTS];
+#endif
 	struct cam_cpas_internal_ops internal_ops;
 	struct workqueue_struct *work_queue;
 	atomic_t irq_count;
 	wait_queue_head_t irq_count_wq;
 	struct dentry *dentry;
 	bool ahb_bus_scaling_disable;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t applied_camnoc_axi_rate;
+#endif
 };
 
 int cam_camsstop_get_internal_ops(struct cam_cpas_internal_ops *internal_ops);

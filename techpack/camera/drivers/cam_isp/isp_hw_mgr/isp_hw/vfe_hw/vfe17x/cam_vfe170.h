@@ -145,6 +145,7 @@ static struct cam_vfe_rdi_reg_data  vfe_170_rdi_2_data = {
 	.reg_update_irq_mask      = 0x80,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_vfe_top_dump_data vfe170_dump_data = {
 	.num_reg_dump_entries  =  2,
 	.num_lut_dump_entries  =  1,
@@ -178,6 +179,7 @@ static struct cam_vfe_rdi_overflow_status vfe170_rdi_irq_status = {
 	.rdi3_overflow_mask = 0x20,
 	.rdi_overflow_mask  = 0x3c,
 };
+#endif
 
 static struct cam_vfe_top_ver2_hw_info vfe170_top_hw_info = {
 	.common_reg = &vfe170_top_common_reg,
@@ -194,7 +196,9 @@ static struct cam_vfe_top_ver2_hw_info vfe170_top_hw_info = {
 	.rdi_hw_info = {
 		.common_reg      = &vfe170_top_common_reg,
 		.rdi_reg         = &vfe170_rdi_reg,
+#ifndef CONFIG_MACH_XIAOMI
 		.rdi_irq_status  = &vfe170_rdi_irq_status,
+#endif
 		.reg_data = {
 			&vfe_170_rdi_0_data,
 			&vfe_170_rdi_1_data,
@@ -209,7 +213,9 @@ static struct cam_vfe_top_ver2_hw_info vfe170_top_hw_info = {
 		CAM_VFE_RDI_VER_1_0,
 		CAM_VFE_RDI_VER_1_0,
 	},
+#ifndef CONFIG_MACH_XIAOMI
 	.dump_data = &vfe170_dump_data,
+#endif
 };
 
 static struct cam_irq_register_set vfe170_bus_irq_reg[3] = {
@@ -239,7 +245,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_3 = {
 	.meta_stride      = 0x00002540,
 	.mode_cfg_0       = 0x00002544,
 	.bw_limit         = 0x000025A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_4 = {
@@ -251,7 +259,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_4 = {
 	.meta_stride      = 0x00002640,
 	.mode_cfg_0       = 0x00002644,
 	.bw_limit         = 0x000026A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_hw_info vfe170_bus_hw_info = {
@@ -861,7 +871,9 @@ static struct cam_vfe_bus_ver2_hw_info vfe170_bus_hw_info = {
 			.max_height    = -1,
 		},
 	},
+#ifndef CONFIG_MACH_XIAOMI
 	.support_consumed_addr = false,
+#endif
 };
 
 struct cam_vfe_hw_info cam_vfe170_hw_info = {

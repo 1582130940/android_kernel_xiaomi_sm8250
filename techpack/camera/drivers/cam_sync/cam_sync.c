@@ -38,7 +38,11 @@ static void cam_sync_print_fence_table(void)
 			sync_dev->sync_table[idx].name,
 			sync_dev->sync_table[idx].type,
 			sync_dev->sync_table[idx].state,
+#ifdef CONFIG_MACH_XIAOMI
+			sync_dev->sync_table[idx].ref_cnt);
+#else
 			atomic_read(&sync_dev->sync_table[idx].ref_cnt));
+#endif
 		spin_unlock_bh(&sync_dev->row_spinlocks[idx]);
 	}
 }
@@ -286,7 +290,9 @@ int cam_sync_merge(int32_t *sync_obj, uint32_t num_objs, int32_t *merged_obj)
 	int rc;
 	long idx = 0;
 	bool bit;
+#ifndef CONFIG_MACH_XIAOMI
 	int i = 0;
+#endif
 
 	if (!sync_obj || !merged_obj) {
 		CAM_ERR(CAM_SYNC, "Invalid pointer(s)");
@@ -298,12 +304,21 @@ int cam_sync_merge(int32_t *sync_obj, uint32_t num_objs, int32_t *merged_obj)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (cam_sync_validate_sync_objects(sync_obj, num_objs)) {
+		CAM_ERR(CAM_SYNC,
+			"The objects passed for merge are not valid");
+		return -EINVAL;
+	}
+#endif
+
 	if (cam_common_util_remove_duplicate_arr(sync_obj, num_objs)
 		!= num_objs) {
 		CAM_ERR(CAM_SYNC, "The obj list has duplicate fence");
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	for (i = 0; i < num_objs; i++) {
 		rc = cam_sync_check_valid(sync_obj[i]);
 		if (rc) {
@@ -312,6 +327,7 @@ int cam_sync_merge(int32_t *sync_obj, uint32_t num_objs, int32_t *merged_obj)
 			return rc;
 		}
 	}
+#endif
 	do {
 		idx = find_first_zero_bit(sync_dev->bitmap, CAM_SYNC_MAX_OBJS);
 		if (idx >= CAM_SYNC_MAX_OBJS)
@@ -383,6 +399,7 @@ int cam_sync_destroy(int32_t sync_obj)
 	return cam_sync_deinit_object(sync_dev->sync_table, sync_obj);
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_sync_check_valid(int32_t sync_obj)
 {
 	struct sync_table_row *row = NULL;
@@ -406,6 +423,7 @@ int cam_sync_check_valid(int32_t sync_obj)
 	}
 	return 0;
 }
+#endif
 
 int cam_sync_wait(int32_t sync_obj, uint64_t timeout_ms)
 {
@@ -469,7 +487,9 @@ static int cam_sync_handle_create(struct cam_private_ioctl_arg *k_ioctl)
 		u64_to_user_ptr(k_ioctl->ioctl_ptr),
 		k_ioctl->size))
 		return -EFAULT;
+#ifndef CONFIG_MACH_XIAOMI
 	sync_create.name[SYNC_DEBUG_NAME_LEN] = '\0';
+#endif
 
 	result = cam_sync_create(&sync_create.sync_obj,
 		sync_create.name);

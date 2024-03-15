@@ -369,6 +369,20 @@ long cam_soc_util_get_clk_round_rate(struct cam_hw_soc_info *soc_info,
 	return clk_round_rate(soc_info->clk[clk_index], clk_rate);
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_soc_util_set_clk_flags(struct cam_hw_soc_info *soc_info,
+	uint32_t clk_index, unsigned long flags)
+{
+	if (!soc_info || (clk_index >= soc_info->num_clk)) {
+		CAM_ERR(CAM_UTIL, "Invalid input params %pK, %d",
+			soc_info, clk_index);
+		return -EINVAL;
+	}
+
+	return clk_set_flags(soc_info->clk[clk_index], flags);
+}
+#endif
+
 /**
  * cam_soc_util_set_clk_rate()
  *
@@ -1030,6 +1044,7 @@ static int cam_soc_util_get_dt_gpio_req_tbl(struct device_node *of_node,
 			gconf->cam_gpio_req_tbl[i].label);
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (!of_get_property(of_node, "gpio-req-tbl-delay", &count)) {
 		CAM_DBG(CAM_UTIL, "no gpio-req-tbl-delay");
 		kfree(val_array);
@@ -1076,6 +1091,7 @@ static int cam_soc_util_get_dt_gpio_req_tbl(struct device_node *of_node,
 		CAM_DBG(CAM_UTIL, "gpio_delay_tbl[%d] = %ld", i,
 			gconf->gpio_delay_tbl[i]);
 	}
+#endif
 
 	kfree(val_array);
 
@@ -2046,6 +2062,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_soc_util_dump_dmi_reg_range_user_buf(
 	struct cam_hw_soc_info *soc_info,
 	struct cam_dmi_read_desc *dmi_read, uint32_t base_idx,
@@ -2304,12 +2321,17 @@ static int cam_soc_util_user_reg_dump(
 end:
 	return rc;
 }
+#endif
 
 int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 	struct cam_cmd_buf_desc *cmd_desc, uint64_t req_id,
+#ifdef CONFIG_MACH_XIAOMI
+	cam_soc_util_regspace_data_cb reg_data_cb)
+#else
 	cam_soc_util_regspace_data_cb reg_data_cb,
 	struct cam_hw_soc_dump_args *soc_dump_args,
 	bool user_triggered_dump)
+#endif
 {
 	int                               rc = 0, i, j;
 	uintptr_t                         cpu_addr = 0;
@@ -2455,6 +2477,13 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 			goto end;
 		}
 
+#ifdef CONFIG_MACH_XIAOMI
+		dump_out_buf = (struct cam_reg_dump_out_buffer *)
+			(cmd_buf_start +
+			(uintptr_t)reg_dump_desc->dump_buffer_offset);
+		dump_out_buf->req_id = req_id;
+		dump_out_buf->bytes_written = 0;
+#endif
 		reg_base_type = reg_dump_desc->reg_base_type;
 		if (reg_base_type == 0 || reg_base_type >
 			CAM_REG_DUMP_BASE_TYPE_CAMNOC) {
@@ -2487,6 +2516,7 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 			req_id, reg_base_type, reg_base_idx,
 			reg_dump_desc->num_read_range);
 
+#ifndef CONFIG_MACH_XIAOMI
 		/* If the dump request is triggered by user space
 		 * buffer will be different from the buffer which is received
 		 * in init packet. In this case, dump the data to the
@@ -2510,6 +2540,7 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 			(uintptr_t)reg_dump_desc->dump_buffer_offset);
 		dump_out_buf->req_id = req_id;
 		dump_out_buf->bytes_written = 0;
+#endif
 
 		for (j = 0; j < reg_dump_desc->num_read_range; j++) {
 			CAM_DBG(CAM_UTIL,

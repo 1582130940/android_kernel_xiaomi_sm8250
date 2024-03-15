@@ -12,6 +12,7 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_flash_set_gpio(struct cam_flash_ctrl *fctrl,
 	bool enable)
 {
@@ -46,6 +47,7 @@ static int cam_flash_set_gpio(struct cam_flash_ctrl *fctrl,
 	}
 	return 0;
 }
+#endif
 
 static int cam_flash_prepare(struct cam_flash_ctrl *flash_ctrl,
 	bool regulator_enable)
@@ -120,8 +122,12 @@ static int cam_flash_prepare(struct cam_flash_ctrl *flash_ctrl,
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+static int cam_flash_pmic_flush_nrt(struct cam_flash_ctrl *fctrl)
+#else
 static int cam_flash_pmic_gpio_flush_nrt(
 	struct cam_flash_ctrl *fctrl)
+#endif
 {
 	int j = 0;
 	struct cam_flash_frame_setting *nrt_settings;
@@ -217,17 +223,23 @@ free_power_settings:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_power_ops(struct cam_flash_ctrl *fctrl,
+#else
 int cam_flash_pmic_gpio_power_ops(
 	struct cam_flash_ctrl *fctrl,
+#endif
 	bool regulator_enable)
 {
 	int rc = 0;
 
+#ifndef CONFIG_MACH_XIAOMI
 	/* Gpio flash do not need to power on and off */
 	if (fctrl->soc_info.gpio_data) {
 		CAM_DBG(CAM_FLASH, "gpio based flash not need power");
 		return rc;
 	}
+#endif
 
 	if (!(fctrl->switch_trigger)) {
 		CAM_ERR(CAM_FLASH, "Invalid argument");
@@ -325,15 +337,21 @@ free_pwr_settings:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_flush_request(struct cam_flash_ctrl *fctrl,
+#else
 int cam_flash_pmic_gpio_flush_request(
 	struct cam_flash_ctrl *fctrl,
+#endif
 	enum cam_flash_flush_type type, uint64_t req_id)
 {
 	int rc = 0;
 	int i = 0, j = 0;
 	int frame_offset = 0;
 	bool is_off_needed = false;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_flash_frame_setting *flash_data = NULL;
+#endif
 
 	if (!fctrl) {
 		CAM_ERR(CAM_FLASH, "Device data is NULL");
@@ -343,6 +361,24 @@ int cam_flash_pmic_gpio_flush_request(
 	if (type == FLUSH_ALL) {
 	/* flush all requests*/
 		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
+#ifdef CONFIG_MACH_XIAOMI
+			if ((fctrl->per_frame[i].opcode ==
+				CAMERA_SENSOR_FLASH_OP_OFF) &&
+				(fctrl->per_frame[i].cmn_attr.request_id > 0) &&
+				(fctrl->per_frame[i].cmn_attr.request_id <= req_id) &&
+				fctrl->per_frame[i].cmn_attr.is_settings_valid) {
+				is_off_needed = true;
+				CAM_DBG(CAM_FLASH,
+					"FLASH_ALL: Turn off the flash for req %llu",
+					fctrl->per_frame[i].cmn_attr.request_id);
+			}
+
+			fctrl->per_frame[i].cmn_attr.request_id = 0;
+			fctrl->per_frame[i].cmn_attr.is_settings_valid = false;
+			fctrl->per_frame[i].cmn_attr.count = 0;
+			for (j = 0; j < CAM_FLASH_MAX_LED_TRIGGERS; j++)
+				fctrl->per_frame[i].led_current_ma[j] = 0;
+#else
 			flash_data =
 				&fctrl->per_frame[i];
 			if ((flash_data->opcode ==
@@ -360,12 +396,33 @@ int cam_flash_pmic_gpio_flush_request(
 			flash_data->cmn_attr.count = 0;
 			for (j = 0; j < CAM_FLASH_MAX_LED_TRIGGERS; j++)
 				flash_data->led_current_ma[j] = 0;
+#endif
 		}
 
+#ifdef CONFIG_MACH_XIAOMI
+		cam_flash_pmic_flush_nrt(fctrl);
+#else
 		cam_flash_pmic_gpio_flush_nrt(fctrl);
+#endif
 	} else if ((type == FLUSH_REQ) && (req_id != 0)) {
 	/* flush request with req_id*/
 		frame_offset = req_id % MAX_PER_FRAME_ARRAY;
+#ifdef CONFIG_MACH_XIAOMI
+		if (fctrl->per_frame[frame_offset].opcode ==
+			CAMERA_SENSOR_FLASH_OP_OFF) {
+			is_off_needed = true;
+			CAM_DBG(CAM_FLASH,
+				"FLASH_REQ: Turn off the flash for req %llu",
+				fctrl->per_frame[frame_offset].cmn_attr.request_id);
+		}
+
+		fctrl->per_frame[frame_offset].cmn_attr.request_id = 0;
+		fctrl->per_frame[frame_offset].cmn_attr.is_settings_valid =
+			false;
+		fctrl->per_frame[frame_offset].cmn_attr.count = 0;
+		for (i = 0; i < CAM_FLASH_MAX_LED_TRIGGERS; i++)
+			fctrl->per_frame[frame_offset].led_current_ma[i] = 0;
+#else
 		flash_data =
 			&fctrl->per_frame[frame_offset];
 
@@ -383,9 +440,14 @@ int cam_flash_pmic_gpio_flush_request(
 		flash_data->cmn_attr.count = 0;
 		for (i = 0; i < CAM_FLASH_MAX_LED_TRIGGERS; i++)
 			flash_data->led_current_ma[i] = 0;
+#endif
 	} else if ((type == FLUSH_REQ) && (req_id == 0)) {
 		/* Handels NonRealTime usecase */
+#ifdef CONFIG_MACH_XIAOMI
+		cam_flash_pmic_flush_nrt(fctrl);
+#else
 		cam_flash_pmic_gpio_flush_nrt(fctrl);
+#endif
 	} else {
 		CAM_ERR(CAM_FLASH, "Invalid arguments");
 		return -EINVAL;
@@ -404,7 +466,9 @@ int cam_flash_i2c_flush_request(struct cam_flash_ctrl *fctrl,
 	int i = 0;
 	uint32_t cancel_req_id_found = 0;
 	struct i2c_settings_array *i2c_set = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 	struct i2c_settings_list *i2c_list;
+#endif
 
 	if (!fctrl) {
 		CAM_ERR(CAM_FLASH, "Device data is NULL");
@@ -425,6 +489,7 @@ int cam_flash_i2c_flush_request(struct cam_flash_ctrl *fctrl,
 				continue;
 
 			if (i2c_set->is_settings_valid == 1) {
+#ifndef CONFIG_MACH_XIAOMI
 				/* If any flash_off request pending,
 				 * process it before deleting it
 				 */
@@ -439,6 +504,7 @@ int cam_flash_i2c_flush_request(struct cam_flash_ctrl *fctrl,
 						rc);
 					}
 				}
+#endif
 				rc = delete_request(i2c_set);
 				if (rc < 0)
 					CAM_ERR(CAM_FLASH,
@@ -515,11 +581,13 @@ static int cam_flash_ops(struct cam_flash_ctrl *flash_ctrl,
 		flash_ctrl->soc_info.soc_private;
 
 	if (op == CAMERA_SENSOR_FLASH_OP_FIRELOW) {
+#ifndef CONFIG_MACH_XIAOMI
 		/* Turn On Gpio Flash */
 		if (flash_ctrl->soc_info.gpio_data) {
 			cam_flash_set_gpio(flash_ctrl, true);
 			return 0;
 		}
+#endif
 		for (i = 0; i < flash_ctrl->torch_num_sources; i++) {
 			if (flash_ctrl->torch_trigger[i]) {
 				max_current = soc_private->torch_max_current[i];
@@ -535,11 +603,13 @@ static int cam_flash_ops(struct cam_flash_ctrl *flash_ctrl,
 				flash_ctrl->torch_trigger[i], curr);
 		}
 	} else if (op == CAMERA_SENSOR_FLASH_OP_FIREHIGH) {
+#ifndef CONFIG_MACH_XIAOMI
 		/* Turn On Gpio Flash */
 		if (flash_ctrl->soc_info.gpio_data) {
 			cam_flash_set_gpio(flash_ctrl, true);
 			return 0;
 		}
+#endif
 		for (i = 0; i < flash_ctrl->flash_num_sources; i++) {
 			if (flash_ctrl->flash_trigger[i]) {
 				max_current = soc_private->flash_max_current[i];
@@ -573,14 +643,18 @@ int cam_flash_off(struct cam_flash_ctrl *flash_ctrl)
 		CAM_ERR(CAM_FLASH, "Flash control Null");
 		return -EINVAL;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_DBG(CAM_FLASH, "Flash OFF Triggered");
+#endif
 	if (flash_ctrl->switch_trigger)
 		cam_res_mgr_led_trigger_event(flash_ctrl->switch_trigger,
 			(enum led_brightness)LED_SWITCH_OFF);
 
+#ifndef CONFIG_MACH_XIAOMI
 	/* Turn Off Gpio Flash */
 	if (flash_ctrl->soc_info.gpio_data)
 		cam_flash_set_gpio(flash_ctrl, false);
+#endif
 
 	flash_ctrl->flash_state = CAM_FLASH_STATE_START;
 	return 0;
@@ -641,7 +715,9 @@ static int cam_flash_i2c_delete_req(struct cam_flash_ctrl *fctrl,
 {
 	int i = 0, rc = 0;
 	uint64_t top = 0, del_req_id = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	int frame_offset = 0;
+#endif
 
 	if (req_id != 0) {
 		for (i = 0; i < MAX_PER_FRAME_ARRAY; i++) {
@@ -670,17 +746,23 @@ static int cam_flash_i2c_delete_req(struct cam_flash_ctrl *fctrl,
 		CAM_DBG(CAM_FLASH, "top: %llu, del_req_id:%llu",
 			top, del_req_id);
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	/* delete/invalidate the request */
 	frame_offset = del_req_id % MAX_PER_FRAME_ARRAY;
 	fctrl->i2c_data.per_frame[frame_offset].is_settings_valid = false;
+#endif
 
 	cam_flash_i2c_flush_nrt(fctrl);
 
 	return 0;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+static int cam_flash_pmic_delete_req(struct cam_flash_ctrl *fctrl,
+#else
 static int cam_flash_pmic_gpio_delete_req(
 	struct cam_flash_ctrl *fctrl,
+#endif
 	uint64_t req_id)
 {
 	int i = 0;
@@ -723,7 +805,11 @@ static int cam_flash_pmic_gpio_delete_req(
 	}
 
 	/* delete the request */
+#ifdef CONFIG_MACH_XIAOMI
+	frame_offset = req_id % MAX_PER_FRAME_ARRAY;
+#else
 	frame_offset = del_req_id % MAX_PER_FRAME_ARRAY;
+#endif
 	flash_data = &fctrl->per_frame[frame_offset];
 	flash_data->cmn_attr.request_id = 0;
 	flash_data->cmn_attr.is_settings_valid = false;
@@ -836,8 +922,12 @@ int cam_flash_i2c_apply_setting(struct cam_flash_ctrl *fctrl,
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_apply_setting(struct cam_flash_ctrl *fctrl,
+#else
 int cam_flash_pmic_gpio_apply_setting(
 	struct cam_flash_ctrl *fctrl,
+#endif
 	uint64_t req_id)
 {
 	int rc = 0, i = 0;
@@ -1014,7 +1104,11 @@ int cam_flash_pmic_gpio_apply_setting(
 	}
 
 nrt_del_req:
+#ifdef CONFIG_MACH_XIAOMI
+	cam_flash_pmic_delete_req(fctrl, req_id);
+#else
 	cam_flash_pmic_gpio_delete_req(fctrl, req_id);
+#endif
 apply_setting_err:
 	return rc;
 }
@@ -1220,7 +1314,11 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 				rc = cam_sensor_i2c_command_parser(
 					&fctrl->io_master_info,
 					i2c_reg_settings,
+#ifdef CONFIG_MACH_XIAOMI
+					&cmd_desc[i], 1);
+#else
 					&cmd_desc[i], 1, NULL);
+#endif
 				if (rc < 0) {
 					CAM_ERR(CAM_FLASH,
 					"pkt parsing failed: %d", rc);
@@ -1310,7 +1408,11 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 		cmd_desc = (struct cam_cmd_buf_desc *)(offset);
 		rc = cam_sensor_i2c_command_parser(
 			&fctrl->io_master_info,
+#ifdef CONFIG_MACH_XIAOMI
+			i2c_reg_settings, cmd_desc, 1);
+#else
 			i2c_reg_settings, cmd_desc, 1, NULL);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_FLASH,
 			"Failed in parsing i2c packets");
@@ -1343,7 +1445,11 @@ int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 		cmd_desc = (struct cam_cmd_buf_desc *)(offset);
 		rc = cam_sensor_i2c_command_parser(
 			&fctrl->io_master_info,
+#ifdef CONFIG_MACH_XIAOMI
+			i2c_reg_settings, cmd_desc, 1);
+#else
 			i2c_reg_settings, cmd_desc, 1, NULL);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_FLASH,
 			"Failed in parsing i2c NRT packets");
@@ -1404,8 +1510,12 @@ update_req_mgr:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
+#else
 int cam_flash_pmic_gpio_pkt_parser(
 	struct cam_flash_ctrl *fctrl, void *arg)
+#endif
 {
 	int rc = 0, i = 0;
 	uintptr_t generic_ptr, cmd_buf_ptr;
@@ -1702,8 +1812,10 @@ int cam_flash_pmic_gpio_pkt_parser(
 				flash_data->led_current_ma[i]
 				= flash_operation_info->led_current_ma[i];
 
+#ifndef CONFIG_MACH_XIAOMI
 			CAM_DBG(CAM_FLASH,
 				"FLASH_CMD_TYPE op:%d", flash_data->opcode);
+#endif
 			if (flash_data->opcode == CAMERA_SENSOR_FLASH_OP_OFF)
 				add_req.skip_before_applying |= SKIP_NEXT_FRAME;
 		}
