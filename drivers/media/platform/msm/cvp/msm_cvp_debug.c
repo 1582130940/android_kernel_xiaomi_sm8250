@@ -161,6 +161,7 @@ static const struct file_operations ssr_fops = {
 
 struct dentry *msm_cvp_debugfs_init_drv(void)
 {
+#ifdef CONFIG_DEBUG_FS
 	bool ok = false;
 	struct dentry *dir = NULL;
 
@@ -204,6 +205,7 @@ struct dentry *msm_cvp_debugfs_init_drv(void)
 failed_create_dir:
 	if (dir)
 		debugfs_remove_recursive(cvp_driver->debugfs_root);
+#endif
 
 	return NULL;
 }
@@ -267,6 +269,7 @@ DEFINE_DEBUGFS_ATTRIBUTE(clk_rate_fops, _clk_rate_get, _clk_rate_set, "%llu\n");
 struct dentry *msm_cvp_debugfs_init_core(struct msm_cvp_core *core,
 		struct dentry *parent)
 {
+#ifdef CONFIG_DEBUG_FS
 	struct dentry *dir = NULL;
 	char debugfs_name[MAX_DEBUGFS_NAME];
 
@@ -299,6 +302,9 @@ struct dentry *msm_cvp_debugfs_init_core(struct msm_cvp_core *core,
 
 failed_create_dir:
 	return dir;
+#else
+	return NULL;
+#endif
 }
 
 static int inst_info_open(struct inode *inode, struct file *file)
@@ -404,6 +410,7 @@ static const struct file_operations inst_info_fops = {
 struct dentry *msm_cvp_debugfs_init_inst(struct msm_cvp_inst *inst,
 		struct dentry *parent)
 {
+#ifdef CONFIG_DEBUG_FS
 	struct dentry *dir = NULL, *info = NULL;
 	char debugfs_name[MAX_DEBUGFS_NAME];
 	struct cvp_core_inst_pair *idata = NULL;
@@ -448,10 +455,14 @@ failed_create_dir:
 	kfree(idata);
 exit:
 	return dir;
+#else
+	return NULL;
+#endif
 }
 
 void msm_cvp_debugfs_deinit_inst(struct msm_cvp_inst *inst)
 {
+#ifdef CONFIG_DEBUG_FS
 	struct dentry *dentry = NULL;
 
 	if (!inst || !inst->debugfs_root)
@@ -465,4 +476,5 @@ void msm_cvp_debugfs_deinit_inst(struct msm_cvp_inst *inst)
 	}
 	debugfs_remove_recursive(dentry);
 	inst->debugfs_root = NULL;
+#endif
 }
