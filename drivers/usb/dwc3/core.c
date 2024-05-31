@@ -1466,7 +1466,9 @@ static int dwc3_probe(struct platform_device *pdev)
 
 	void __iomem		*regs;
 	int			irq;
+#ifdef CONFIG_IPC_LOGGING
 	char			dma_ipc_log_ctx_name[40];
+#endif
 
 	if (count >= DWC_CTRL_COUNT) {
 		dev_err(dev, "Err dwc instance %d >= %d available\n",
@@ -1601,6 +1603,7 @@ skip_clk_reset:
 		}
 	}
 
+#ifdef CONFIG_IPC_LOGGING
 	dwc->dwc_ipc_log_ctxt = ipc_log_context_create(NUM_LOG_PAGES,
 					dev_name(dwc->dev), 0);
 	if (!dwc->dwc_ipc_log_ctxt)
@@ -1612,13 +1615,16 @@ skip_clk_reset:
 						dma_ipc_log_ctx_name, 0);
 	if (!dwc->dwc_dma_ipc_log_ctxt)
 		dev_err(dwc->dev, "Error getting ipc_log_ctxt for ep_events\n");
+#endif
 
 	dwc3_instance[count] = dwc;
 	dwc->index = count;
 	count++;
 
 	pm_runtime_allow(dev);
+#ifdef CONFIG_DEBUG_FS
 	dwc3_debugfs_init(dwc);
+#endif
 
 	dma_set_max_seg_size(dev, UINT_MAX);
 
@@ -1648,7 +1654,9 @@ static int dwc3_remove(struct platform_device *pdev)
 {
 	struct dwc3	*dwc = platform_get_drvdata(pdev);
 
+#ifdef CONFIG_DEBUG_FS
 	dwc3_debugfs_exit(dwc);
+#endif
 	dwc3_gadget_exit(dwc);
 	pm_runtime_allow(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
@@ -1657,10 +1665,12 @@ static int dwc3_remove(struct platform_device *pdev)
 	dwc3_free_scratch_buffers(dwc);
 	clk_bulk_put(dwc->num_clks, dwc->clks);
 
+#ifdef CONFIG_IPC_LOGGING
 	ipc_log_context_destroy(dwc->dwc_ipc_log_ctxt);
 	dwc->dwc_ipc_log_ctxt = NULL;
 	ipc_log_context_destroy(dwc->dwc_dma_ipc_log_ctxt);
 	dwc->dwc_dma_ipc_log_ctxt = NULL;
+#endif
 	count--;
 	dwc3_instance[dwc->index] = NULL;
 
