@@ -959,6 +959,7 @@ void cnss_debugfs_destroy(struct cnss_plat_data *plat_priv)
 
 int cnss_debug_init(void)
 {
+#ifdef CONFIG_IPC_LOGGING
 	cnss_ipc_log_context = ipc_log_context_create(CNSS_IPC_LOG_PAGES,
 						      "cnss", 0);
 	if (!cnss_ipc_log_context) {
@@ -973,12 +974,14 @@ int cnss_debug_init(void)
 		ipc_log_context_destroy(cnss_ipc_log_context);
 		return -EINVAL;
 	}
+#endif
 
 	return 0;
 }
 
 void cnss_debug_deinit(void)
 {
+#ifdef CONFIG_IPC_LOGGING
 	if (cnss_ipc_log_long_context) {
 		ipc_log_context_destroy(cnss_ipc_log_long_context);
 		cnss_ipc_log_long_context = NULL;
@@ -988,4 +991,5 @@ void cnss_debug_deinit(void)
 		ipc_log_context_destroy(cnss_ipc_log_context);
 		cnss_ipc_log_context = NULL;
 	}
+#endif
 }

@@ -4918,6 +4918,7 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	mhi_ctrl->fbc_download = true;
 	mhi_ctrl->rddm_supported = true;
 
+#ifdef CONFIG_IPC_LOGGING
 	mhi_ctrl->log_buf = ipc_log_context_create(CNSS_IPC_LOG_PAGES,
 						   "cnss-mhi", 0);
 	if (!mhi_ctrl->log_buf)
@@ -4927,6 +4928,7 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 							 "cnss-mhi-cntrl", 0);
 	if (!mhi_ctrl->cntrl_log_buf)
 		cnss_pr_err("Unable to create CNSS MHICNTRL IPC log context\n");
+#endif
 
 	ret = of_register_mhi_controller(mhi_ctrl);
 	if (ret) {

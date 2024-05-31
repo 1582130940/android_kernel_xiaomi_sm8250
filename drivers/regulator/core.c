@@ -5371,6 +5371,7 @@ static int __init regulator_init(void)
 
 	ret = class_register(&regulator_class);
 
+#ifdef CONFIG_DEBUG_FS
 	debugfs_root = debugfs_create_dir("regulator", NULL);
 	if (IS_ERR(debugfs_root))
 		pr_warn("regulator: Failed to create debugfs directory\n");
@@ -5383,6 +5384,7 @@ static int __init regulator_init(void)
 
 	debugfs_create_bool("debug_suspend", 0644, debugfs_root,
 			    &debug_suspend);
+#endif
 
 	regulator_dummy_init();
 
