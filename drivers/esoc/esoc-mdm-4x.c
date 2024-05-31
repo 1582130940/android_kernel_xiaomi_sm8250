@@ -48,7 +48,9 @@ static const int required_gpios[] = {
 	AP2MDM_STATUS,
 };
 
+#ifdef CONFIG_IPC_LOGGING
 void *ipc_log;
+#endif
 
 static void mdm_debug_gpio_show(struct mdm_ctrl *mdm)
 {
@@ -1197,13 +1199,17 @@ static int mdm_probe(struct platform_device *pdev)
 	if (IS_ERR_OR_NULL(mdm))
 		return PTR_ERR(mdm);
 
+#ifdef CONFIG_IPC_LOGGING
 	ipc_log = ipc_log_context_create(ESOC_MDM_IPC_PAGES, "esoc-mdm", 0);
 	if (!ipc_log)
 		dev_err(&pdev->dev, "Failed to setup IPC logging\n");
+#endif
 
 	ret = mdm_ops->config_hw(mdm, mdm_ops, pdev);
+#ifdef CONFIG_IPC_LOGGING
 	if (ret)
 		ipc_log_context_destroy(ipc_log);
+#endif
 
 	return ret;
 }
