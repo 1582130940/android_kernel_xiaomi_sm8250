@@ -63,14 +63,20 @@
 #include <uapi/linux/spcom.h>
 #include <soc/qcom/subsystem_restart.h>
 #include <linux/ioctl.h>
+#ifdef CONFIG_IPC_LOGGING
 #include <linux/ipc_logging.h>
+#endif
 
 #define SPCOM_LOG_PAGE_CNT 10
 
+#ifdef CONFIG_IPC_LOGGING
 #define spcom_ipc_log_string(_x...) do {				\
 	if (spcom_ipc_log_context)					\
 		ipc_log_string(spcom_ipc_log_context, _x);		\
 	} while (0)
+#else
+#define spcom_ipc_log_string(_x...)
+#endif
 
 #define spcom_pr_err(_fmt, ...) do {					\
 	pr_err(_fmt, ##__VA_ARGS__);					\
@@ -274,7 +280,9 @@ struct spcom_device {
 
 /* Device Driver State */
 static struct spcom_device *spcom_dev;
+#ifdef CONFIG_IPC_LOGGING
 static void *spcom_ipc_log_context;
+#endif
 
 /* error registers shared with SPU */
 static u32 spcom_rmb_error_reg_addr;
@@ -2563,10 +2571,12 @@ static int spcom_probe(struct platform_device *pdev)
 		goto fail_reg_chardev;
 	}
 
+#ifdef CONFIG_IPC_LOGGING
 	spcom_ipc_log_context = ipc_log_context_create(SPCOM_LOG_PAGE_CNT,
 						       "spcom", 0);
 	if (!spcom_ipc_log_context)
 		pr_err("Unable to create IPC log context\n");
+#endif
 
 	spcom_pr_dbg("Driver Initialization ok\n");
 	return 0;

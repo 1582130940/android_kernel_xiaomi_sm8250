@@ -20,6 +20,7 @@
 
 #define ESOC_MDM_IPC_PAGES	10
 
+#ifdef CONFIG_IPC_LOGGING
 extern void *ipc_log;
 
 #define esoc_mdm_log(__msg, ...) \
@@ -28,6 +29,9 @@ do { \
 		ipc_log_string(ipc_log, \
 			"[%s]: "__msg, __func__, ##__VA_ARGS__); \
 } while (0)
+#else
+#define esoc_mdm_log(__msg, ...)
+#endif
 
 #define ESOC_DEV_MAX		4
 #define ESOC_NAME_LEN		20
