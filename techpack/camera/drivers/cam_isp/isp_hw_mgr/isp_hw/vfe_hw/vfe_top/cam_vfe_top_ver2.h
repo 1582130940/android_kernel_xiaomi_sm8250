@@ -41,10 +41,12 @@ struct cam_vfe_top_ver2_reg_offset_common {
 	uint32_t three_D_cfg;
 	uint32_t violation_status;
 	uint32_t reg_update_cmd;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t irq_mask_0;
 	uint32_t irq_mask_1;
 	uint32_t irq_status_0;
 	uint32_t irq_status_1;
+#endif
 };
 
 struct cam_vfe_top_ver2_hw_info {
@@ -53,7 +55,9 @@ struct cam_vfe_top_ver2_hw_info {
 	struct cam_vfe_camif_lite_ver2_hw_info      camif_lite_hw_info;
 	struct cam_vfe_rdi_ver2_hw_info             rdi_hw_info;
 	struct cam_vfe_fe_ver1_hw_info              fe_hw_info;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_top_dump_data               *dump_data;
+#endif
 	uint32_t                                    num_mux;
 	uint32_t mux_type[CAM_VFE_TOP_MUX_MAX];
 };

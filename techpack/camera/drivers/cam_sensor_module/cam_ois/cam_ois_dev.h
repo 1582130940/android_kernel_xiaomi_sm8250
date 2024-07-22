@@ -25,6 +25,11 @@
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
 
+#ifdef CONFIG_MACH_XIAOMI
+#define ENABLE_OIS_EIS
+#define OIS_DATA_ADDR 0x8A
+#endif
+
 enum cam_ois_state {
 	CAM_OIS_INIT,
 	CAM_OIS_ACQUIRE,
@@ -82,6 +87,14 @@ struct cam_ois_intf_params {
 	struct cam_req_mgr_crm_cb *crm_cb;
 };
 
+#ifdef CONFIG_MACH_XIAOMI
+#ifdef ENABLE_OIS_EIS
+struct ois_data_eis_t {
+    uint64_t data_timestamp;
+    uint8_t  data[52];
+};
+#endif
+#endif
 /**
  * struct cam_ois_ctrl_t - OIS ctrl private data
  * @device_name     :   ois device_name
@@ -122,7 +135,15 @@ struct cam_ois_ctrl_t {
 	uint8_t ois_fw_flag;
 	uint8_t is_ois_calib;
 	struct cam_ois_opcode opcode;
+#ifdef CONFIG_MACH_XIAOMI
+	struct i2c_settings_array i2c_pre_init_data; //xiaomi add
+	uint8_t is_ois_pre_init; //xiaomi add
+#ifdef ENABLE_OIS_EIS
+	struct ois_data_eis_t ois_data;
+#endif
+#else
 	uint32_t open_cnt;
+#endif
 };
 
 #endif /*_CAM_OIS_DEV_H_ */

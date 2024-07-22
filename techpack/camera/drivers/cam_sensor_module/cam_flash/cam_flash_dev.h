@@ -115,7 +115,11 @@ struct cam_flash_frame_setting {
 	uint16_t                     num_iterations;
 	uint16_t                     led_on_delay_ms;
 	uint16_t                     led_off_delay_ms;
+#ifdef CONFIG_MACH_XIAOMI
+	int8_t                       opcode;
+#else
 	uint8_t                      opcode;
+#endif
 	uint32_t                     led_current_ma[CAM_FLASH_MAX_LED_TRIGGERS];
 };
 
@@ -207,23 +211,41 @@ struct cam_flash_ctrl {
 	struct camera_io_master             io_master_info;
 	struct i2c_data_settings            i2c_data;
 	uint32_t                            last_flush_req;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                            open_cnt;
+#endif
 };
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_pkt_parser(
+#else
 int cam_flash_pmic_gpio_pkt_parser(
+#endif
 	struct cam_flash_ctrl *fctrl, void *arg);
 int cam_flash_i2c_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg);
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_apply_setting(
+#else
 int cam_flash_pmic_gpio_apply_setting(
+#endif
 	struct cam_flash_ctrl *fctrl, uint64_t req_id);
 int cam_flash_i2c_apply_setting(struct cam_flash_ctrl *fctrl, uint64_t req_id);
 int cam_flash_off(struct cam_flash_ctrl *fctrl);
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_power_ops(struct cam_flash_ctrl *fctrl,
+#else
 int cam_flash_pmic_gpio_power_ops(struct cam_flash_ctrl *fctrl,
+#endif
 	bool regulator_enable);
 int cam_flash_i2c_power_ops(struct cam_flash_ctrl *fctrl,
 	bool regulator_enable);
 int cam_flash_i2c_flush_request(struct cam_flash_ctrl *fctrl,
 	enum cam_flash_flush_type type, uint64_t req_id);
+#ifdef CONFIG_MACH_XIAOMI
+int cam_flash_pmic_flush_request(struct cam_flash_ctrl *fctrl,
+#else
 int cam_flash_pmic_gpio_flush_request(struct cam_flash_ctrl *fctrl,
+#endif
 	enum cam_flash_flush_type, uint64_t req_id);
 void cam_flash_shutdown(struct cam_flash_ctrl *fctrl);
 int cam_flash_release_dev(struct cam_flash_ctrl *fctrl);

@@ -113,8 +113,10 @@ struct cam_sensor_ctrl_t {
 	bool bob_pwm_switch;
 	uint32_t last_flush_req;
 	uint16_t pipeline_delay;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t open_cnt;
 	bool force_low_priority_for_init_setting;
+#endif
 };
 
 #endif /* _CAM_SENSOR_DEV_H_ */

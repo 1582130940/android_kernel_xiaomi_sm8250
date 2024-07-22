@@ -22,7 +22,9 @@ struct cam_vfe_camif_ver2_reg {
 	uint32_t     reg_update_cmd;
 	uint32_t     vfe_diag_config;
 	uint32_t     vfe_diag_sensor_status;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t     dual_vfe_sync;
+#endif
 };
 
 struct cam_vfe_camif_reg_data {
@@ -63,7 +65,9 @@ struct cam_vfe_camif_reg_data {
 	uint32_t     subscribe_irq_mask1;
 
 	uint32_t     enable_diagnostic_hw;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t     dual_vfe_sync_mask;
+#endif
 };
 
 struct cam_vfe_camif_ver2_hw_info {

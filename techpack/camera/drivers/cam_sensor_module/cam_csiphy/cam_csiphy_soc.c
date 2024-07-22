@@ -9,8 +9,10 @@
 #include "include/cam_csiphy_1_0_hwreg.h"
 #include "include/cam_csiphy_1_2_hwreg.h"
 #include "include/cam_csiphy_1_2_1_hwreg.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "include/cam_csiphy_1_2_2_hwreg.h"
 #include "include/cam_csiphy_1_2_3_hwreg.h"
+#endif
 #include "include/cam_csiphy_2_0_hwreg.h"
 
 #define CSIPHY_DIVISOR_16           16
@@ -78,6 +80,7 @@ int32_t cam_csiphy_mem_dmp(struct cam_hw_soc_info *soc_info)
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int32_t cam_csiphy_status_dmp(struct csiphy_device *csiphy_dev)
 {
 	struct csiphy_reg_parms_t *csiphy_reg = NULL;
@@ -124,26 +127,49 @@ int32_t cam_csiphy_status_dmp(struct csiphy_device *csiphy_dev)
 
 	return rc;
 }
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+enum cam_vote_level get_clk_vote_default(struct csiphy_device *csiphy_dev)
+#else
 enum cam_vote_level get_clk_vote_default(struct csiphy_device *csiphy_dev,
 	int32_t index)
+#endif
 {
 	CAM_DBG(CAM_CSIPHY, "voting for SVS");
 	return CAM_SVS_VOTE;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+enum cam_vote_level get_clk_voting_dynamic(struct csiphy_device *csiphy_dev)
+#else
 enum cam_vote_level get_clk_voting_dynamic(
 	struct csiphy_device *csiphy_dev, int32_t index)
+#endif
 {
 	uint32_t cam_vote_level = 0;
 	uint32_t last_valid_vote = 0;
 	struct cam_hw_soc_info *soc_info;
+#ifdef CONFIG_MACH_XIAOMI
+	uint64_t phy_data_rate = csiphy_dev->csiphy_info.data_rate;
+#else
 	uint64_t phy_data_rate = csiphy_dev->csiphy_info[index].data_rate;
+#endif
 
 	soc_info = &csiphy_dev->soc_info;
+#ifdef CONFIG_MACH_XIAOMI
+	if (csiphy_dev->is_acquired_dev_combo_mode)
+		phy_data_rate = max(phy_data_rate,
+			csiphy_dev->csiphy_info.data_rate_combo_sensor);
+#else
 	phy_data_rate = max(phy_data_rate, csiphy_dev->current_data_rate);
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (csiphy_dev->csiphy_info.csiphy_3phase) {
+#else
 	if (csiphy_dev->csiphy_info[index].csiphy_3phase) {
+#endif
 		if (csiphy_dev->is_divisor_32_comp)
 			do_div(phy_data_rate, CSIPHY_DIVISOR_32);
 		else
@@ -154,7 +180,9 @@ enum cam_vote_level get_clk_voting_dynamic(
 
 	 /* round off to next integer */
 	phy_data_rate += 1;
+#ifndef CONFIG_MACH_XIAOMI
 	csiphy_dev->current_data_rate = phy_data_rate;
+#endif
 
 	for (cam_vote_level = 0;
 			cam_vote_level < CAM_MAX_VOTE; cam_vote_level++) {
@@ -176,7 +204,11 @@ enum cam_vote_level get_clk_voting_dynamic(
 	return last_valid_vote;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int32_t cam_csiphy_enable_hw(struct csiphy_device *csiphy_dev)
+#else
 int32_t cam_csiphy_enable_hw(struct csiphy_device *csiphy_dev, int32_t index)
+#endif
 {
 	int32_t rc = 0;
 	struct cam_hw_soc_info   *soc_info;
@@ -190,7 +222,11 @@ int32_t cam_csiphy_enable_hw(struct csiphy_device *csiphy_dev, int32_t index)
 		return rc;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	vote_level = csiphy_dev->ctrl_reg->getclockvoting(csiphy_dev);
+#else
 	vote_level = csiphy_dev->ctrl_reg->getclockvoting(csiphy_dev, index);
+#endif
 	rc = cam_soc_util_enable_platform_resource(soc_info, true,
 		vote_level, ENABLE_IRQ);
 	if (rc < 0) {
@@ -360,6 +396,7 @@ int32_t cam_csiphy_parse_dt_info(struct platform_device *pdev,
 		csiphy_dev->ctrl_reg->data_rates_settings_table =
 			&data_rate_delta_table_1_2;
 	} else if (of_device_is_compatible(soc_info->dev->of_node,
+#ifndef CONFIG_MACH_XIAOMI
 		"qcom,csiphy-v1.2.2.2")) {
 		/* settings for lito v2 */
 		csiphy_dev->ctrl_reg->csiphy_2ph_reg = csiphy_2ph_v1_2_reg;
@@ -400,6 +437,7 @@ int32_t cam_csiphy_parse_dt_info(struct platform_device *pdev,
 		csiphy_dev->clk_lane = 0;
 		csiphy_dev->ctrl_reg->data_rates_settings_table = NULL;
 	} else if (of_device_is_compatible(soc_info->dev->of_node,
+#endif
 		"qcom,csiphy-v2.0")) {
 		csiphy_dev->ctrl_reg->csiphy_2ph_reg = csiphy_2ph_v2_0_reg;
 		csiphy_dev->ctrl_reg->csiphy_2ph_combo_mode_reg =

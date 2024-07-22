@@ -17,6 +17,7 @@ struct cam_vfe_rdi_ver2_reg {
 	uint32_t     reg_update_cmd;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_vfe_rdi_overflow_status {
 	uint32_t    rdi0_overflow_mask;
 	uint32_t    rdi1_overflow_mask;
@@ -24,6 +25,7 @@ struct cam_vfe_rdi_overflow_status {
 	uint32_t    rdi3_overflow_mask;
 	uint32_t    rdi_overflow_mask;
 };
+#endif
 
 struct cam_vfe_rdi_common_reg_data {
 	uint32_t     subscribe_irq_mask0;
@@ -43,7 +45,9 @@ struct cam_vfe_rdi_ver2_hw_info {
 	struct cam_vfe_top_ver2_reg_offset_common  *common_reg;
 	struct cam_vfe_rdi_ver2_reg                *rdi_reg;
 	struct cam_vfe_rdi_common_reg_data         *common_reg_data;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_rdi_overflow_status         *rdi_irq_status;
+#endif
 	struct cam_vfe_rdi_reg_data  *reg_data[CAM_VFE_RDI_VER2_MAX];
 };
 

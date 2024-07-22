@@ -138,6 +138,9 @@ enum msm_camera_power_seq_type {
 	SENSOR_VAF_PWDM,
 	SENSOR_CUSTOM_REG1,
 	SENSOR_CUSTOM_REG2,
+#ifdef CONFIG_MACH_XIAOMI
+	SENSOR_CUSTOM_REG3,
+#endif
 	SENSOR_RESET,
 	SENSOR_STANDBY,
 	SENSOR_CUSTOM_GPIO1,
@@ -152,17 +155,23 @@ enum cam_sensor_packet_opcodes {
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_PROBE,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_CONFIG,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMOFF,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_READ,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_POWERON_REG,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_POWEROFF_REG,
+#endif
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_NOP = 127
 };
 
 enum cam_actuator_packet_opcodes {
 	CAM_ACTUATOR_PACKET_OPCODE_INIT,
 	CAM_ACTUATOR_PACKET_AUTO_MOVE_LENS,
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_ACTUATOR_PACKET_MANUAL_MOVE_LENS
+#else
 	CAM_ACTUATOR_PACKET_MANUAL_MOVE_LENS,
 	CAM_ACTUATOR_PACKET_OPCODE_READ
+#endif
 };
 
 enum cam_eeprom_packet_opcodes {
@@ -173,7 +182,11 @@ enum cam_eeprom_packet_opcodes {
 enum cam_ois_packet_opcodes {
 	CAM_OIS_PACKET_OPCODE_INIT,
 	CAM_OIS_PACKET_OPCODE_OIS_CONTROL,
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_OIS_PACKET_OPCODE_OIS_GETDATA
+#else
 	CAM_OIS_PACKET_OPCODE_READ
+#endif
 };
 
 enum msm_bus_perf_setting {
@@ -223,10 +236,15 @@ enum cam_sensor_i2c_cmd_type {
 	CAM_SENSOR_I2C_WRITE_RANDOM,
 	CAM_SENSOR_I2C_WRITE_BURST,
 	CAM_SENSOR_I2C_WRITE_SEQ,
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_SENSOR_I2C_READ,
+	CAM_SENSOR_I2C_POLL
+#else
 	CAM_SENSOR_I2C_READ_RANDOM,
 	CAM_SENSOR_I2C_READ_SEQ,
 	CAM_SENSOR_I2C_POLL,
 	CAM_SENSOR_I2C_SET_I2C_INFO
+#endif
 };
 
 struct common_header {
@@ -277,8 +295,10 @@ struct cam_sensor_i2c_reg_setting {
 	enum camera_sensor_i2c_type addr_type;
 	enum camera_sensor_i2c_type data_type;
 	unsigned short delay;
+#ifndef CONFIG_MACH_XIAOMI
 	uint8_t *read_buff;
 	uint32_t read_buff_len;
+#endif
 };
 
 struct cam_sensor_i2c_seq_reg {
@@ -291,7 +311,9 @@ struct cam_sensor_i2c_seq_reg {
 struct i2c_settings_list {
 	struct cam_sensor_i2c_reg_setting i2c_settings;
 	struct cam_sensor_i2c_seq_reg seq_settings;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_cmd_i2c_info slave_info;
+#endif
 	enum cam_sensor_i2c_cmd_type op_code;
 	struct list_head list;
 };
@@ -307,9 +329,11 @@ struct i2c_data_settings {
 	struct i2c_settings_array config_settings;
 	struct i2c_settings_array streamon_settings;
 	struct i2c_settings_array streamoff_settings;
+#ifndef CONFIG_MACH_XIAOMI
 	struct i2c_settings_array read_settings;
 	struct i2c_settings_array poweron_reg_settings;
 	struct i2c_settings_array poweroff_reg_settings;
+#endif
 	struct i2c_settings_array *per_frame;
 };
 
@@ -329,7 +353,9 @@ struct cam_camera_slave_info {
 	uint16_t sensor_id_reg_addr;
 	uint16_t sensor_id;
 	uint16_t sensor_id_mask;
+#ifndef CONFIG_MACH_XIAOMI
 	uint8_t  i2c_freq_mode;
+#endif
 };
 
 struct msm_sensor_init_params {
@@ -389,6 +415,9 @@ enum msm_camera_vreg_name_t {
 	CAM_VAF,
 	CAM_V_CUSTOM1,
 	CAM_V_CUSTOM2,
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_V_CUSTOM3,
+#endif
 	CAM_VREG_MAX,
 };
 

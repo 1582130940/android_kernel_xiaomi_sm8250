@@ -515,8 +515,13 @@ int cam_irq_controller_unsubscribe_irq(void *irq_controller,
 		}
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	priority = evt_handler->priority;
+#endif
 	if (found) {
+#ifndef CONFIG_MACH_XIAOMI
 		priority = evt_handler->priority;
+#endif
 		for (i = 0; i < controller->num_registers; i++) {
 			irq_register = &controller->irq_register_arr[i];
 			irq_register->top_half_enable_mask[priority] &=

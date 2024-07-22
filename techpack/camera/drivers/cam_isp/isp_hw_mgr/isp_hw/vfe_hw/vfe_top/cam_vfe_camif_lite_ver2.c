@@ -36,7 +36,9 @@ struct cam_vfe_mux_camif_lite_data {
 		evt_payload[CAM_VFE_CAMIF_LITE_EVT_MAX];
 	struct list_head                      free_payload_list;
 	spinlock_t                            spin_lock;
+#ifndef CONFIG_MACH_XIAOMI
 	struct timeval                        error_ts;
+#endif
 };
 
 static int cam_vfe_camif_lite_get_evt_payload(
@@ -134,12 +136,14 @@ static int cam_vfe_camif_lite_err_irq_top_half(
 	}
 
 	cam_isp_hw_get_timestamp(&evt_payload->ts);
+#ifndef CONFIG_MACH_XIAOMI
 	if (error_flag) {
 		camif_lite_priv->error_ts.tv_sec =
 			evt_payload->ts.mono_time.tv_sec;
 		camif_lite_priv->error_ts.tv_usec =
 			evt_payload->ts.mono_time.tv_usec;
 	}
+#endif
 
 	for (i = 0; i < th_payload->num_registers; i++)
 		evt_payload->irq_reg_val[i] = th_payload->evt_status_arr[i];
@@ -308,8 +312,10 @@ static int cam_vfe_camif_lite_resource_start(
 		}
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->error_ts.tv_sec = 0;
 	rsrc_data->error_ts.tv_usec = 0;
+#endif
 
 	CAM_DBG(CAM_ISP, "Start Camif Lite IFE %d Done",
 		camif_lite_res->hw_intf->hw_idx);
@@ -415,6 +421,7 @@ static int cam_vfe_camif_lite_handle_irq_top_half(uint32_t evt_id,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_vfe_camif_lite_cpas_fifo_levels_reg_dump(
 	struct cam_vfe_mux_camif_lite_data *camif_lite_priv)
 {
@@ -452,6 +459,7 @@ static int cam_vfe_camif_lite_cpas_fifo_levels_reg_dump(
 	return 0;
 
 }
+#endif
 
 static int cam_vfe_camif_lite_handle_irq_bottom_half(
 	void                                 *handler_priv,
@@ -464,9 +472,11 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 	struct cam_isp_hw_event_info          evt_info;
 	uint32_t                              irq_status0;
 	uint32_t                              irq_status1;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_hw_soc_info               *soc_info = NULL;
 	struct cam_vfe_soc_private           *soc_private = NULL;
 	struct timespec64                     ts;
+#endif
 
 	if (!handler_priv || !evt_payload_priv) {
 		CAM_ERR(CAM_ISP, "Invalid params");
@@ -478,9 +488,11 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 	payload = evt_payload_priv;
 	irq_status0 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS0];
 	irq_status1 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS1];
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = camif_lite_priv->soc_info;
 	soc_private =
 		(struct cam_vfe_soc_private *)soc_info->soc_private;
+#endif
 
 	evt_info.hw_idx   = camif_lite_node->hw_intf->hw_idx;
 	evt_info.res_id   = camif_lite_node->res_id;
@@ -518,6 +530,7 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 		CAM_DBG(CAM_ISP, "VFE:%d CAMIF LITE Received ERROR",
 			evt_info.hw_idx);
 
+#ifndef CONFIG_MACH_XIAOMI
 		cam_vfe_camif_lite_cpas_fifo_levels_reg_dump(camif_lite_priv);
 
 		ktime_get_boottime_ts64(&ts);
@@ -530,6 +543,7 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 			camif_lite_priv->error_ts.tv_usec);
 		CAM_INFO(CAM_ISP, "ife_clk_src:%lld",
 			soc_private->ife_clk_src);
+#endif
 
 		if (camif_lite_priv->event_cb)
 			camif_lite_priv->event_cb(camif_lite_priv->priv,
@@ -537,7 +551,9 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 
 		ret = CAM_VFE_IRQ_STATUS_OVERFLOW;
 
+#ifndef CONFIG_MACH_XIAOMI
 		cam_cpas_log_votes();
+#endif
 
 	}
 

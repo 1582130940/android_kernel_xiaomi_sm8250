@@ -87,6 +87,7 @@ int cam_packet_util_validate_cmd_desc(struct cam_cmd_buf_desc *cmd_desc);
 int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
 	struct cam_kmd_buf_info *kmd_buf_info);
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_packet_dump_patch_info()
  *
@@ -100,6 +101,7 @@ int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
  */
 void cam_packet_dump_patch_info(struct cam_packet *packet,
 	int32_t iommu_hdl, int32_t sec_mmu_hdl);
+#endif
 
 /**
  * cam_packet_util_process_patches()

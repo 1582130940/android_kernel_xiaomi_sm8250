@@ -83,7 +83,9 @@ struct cam_req_mgr_core_workq {
 	struct workqueue_struct   *job;
 	spinlock_t                 lock_bh;
 	uint32_t                   in_irq;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                       is_static_payload;
+#endif
 
 	/* tasks */
 	struct {
@@ -98,11 +100,13 @@ struct cam_req_mgr_core_workq {
 	} task;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_req_mgr_process_workq() - main loop handling
  * @w: workqueue task pointer
  */
 void cam_req_mgr_process_workq(struct work_struct *w);
+#endif
 
 /**
  * cam_req_mgr_workq_create()
@@ -121,7 +125,11 @@ void cam_req_mgr_process_workq(struct work_struct *w);
  */
 int cam_req_mgr_workq_create(char *name, int32_t num_tasks,
 	struct cam_req_mgr_core_workq **workq, enum crm_workq_context in_irq,
+#ifdef CONFIG_MACH_XIAOMI
+	int flags);
+#else
 	int flags, bool is_static_payload, void (*func)(struct work_struct *w));
+#endif
 
 /**
  * cam_req_mgr_workq_destroy()

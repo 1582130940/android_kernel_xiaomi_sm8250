@@ -9,6 +9,8 @@
 #include "cam_csiphy_core.h"
 #include <media/cam_sensor.h>
 
+#ifndef CONFIG_MACH_XIAOMI
+#endif
 static void cam_csiphy_subdev_handle_message(
 	struct v4l2_subdev *sd,
 	enum cam_subdev_message_type_t message_type,
@@ -51,6 +53,8 @@ static long cam_csiphy_subdev_ioctl(struct v4l2_subdev *sd,
 }
 
 
+#ifndef CONFIG_MACH_XIAOMI
+#endif
 static int cam_csiphy_subdev_open(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -147,7 +151,9 @@ static const struct v4l2_subdev_ops csiphy_subdev_ops = {
 };
 
 static const struct v4l2_subdev_internal_ops csiphy_subdev_intern_ops = {
+#ifndef CONFIG_MACH_XIAOMI
 	.open  = cam_csiphy_subdev_open,
+#endif
 	.close = cam_csiphy_subdev_close,
 };
 
@@ -156,7 +162,9 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 	struct cam_cpas_register_params cpas_parms;
 	struct csiphy_device *new_csiphy_dev;
 	int32_t              rc = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	int i;
+#endif
 
 	new_csiphy_dev = devm_kzalloc(&pdev->dev,
 		sizeof(struct csiphy_device), GFP_KERNEL);
@@ -196,8 +204,10 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 		(V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS);
 	new_csiphy_dev->v4l2_dev_str.ent_function =
 		CAM_CSIPHY_DEVICE_TYPE;
+#ifndef CONFIG_MACH_XIAOMI
 	new_csiphy_dev->v4l2_dev_str.msg_cb =
 		cam_csiphy_subdev_handle_message;
+#endif
 	new_csiphy_dev->v4l2_dev_str.token =
 		new_csiphy_dev;
 
@@ -209,6 +219,16 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, &(new_csiphy_dev->v4l2_dev_str.sd));
 
+#ifdef CONFIG_MACH_XIAOMI
+	new_csiphy_dev->bridge_intf.device_hdl[0] = -1;
+	new_csiphy_dev->bridge_intf.device_hdl[1] = -1;
+	new_csiphy_dev->bridge_intf.ops.get_dev_info =
+		NULL;
+	new_csiphy_dev->bridge_intf.ops.link_setup =
+		NULL;
+	new_csiphy_dev->bridge_intf.ops.apply_req =
+		NULL;
+#else
 	for (i = 0; i < CSIPHY_MAX_INSTANCES_PER_PHY; i++) {
 		new_csiphy_dev->csiphy_info[i].hdl_data.device_hdl = -1;
 		new_csiphy_dev->csiphy_info[i].hdl_data.session_hdl = -1;
@@ -224,10 +244,15 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 	new_csiphy_dev->ops.get_dev_info = NULL;
 	new_csiphy_dev->ops.link_setup = NULL;
 	new_csiphy_dev->ops.apply_req = NULL;
+#endif
 
 	new_csiphy_dev->acquire_count = 0;
 	new_csiphy_dev->start_dev_count = 0;
+#ifdef CONFIG_MACH_XIAOMI
+	new_csiphy_dev->is_acquired_dev_combo_mode = 0;
+#else
 	new_csiphy_dev->open_cnt = 0;
+#endif
 
 	cpas_parms.cam_cpas_client_cb = NULL;
 	cpas_parms.cell_index = new_csiphy_dev->soc_info.index;
@@ -238,7 +263,11 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 	rc = cam_cpas_register_client(&cpas_parms);
 	if (rc) {
 		CAM_ERR(CAM_CSIPHY, "CPAS registration failed rc: %d", rc);
+#ifdef CONFIG_MACH_XIAOMI
+		goto csiphy_no_resource;
+#else
 		goto csiphy_unregister_subdev;
+#endif
 	}
 	CAM_DBG(CAM_CSIPHY, "CPAS registration successful handle=%d",
 		cpas_parms.client_handle);
@@ -246,8 +275,10 @@ static int32_t cam_csiphy_platform_probe(struct platform_device *pdev)
 
 	return rc;
 
+#ifndef CONFIG_MACH_XIAOMI
 csiphy_unregister_subdev:
 	cam_unregister_subdev(&(new_csiphy_dev->v4l2_dev_str));
+#endif
 csiphy_no_resource:
 	mutex_destroy(&new_csiphy_dev->mutex);
 	kfree(new_csiphy_dev->ctrl_reg);

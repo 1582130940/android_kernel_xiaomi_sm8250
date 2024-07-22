@@ -170,6 +170,7 @@ struct cam_custom_resource {
 	uint64_t                       res_hdl;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_custom_acquire_hw_info - Custom acquire HW params
  *
@@ -186,6 +187,7 @@ struct cam_custom_acquire_hw_info {
 	uint32_t                reserved;
 	uint64_t                data;
 };
+#endif
 
 /**
  * struct cam_custom_cmd_buf_type_1 - cmd buf type 1

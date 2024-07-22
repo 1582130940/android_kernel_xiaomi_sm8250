@@ -30,7 +30,11 @@
 #define CAM_SOC_MAX_BASE            CAM_SOC_MAX_BLOCK
 
 /* maximum number of device regulator */
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_SOC_MAX_REGULATOR       10
+#else
 #define CAM_SOC_MAX_REGULATOR       5
+#endif
 
 /* maximum number of device clock */
 #define CAM_SOC_MAX_CLK             32
@@ -41,8 +45,10 @@
 #define DDR_TYPE_LPDDR5        8
 #define DDR_TYPE_LPDDR5X       9
 
+#ifndef CONFIG_MACH_XIAOMI
 /* Maximum length of tag while dumping */
 #define CAM_SOC_HW_DUMP_TAG_MAX_LEN 32
+#endif
 
 /**
  * enum cam_vote_level - Enum for voting level
@@ -116,8 +122,10 @@ struct cam_soc_gpio_data {
 	uint8_t cam_gpio_common_tbl_size;
 	struct gpio *cam_gpio_req_tbl;
 	uint8_t cam_gpio_req_tbl_size;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t *gpio_delay_tbl;
 	uint8_t gpio_delay_tbl_size;
+#endif
 };
 
 /**
@@ -223,6 +231,7 @@ struct cam_hw_soc_info {
 	void                           *soc_private;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_hw_soc_dump_header - SOC dump header
  *
@@ -250,6 +259,7 @@ struct cam_hw_soc_dump_args {
 	size_t               offset;
 	uint32_t             buf_handle;
 };
+#endif
 
 /*
  * CAM_SOC_GET_REG_MAP_START
@@ -405,6 +415,22 @@ int cam_soc_util_disable_platform_resource(struct cam_hw_soc_info *soc_info,
  */
 long cam_soc_util_get_clk_round_rate(struct cam_hw_soc_info *soc_info,
 	uint32_t clk_index, unsigned long clk_rate);
+
+#ifdef CONFIG_MACH_XIAOMI
+/**
+ * cam_soc_util_set_clk_flags()
+ *
+ * @brief:              Camera SOC util to set the flags for a specified clock
+ *
+ * @soc_info:           Device soc information
+ * @clk_index:          Clock index in soc_info for which flags are to be set
+ * @flags:              Flags to set
+ *
+ * @return:             Success or Failure
+ */
+int cam_soc_util_set_clk_flags(struct cam_hw_soc_info *soc_info,
+	 uint32_t clk_index, unsigned long flags);
+#endif
 
 /**
  * cam_soc_util_set_src_clk_rate()
@@ -684,8 +710,12 @@ typedef int (*cam_soc_util_regspace_data_cb)(uint32_t reg_base_type,
  */
 int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 	struct cam_cmd_buf_desc *cmd_desc, uint64_t req_id,
+#ifdef CONFIG_MACH_XIAOMI
+	cam_soc_util_regspace_data_cb reg_data_cb);
+#else
 	cam_soc_util_regspace_data_cb reg_data_cb,
 	struct cam_hw_soc_dump_args *soc_dump_args,
 	bool user_triggered_dump);
+#endif
 
 #endif /* _CAM_SOC_UTIL_H_ */

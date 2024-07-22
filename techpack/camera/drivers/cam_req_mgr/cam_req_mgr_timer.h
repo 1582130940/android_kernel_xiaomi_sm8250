@@ -62,4 +62,7 @@ int crm_timer_init(struct cam_req_mgr_timer **timer,
  */
 void crm_timer_exit(struct cam_req_mgr_timer **timer);
 
+#ifdef CONFIG_MACH_XIAOMI
+extern struct kmem_cache *g_cam_req_mgr_timer_cachep;
+#endif
 #endif

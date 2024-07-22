@@ -24,8 +24,13 @@
 struct cam_jpeg_dev {
 	struct cam_subdev sd;
 	struct cam_node *node;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_context ctx[CAM_CTX_MAX];
+	struct cam_jpeg_context ctx_jpeg[CAM_CTX_MAX];
+#else
 	struct cam_context ctx[CAM_JPEG_CTX_MAX];
 	struct cam_jpeg_context ctx_jpeg[CAM_JPEG_CTX_MAX];
+#endif
 	struct mutex jpeg_mutex;
 	int32_t open_cnt;
 };

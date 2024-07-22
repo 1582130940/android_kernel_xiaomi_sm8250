@@ -29,6 +29,9 @@
 #include "cam_context.h"
 
 #define MAX_CSIPHY                  6
+#ifdef CONFIG_MACH_XIAOMI
+#define MAX_DPHY_DATA_LN            4
+#endif
 
 #define MAX_LRME_V4l2_EVENTS        30
 #define CSIPHY_NUM_CLK_MAX          16
@@ -53,9 +56,15 @@
 #define CSIPHY_DNP_PARAMS                4
 #define CSIPHY_2PH_REGS                  5
 #define CSIPHY_3PH_REGS                  6
+#ifndef CONFIG_MACH_XIAOMI
 #define CSIPHY_SKEW_CAL                  7
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+#define CSIPHY_MAX_INSTANCES     2
+#else
 #define CSIPHY_MAX_INSTANCES_PER_PHY     2
+#endif
 
 #define CAM_CSIPHY_MAX_DPHY_LANES    4
 #define CAM_CSIPHY_MAX_CPHY_LANES    3
@@ -69,6 +78,7 @@
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #endif
 
+#ifndef CONFIG_MACH_XIAOMI
 #define DPHY_LANE_0    BIT(0)
 #define CPHY_LANE_0    BIT(1)
 #define DPHY_LANE_1    BIT(2)
@@ -77,6 +87,7 @@
 #define CPHY_LANE_2    BIT(5)
 #define DPHY_LANE_3    BIT(6)
 #define DPHY_CLK_LN    BIT(7)
+#endif
 
 
 
@@ -120,7 +131,9 @@ struct csiphy_reg_parms_t {
 	uint32_t mipi_csiphy_interrupt_mask_addr;
 	uint32_t mipi_csiphy_interrupt_clear0_addr;
 	uint32_t csiphy_version;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t csiphy_interrupt_status_size;
+#endif
 	uint32_t csiphy_common_array_size;
 	uint32_t csiphy_reset_array_size;
 	uint32_t csiphy_2ph_config_array_size;
@@ -133,6 +146,24 @@ struct csiphy_reg_parms_t {
 	uint32_t csiphy_2ph_combo_ck_ln;
 };
 
+#ifdef CONFIG_MACH_XIAOMI
+/**
+ * struct intf_params
+ * @device_hdl: Device Handle
+ * @session_hdl: Session Handle
+ * @ops: KMD operations
+ * @crm_cb: Callback API pointers
+ */
+struct intf_params {
+	int32_t device_hdl[CSIPHY_MAX_INSTANCES];
+	int32_t session_hdl[CSIPHY_MAX_INSTANCES];
+	int32_t link_hdl[CSIPHY_MAX_INSTANCES];
+	struct cam_req_mgr_kmd_ops ops;
+	struct cam_req_mgr_crm_cb *crm_cb;
+};
+#endif
+
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct csiphy_hdl_tbl
  * @device_hdl: Device Handle
@@ -142,6 +173,7 @@ struct csiphy_hdl_tbl {
 	int32_t device_hdl;
 	int32_t session_hdl;
 };
+#endif
 
 /**
  * struct csiphy_reg_t
@@ -210,8 +242,12 @@ struct csiphy_ctrl_t {
 	struct csiphy_reg_t (*csiphy_2ph_combo_mode_reg)[MAX_SETTINGS_PER_LANE];
 	struct csiphy_reg_t (*csiphy_3ph_reg)[MAX_SETTINGS_PER_LANE];
 	struct csiphy_reg_t (*csiphy_2ph_3ph_mode_reg)[MAX_SETTINGS_PER_LANE];
+#ifdef CONFIG_MACH_XIAOMI
+	enum   cam_vote_level (*getclockvoting)(struct csiphy_device *phy_dev);
+#else
 	enum   cam_vote_level (*getclockvoting)(struct csiphy_device *phy_dev,
 		int32_t index);
+#endif
 	struct data_rate_settings_t *data_rates_settings_table;
 };
 
@@ -228,16 +264,35 @@ struct csiphy_ctrl_t {
  * @mipi_flags                 :  Mipi flags
  */
 struct cam_csiphy_param {
+#ifdef CONFIG_MACH_XIAOMI
+	uint16_t                   lane_mask;
+#endif
 	uint16_t                   lane_assign;
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t                    csiphy_3phase;
+	uint8_t                    combo_mode;
+#else
 	int                        csiphy_3phase;
+#endif
 	uint8_t                    lane_cnt;
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t                    secure_mode[CSIPHY_MAX_INSTANCES];
+#else
 	uint8_t                    secure_mode;
 	uint32_t                   lane_enable;
+#endif
 	uint64_t                   settle_time;
+#ifdef CONFIG_MACH_XIAOMI
+	uint64_t                   settle_time_combo_sensor;
+#endif
 	uint64_t                   data_rate;
+#ifdef CONFIG_MACH_XIAOMI
+	uint64_t                   data_rate_combo_sensor;
+#else
 	uint32_t                   mipi_flags;
 	uint64_t                   csiphy_cpas_cp_reg_mask;
 	struct csiphy_hdl_tbl      hdl_data;
+#endif
 };
 
 /**
@@ -288,14 +343,25 @@ struct csiphy_device {
 	uint8_t                        is_divisor_32_comp;
 	uint8_t                        num_irq_registers;
 	struct cam_subdev              v4l2_dev_str;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_csiphy_param csiphy_info;
+	struct intf_params bridge_intf;
+#else
 	struct cam_csiphy_param        csiphy_info[
 					CSIPHY_MAX_INSTANCES_PER_PHY];
+#endif
 	uint32_t                       clk_lane;
 	uint32_t                       acquire_count;
 	uint32_t                       start_dev_count;
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t is_acquired_dev_combo_mode;
+#endif
 	struct cam_hw_soc_info         soc_info;
 	uint32_t                       cpas_handle;
 	uint32_t                       config_count;
+#ifdef CONFIG_MACH_XIAOMI
+	uint64_t csiphy_cpas_cp_reg_mask[CSIPHY_MAX_INSTANCES];
+#else
 	uint32_t                       open_cnt;
 	uint64_t                       csiphy_cpas_cp_reg_mask[
 					CSIPHY_MAX_INSTANCES_PER_PHY];
@@ -304,6 +370,7 @@ struct csiphy_device {
 	uint8_t                        combo_mode;
 	struct cam_req_mgr_kmd_ops     ops;
 	struct cam_req_mgr_crm_cb     *crm_cb;
+#endif
 };
 
 #endif /* _CAM_CSIPHY_DEV_H_ */

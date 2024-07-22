@@ -102,8 +102,10 @@
 #define CAM_ISP_GENERIC_BLOB_TYPE_IFE_CORE_CONFIG           7
 #define CAM_ISP_GENERIC_BLOB_TYPE_VFE_OUT_CONFIG            8
 #define CAM_ISP_GENERIC_BLOB_TYPE_BW_CONFIG_V2              9
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_ISP_GENERIC_BLOB_TYPE_CSID_CONFIG               10
 #define CAM_ISP_GENERIC_BLOB_TYPE_SENSOR_DIMENSION_CONFIG   11
+#endif
 #define CAM_ISP_GENERIC_BLOB_TYPE_CSID_QCFA_CONFIG          12
 
 #define CAM_ISP_VC_DT_CFG    4
@@ -113,9 +115,11 @@
 #define CAM_ISP_IFE0_LITE_HW     0x4
 #define CAM_ISP_IFE1_LITE_HW     0x8
 #define CAM_ISP_IFE2_LITE_HW     0x10
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_ISP_IFE3_LITE_HW     0x20
 #define CAM_ISP_IFE4_LITE_HW     0x40
 #define CAM_ISP_IFE2_HW          0x100
+#endif
 
 #define CAM_ISP_PXL_PATH          0x1
 #define CAM_ISP_PPP_PATH          0x2
@@ -136,7 +140,9 @@
 #define CAM_ISP_ACQ_CUSTOM_PRIMARY    1
 #define CAM_ISP_ACQ_CUSTOM_SECONDARY  2
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_IFE_CSID_RDI_MAX          4
+#endif
 
 /* Query devices */
 /**
@@ -601,6 +607,7 @@ struct cam_fe_config {
 } __attribute__((packed));
 
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_isp_sensor_path_dimension
  *
@@ -630,6 +637,7 @@ struct cam_isp_sensor_config {
 	uint32_t                   hbi;
 	uint32_t                   vbi;
 } __attribute__((packed));
+#endif
 
 /**
  * struct cam_isp_core_config - ISP core registers configuration
@@ -734,6 +742,7 @@ struct cam_isp_vfe_out_config {
 	struct cam_isp_vfe_wm_config  wm_config[1];
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_isp_csid_epd_config  -  Support for EPD Packet config
  *
@@ -742,6 +751,7 @@ struct cam_isp_vfe_out_config {
 struct cam_isp_csid_epd_config {
 	uint32_t                      is_epd_supported;
 };
+#endif
 
 #define CAM_ISP_ACQUIRE_COMMON_VER0         0x1000
 

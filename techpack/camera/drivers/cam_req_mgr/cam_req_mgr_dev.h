@@ -32,7 +32,9 @@ struct cam_req_mgr_device {
 	struct mutex cam_lock;
 	struct v4l2_fh  *cam_eventq;
 	spinlock_t cam_eventq_lock;
+#ifndef CONFIG_MACH_XIAOMI
 	bool shutdown_state;
+#endif
 };
 
 #define CAM_REQ_MGR_GET_PAYLOAD_PTR(ev, type)        \

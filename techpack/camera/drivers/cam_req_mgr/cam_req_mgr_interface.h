@@ -21,7 +21,9 @@ struct cam_req_mgr_core_dev_link_setup;
 struct cam_req_mgr_apply_request;
 struct cam_req_mgr_flush_request;
 struct cam_req_mgr_link_evt_data;
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_req_mgr_dump_info;
+#endif
 
 #define SKIP_NEXT_FRAME 0x100
 
@@ -58,7 +60,9 @@ typedef int (*cam_req_mgr_link_setup)(
 typedef int (*cam_req_mgr_apply_req)(struct cam_req_mgr_apply_request *);
 typedef int (*cam_req_mgr_flush_req)(struct cam_req_mgr_flush_request *);
 typedef int (*cam_req_mgr_process_evt)(struct cam_req_mgr_link_evt_data *);
+#ifndef CONFIG_MACH_XIAOMI
 typedef int (*cam_req_mgr_dump_req)(struct cam_req_mgr_dump_info *);
+#endif
 
 /**
  * @brief          : cam_req_mgr_crm_cb - func table
@@ -92,7 +96,9 @@ struct cam_req_mgr_kmd_ops {
 	cam_req_mgr_apply_req        apply_req;
 	cam_req_mgr_flush_req        flush_req;
 	cam_req_mgr_process_evt      process_evt;
+#ifndef CONFIG_MACH_XIAOMI
 	cam_req_mgr_dump_req         dump_req;
+#endif
 };
 
 /**
@@ -220,7 +226,9 @@ struct cam_req_mgr_trigger_notify {
 	uint32_t trigger;
 	uint64_t sof_timestamp_val;
 	uint64_t req_id;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t  trigger_id;
+#endif
 };
 
 /**
@@ -250,9 +258,13 @@ struct cam_req_mgr_error_notify {
 	int32_t  link_hdl;
 	int32_t  dev_hdl;
 	uint64_t req_id;
+#ifndef CONFIG_MACH_XIAOMI
 	int64_t  frame_id;
+#endif
 	uint32_t trigger;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t sof_timestamp_val;
+#endif
 	enum cam_req_mgr_device_error error;
 };
 
@@ -299,7 +311,9 @@ struct cam_req_mgr_device_info {
 	enum cam_req_mgr_device_id  dev_id;
 	enum cam_pipeline_delay     p_delay;
 	uint32_t                    trigger;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                        trigger_on;
+#endif
 };
 
 /**
@@ -319,7 +333,9 @@ struct cam_req_mgr_core_dev_link_setup {
 	enum cam_pipeline_delay    max_delay;
 	struct cam_req_mgr_crm_cb *crm_cb;
 	uint32_t                   subscribe_event;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t                    trigger_id;
+#endif
 };
 
 /**
@@ -338,7 +354,9 @@ struct cam_req_mgr_apply_request {
 	uint64_t   request_id;
 	int32_t    report_if_bubble;
 	uint32_t   trigger_point;
+#ifndef CONFIG_MACH_XIAOMI
 	bool       re_apply;
+#endif
 };
 
 /**
@@ -384,6 +402,7 @@ struct cam_req_mgr_send_request {
 	struct cam_req_mgr_req_queue *in_q;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_req_mgr_dump_info
  * @req_id      : request id to dump
@@ -402,4 +421,5 @@ struct cam_req_mgr_dump_info {
 	int32_t     link_hdl;
 	int32_t     dev_hdl;
 };
+#endif
 #endif

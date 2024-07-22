@@ -655,6 +655,7 @@ static int cam_lrme_mgr_hw_release(void *hw_mgr_priv, void *hw_release_args)
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_lrme_mgr_hw_dump(void *hw_mgr_priv, void *hw_dump_args)
 {
 	struct cam_hw_dump_args *dump_args = hw_dump_args;
@@ -699,6 +700,7 @@ static int cam_lrme_mgr_hw_dump(void *hw_mgr_priv, void *hw_dump_args)
 	cam_mem_put_cpu_buf(dump_args->buf_handle);
 	return rc;
 }
+#endif
 
 static int cam_lrme_mgr_hw_flush(void *hw_mgr_priv, void *hw_flush_args)
 {	int rc = 0, i;
@@ -1048,11 +1050,13 @@ err:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static void cam_req_mgr_process_workq_cam_lrme_device_submit_worker(
 	struct work_struct *w)
 {
 	cam_req_mgr_process_workq(w);
 }
+#endif
 
 int cam_lrme_mgr_register_device(
 	struct cam_hw_intf *lrme_hw_intf,
@@ -1080,8 +1084,13 @@ int cam_lrme_mgr_register_device(
 	CAM_DBG(CAM_LRME, "Create submit workq for %s", buf);
 	rc = cam_req_mgr_workq_create(buf,
 		CAM_LRME_WORKQ_NUM_TASK,
+#ifdef CONFIG_MACH_XIAOMI
+		&hw_device->work, CRM_WORKQ_USAGE_NON_IRQ,
+		0);
+#else
 		&hw_device->work, CRM_WORKQ_USAGE_NON_IRQ, 0, true,
 		cam_req_mgr_process_workq_cam_lrme_device_submit_worker);
+#endif
 	if (rc) {
 		CAM_ERR(CAM_LRME,
 			"Unable to create a worker, rc=%d", rc);
@@ -1203,7 +1212,9 @@ int cam_lrme_hw_mgr_init(struct cam_hw_mgr_intf *hw_mgr_intf,
 	hw_mgr_intf->hw_flush = cam_lrme_mgr_hw_flush;
 
 	g_lrme_hw_mgr.event_cb = cam_lrme_dev_buf_done_cb;
+#ifndef CONFIG_MACH_XIAOMI
 	hw_mgr_intf->hw_dump = cam_lrme_mgr_hw_dump;
+#endif
 
 	cam_lrme_mgr_create_debugfs_entry();
 

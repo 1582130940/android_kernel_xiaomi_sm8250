@@ -109,7 +109,11 @@ static int cam_eeprom_read_memory(struct cam_eeprom_ctrl_t *e_ctrl,
 				emap[j].mem.addr_type,
 				emap[j].mem.data_type,
 				emap[j].mem.valid_size);
+#ifdef CONFIG_MACH_XIAOMI
+			if (rc) {
+#else
 			if (rc < 0) {
+#endif
 				CAM_ERR(CAM_EEPROM, "read failed rc %d",
 					rc);
 				return rc;
@@ -355,10 +359,12 @@ static int32_t cam_eeprom_get_dev_handle(struct cam_eeprom_ctrl_t *e_ctrl,
 
 	eeprom_acq_dev.device_handle =
 		cam_create_device_hdl(&bridge_params);
+#ifndef CONFIG_MACH_XIAOMI
 	if (eeprom_acq_dev.device_handle <= 0) {
 		CAM_ERR(CAM_EEPROM, "Can not create device handle");
 		return -EFAULT;
 	}
+#endif
 	e_ctrl->bridge_intf.device_hdl = eeprom_acq_dev.device_handle;
 	e_ctrl->bridge_intf.session_hdl = eeprom_acq_dev.session_handle;
 
@@ -997,6 +1003,7 @@ static int32_t cam_eeprom_init_pkt_parser(struct cam_eeprom_ctrl_t *e_ctrl,
 					goto end;
 				}
 
+#ifndef CONFIG_MACH_XIAOMI
 				if ((num_map + 1) >=
 					(MSM_EEPROM_MAX_MEM_MAP_CNT *
 					MSM_EEPROM_MEMORY_MAP_MAX_SIZE)) {
@@ -1004,6 +1011,7 @@ static int32_t cam_eeprom_init_pkt_parser(struct cam_eeprom_ctrl_t *e_ctrl,
 					rc = -EINVAL;
 					goto end;
 				}
+#endif
 				/* Configure the following map slave address */
 
 				map[num_map + 1].saddr = i2c_info->slave_addr;

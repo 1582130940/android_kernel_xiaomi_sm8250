@@ -22,10 +22,14 @@
 #include "cam_vfe_soc.h"
 #include "cam_debug_util.h"
 #include "cam_cpas_api.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "cam_trace.h"
+#endif
 
 static const char drv_name[] = "vfe_bus";
+#ifndef CONFIG_MACH_XIAOMI
 static char rup_controller_name[32] = "";
+#endif
 
 #define CAM_VFE_BUS_VER3_IRQ_REG0                0
 #define CAM_VFE_BUS_VER3_IRQ_REG1                1
@@ -86,8 +90,10 @@ struct cam_vfe_bus_ver3_common_data {
 	uint32_t                                    comp_done_shift;
 	bool                                        is_lite;
 	bool                                        hw_init;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                                        disable_ubwc_comp;
 	bool                                        support_consumed_addr;
+#endif
 	cam_hw_mgr_event_cb_func                    event_cb;
 	int                        rup_irq_handle[CAM_VFE_BUS_VER3_SRC_GRP_MAX];
 };
@@ -131,8 +137,10 @@ struct cam_vfe_bus_ver3_wm_resource_data {
 	uint32_t             ubwc_lossy_threshold_1;
 	uint32_t             ubwc_offset_lossy_variance;
 	uint32_t             ubwc_bandwidth_limit;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t             acquired_width;
 	uint32_t             acquired_height;
+#endif
 };
 
 struct cam_vfe_bus_ver3_comp_grp_data {
@@ -155,7 +163,9 @@ struct cam_vfe_bus_ver3_vfe_out_data {
 	uint32_t                              out_type;
 	uint32_t                              source_group;
 	struct cam_vfe_bus_ver3_common_data  *common_data;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_bus_ver3_priv         *bus_priv;
+#endif
 
 	uint32_t                         num_wm;
 	struct cam_isp_resource_node    *wm_res[PLANE_MAX];
@@ -924,7 +934,9 @@ static int cam_vfe_bus_ver3_handle_rup_top_half(uint32_t evt_id,
 	struct cam_isp_resource_node               *vfe_out = NULL;
 	struct cam_vfe_bus_ver3_vfe_out_data       *rsrc_data = NULL;
 	struct cam_vfe_bus_irq_evt_payload         *evt_payload;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t irq_status;
+#endif
 
 	vfe_out = th_payload->handler_priv;
 	if (!vfe_out) {
@@ -954,10 +966,12 @@ static int cam_vfe_bus_ver3_handle_rup_top_half(uint32_t evt_id,
 	for (i = 0; i < th_payload->num_registers; i++)
 		evt_payload->irq_reg_val[i] = th_payload->evt_status_arr[i];
 
+#ifndef CONFIG_MACH_XIAOMI
 	irq_status =
 		th_payload->evt_status_arr[CAM_IFE_IRQ_BUS_VER3_REG_STATUS0];
 
 	trace_cam_log_event("RUP", "RUP_IRQ", irq_status, 0);
+#endif
 
 	th_payload->evt_payload_priv = evt_payload;
 
@@ -1136,8 +1150,10 @@ static int cam_vfe_bus_ver3_acquire_wm(
 
 	rsrc_data->width = out_port_info->width;
 	rsrc_data->height = out_port_info->height;
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->acquired_width = out_port_info->width;
 	rsrc_data->acquired_height = out_port_info->height;
+#endif
 	rsrc_data->is_dual = is_dual;
 	/* Set WM offset value to default */
 	rsrc_data->offset  = 0;
@@ -1391,6 +1407,7 @@ static int cam_vfe_bus_ver3_start_wm(struct cam_isp_resource_node *wm_res)
 	if (rsrc_data->en_ubwc) {
 		val = cam_io_r_mb(common_data->mem_base + ubwc_regs->mode_cfg);
 		val |= 0x1;
+#ifndef CONFIG_MACH_XIAOMI
 		if (rsrc_data->common_data->disable_ubwc_comp) {
 			val &= ~ubwc_regs->ubwc_comp_en_bit;
 			CAM_DBG(CAM_ISP,
@@ -1398,6 +1415,7 @@ static int cam_vfe_bus_ver3_start_wm(struct cam_isp_resource_node *wm_res)
 				rsrc_data->common_data->core_index,
 				rsrc_data->index, val);
 		}
+#endif
 		cam_io_w_mb(val, common_data->mem_base + ubwc_regs->mode_cfg);
 	}
 
@@ -1948,10 +1966,14 @@ static int cam_vfe_bus_ver3_acquire_vfe_out(void *bus_priv, void *acquire_args,
 
 	rsrc_data = rsrc_node->res_priv;
 	rsrc_data->common_data->event_cb = acq_args->event_cb;
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->common_data->disable_ubwc_comp =
 		out_acquire_args->disable_ubwc_comp;
+#endif
 	rsrc_data->priv = acq_args->priv;
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->bus_priv = ver3_bus_priv;
+#endif
 
 	secure_caps = cam_vfe_bus_ver3_can_be_secure(
 		rsrc_data->out_type);
@@ -2264,8 +2286,10 @@ static int cam_vfe_bus_ver3_handle_vfe_out_done_top_half(uint32_t evt_id,
 	struct cam_isp_resource_node               *vfe_out = NULL;
 	struct cam_vfe_bus_ver3_vfe_out_data       *rsrc_data = NULL;
 	struct cam_vfe_bus_irq_evt_payload         *evt_payload;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_bus_ver3_comp_grp_data      *resource_data;
 	uint32_t                                    status_0;
+#endif
 
 	vfe_out = th_payload->handler_priv;
 	if (!vfe_out) {
@@ -2274,7 +2298,9 @@ static int cam_vfe_bus_ver3_handle_vfe_out_done_top_half(uint32_t evt_id,
 	}
 
 	rsrc_data = vfe_out->res_priv;
+#ifndef CONFIG_MACH_XIAOMI
 	resource_data = rsrc_data->comp_grp->res_priv;
+#endif
 
 	CAM_DBG(CAM_ISP, "VFE:%d Bus IRQ status_0: 0x%X status_1: 0x%X",
 		rsrc_data->common_data->core_index,
@@ -2303,6 +2329,7 @@ static int cam_vfe_bus_ver3_handle_vfe_out_done_top_half(uint32_t evt_id,
 
 	th_payload->evt_payload_priv = evt_payload;
 
+#ifndef CONFIG_MACH_XIAOMI
 	status_0 = th_payload->evt_status_arr[CAM_IFE_IRQ_BUS_VER3_REG_STATUS0];
 
 	if (status_0 & BIT(resource_data->comp_grp_type +
@@ -2313,11 +2340,13 @@ static int cam_vfe_bus_ver3_handle_vfe_out_done_top_half(uint32_t evt_id,
 
 	if (status_0 & 0x1)
 		trace_cam_log_event("UnexpectedRUP", "RUP_IRQ", status_0, 40);
+#endif
 
 	CAM_DBG(CAM_ISP, "Exit");
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static uint32_t cam_vfe_bus_ver3_get_last_consumed_addr(
 	struct cam_vfe_bus_ver3_priv *bus_priv,
 	uint32_t res_type)
@@ -2345,6 +2374,7 @@ static uint32_t cam_vfe_bus_ver3_get_last_consumed_addr(
 
 	return val;
 }
+#endif
 
 static int cam_vfe_bus_ver3_handle_vfe_out_done_bottom_half(
 	void                *handler_priv,
@@ -2380,10 +2410,12 @@ static int cam_vfe_bus_ver3_handle_vfe_out_done_bottom_half(
 			rsrc_data->common_data->is_lite);
 		for (i = 0; i < num_out; i++) {
 			evt_info.res_id = out_list[i];
+#ifndef CONFIG_MACH_XIAOMI
 			evt_info.reg_val =
 				cam_vfe_bus_ver3_get_last_consumed_addr(
 				rsrc_data->bus_priv,
 				evt_info.res_id);
+#endif
 			if (rsrc_data->common_data->event_cb)
 				rsrc_data->common_data->event_cb(ctx, evt_id,
 					(void *)&evt_info);
@@ -2494,6 +2526,37 @@ static int cam_vfe_bus_ver3_deinit_vfe_out_resource(
 	return 0;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+static void cam_vfe_bus_ver3_print_dimensions(
+	enum cam_vfe_bus_ver3_vfe_out_type         vfe_out_res_id,
+	enum cam_vfe_bus_plane_type                plane,
+	struct cam_vfe_bus_ver3_priv              *bus_priv)
+{
+	struct cam_isp_resource_node              *wm_res = NULL;
+	struct cam_vfe_bus_ver3_wm_resource_data  *wm_data   = NULL;
+	int                                        wm_idx = 0;
+
+	wm_idx = cam_vfe_bus_ver3_get_wm_idx(vfe_out_res_id, plane,
+		bus_priv->common_data.is_lite);
+
+	if (wm_idx < 0 || wm_idx >= bus_priv->num_client || plane > PLANE_C) {
+		CAM_ERR(CAM_ISP,
+			"Unsupported VFE out_type:0x%X plane:%d wm_idx:%d max_idx:%d",
+			vfe_out_res_id, plane, wm_idx,
+			bus_priv->num_client - 1);
+		return;
+	}
+
+	wm_res = &bus_priv->bus_client[wm_idx];
+	wm_data = wm_res->res_priv;
+
+	CAM_INFO(CAM_ISP,
+		"VFE:%d WM:%d width:%u height:%u stride:%u x_init:%u en_cfg:%u",
+		wm_data->common_data->core_index, wm_idx, wm_data->width,
+		wm_data->height, wm_data->stride, wm_data->h_init,
+		wm_data->en_cfg);
+}
+#else
 static int cam_vfe_bus_ver3_print_dimensions(
 	enum cam_vfe_bus_ver3_vfe_out_type         vfe_out_res_id,
 	struct cam_vfe_bus_ver3_priv              *bus_priv)
@@ -2545,6 +2608,7 @@ static int cam_vfe_bus_ver3_print_dimensions(
 	}
 	return 0;
 }
+#endif
 
 static int cam_vfe_bus_ver3_handle_bus_irq(uint32_t    evt_id,
 	struct cam_irq_th_payload                 *th_payload)
@@ -2649,6 +2713,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 					"RDI 0 image size violation");
 				cam_vfe_bus_ver3_print_dimensions(
 					CAM_VFE_BUS_VER3_VFE_OUT_RDI0,
+#ifdef CONFIG_MACH_XIAOMI
+					PLANE_Y,
+#endif
 					bus_priv);
 			}
 
@@ -2657,6 +2724,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 					"RDI 1 image size violation");
 				cam_vfe_bus_ver3_print_dimensions(
 					CAM_VFE_BUS_VER3_VFE_OUT_RDI1,
+#ifdef CONFIG_MACH_XIAOMI
+					PLANE_Y,
+#endif
 					bus_priv);
 			}
 
@@ -2665,6 +2735,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 					"RDI 2 image size violation");
 				cam_vfe_bus_ver3_print_dimensions(
 					CAM_VFE_BUS_VER3_VFE_OUT_RDI2,
+#ifdef CONFIG_MACH_XIAOMI
+					PLANE_Y,
+#endif
 					bus_priv);
 			}
 
@@ -2673,6 +2746,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 					"RDI 3 image size violation");
 				cam_vfe_bus_ver3_print_dimensions(
 					CAM_VFE_BUS_VER3_VFE_OUT_RDI3,
+#ifdef CONFIG_MACH_XIAOMI
+					PLANE_Y,
+#endif
 					bus_priv);
 			}
 		}
@@ -2707,6 +2783,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "VID Y 1:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FULL,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2714,6 +2793,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "VID C 1:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FULL,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_C,
+#endif
 				bus_priv);
 		}
 
@@ -2721,6 +2803,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "VID YC 4:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_DS4,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2728,6 +2813,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "VID YC 16:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_DS16,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2735,6 +2823,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "DISP Y 1:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FULL_DISP,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2742,6 +2833,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "DISP C 1:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FULL_DISP,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_C,
+#endif
 				bus_priv);
 		}
 
@@ -2749,6 +2843,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "DISP YC 4:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_DS4_DISP,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2756,6 +2853,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "DISP YC 16:1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_DS16_DISP,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2763,6 +2863,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "FD Y image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FD,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2770,6 +2873,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "FD C image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_FD,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_C,
+#endif
 				bus_priv);
 		}
 
@@ -2778,6 +2884,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			"PIXEL RAW DUMP image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_RAW_DUMP,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2785,6 +2894,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS HDR BE image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_HDR_BE,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2793,6 +2905,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			"STATS HDR BHIST image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_HDR_BHIST,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2801,6 +2916,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			"STATS TINTLESS BG image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_TL_BG,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2808,6 +2926,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS AWB BG image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_AWB_BG,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2815,6 +2936,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS BHIST image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_BHIST,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2822,6 +2946,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS RS image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_RS,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2829,6 +2956,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS CS image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_CS,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2836,6 +2966,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS IHIST image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_IHIST,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2843,6 +2976,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "STATS BAF image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_STATS_BF,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2850,6 +2986,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "PD image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_2PD,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2857,6 +2996,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "LCR image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_LCR,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2864,6 +3006,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "RDI 0 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_RDI0,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2871,6 +3016,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "RDI 1 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_RDI1,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -2878,6 +3026,9 @@ static int cam_vfe_bus_ver3_err_irq_bottom_half(
 			CAM_INFO(CAM_ISP, "RDI 2 image size violation");
 			cam_vfe_bus_ver3_print_dimensions(
 				CAM_VFE_BUS_VER3_VFE_OUT_RDI2,
+#ifdef CONFIG_MACH_XIAOMI
+				PLANE_Y,
+#endif
 				bus_priv);
 		}
 
@@ -3024,12 +3175,14 @@ static int cam_vfe_bus_ver3_update_ubwc_regs(
 	CAM_DBG(CAM_ISP, "WM:%d meta stride 0x%X",
 		wm_data->index, reg_val_pair[*j-1]);
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (wm_data->common_data->disable_ubwc_comp) {
 		wm_data->ubwc_mode_cfg &= ~ubwc_regs->ubwc_comp_en_bit;
 		CAM_DBG(CAM_ISP,
 			"UBWC force WM:%d val= x%x",
 			wm_data->index, wm_data->ubwc_mode_cfg);
 	}
+#endif
 
 	CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, *j,
 		ubwc_regs->mode_cfg, wm_data->ubwc_mode_cfg);
@@ -3077,9 +3230,17 @@ static int cam_vfe_bus_ver3_update_wm(void *priv, void *cmd_args,
 	struct cam_vfe_bus_ver3_wm_resource_data *wm_data = NULL;
 	struct cam_vfe_bus_ver3_reg_offset_ubwc_client *ubwc_client = NULL;
 	uint32_t *reg_val_pair;
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t  i, j, k, size = 0;
+#else
 	uint32_t  i, j, size = 0;
+#endif
 	uint32_t  frame_inc = 0, val;
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t loop_size = 0;
+#else
 	bool frame_header_enable = false;
+#endif
 
 	bus_priv = (struct cam_vfe_bus_ver3_priv  *) priv;
 	update_buf =  (struct cam_isp_hw_get_cmd_update *) cmd_args;
@@ -3113,6 +3274,7 @@ static int cam_vfe_bus_ver3_update_wm(void *priv, void *cmd_args,
 		wm_data = vfe_out_data->wm_res[i]->res_priv;
 		ubwc_client = wm_data->hw_regs->ubwc_regs;
 
+#ifndef CONFIG_MACH_XIAOMI
 		/* Disable frame header in case it was previously enabled */
 		if ((wm_data->en_cfg) & (1 << 2))
 			wm_data->en_cfg &= ~(1 << 2);
@@ -3133,6 +3295,7 @@ static int cam_vfe_bus_ver3_update_wm(void *priv, void *cmd_args,
 				update_buf->wm_update->frame_header,
 				update_buf->wm_update->local_id);
 		}
+#endif
 
 		CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
 			wm_data->hw_regs->cfg, wm_data->en_cfg);
@@ -3207,8 +3370,39 @@ static int cam_vfe_bus_ver3_update_wm(void *priv, void *cmd_args,
 				wm_data->index, reg_val_pair[j-1]);
 		}
 
+#ifdef CONFIG_MACH_XIAOMI
+		if ((!bus_priv->common_data.is_lite && wm_data->index > 22) ||
+			bus_priv->common_data.is_lite)
+			loop_size = wm_data->irq_subsample_period + 1;
+		else
+			loop_size = 1;
+#endif
+
 		/* WM Image address */
 
+#ifdef CONFIG_MACH_XIAOMI
+		for (k = 0; k < loop_size; k++) {
+			if (wm_data->en_ubwc)
+				CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
+					wm_data->hw_regs->image_addr,
+					update_buf->wm_update->image_buf[i] +
+					io_cfg->planes[i].meta_size +
+					k * frame_inc);
+			else if (wm_data->en_cfg & (0x3 << 16))
+				CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
+					wm_data->hw_regs->image_addr,
+					(update_buf->wm_update->image_buf[i] +
+					wm_data->offset + k * frame_inc));
+			else
+				CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
+					wm_data->hw_regs->image_addr,
+					(update_buf->wm_update->image_buf[i] +
+					k * frame_inc));
+
+			CAM_DBG(CAM_ISP, "WM:%d image address 0x%X",
+				wm_data->index, reg_val_pair[j-1]);
+		}
+#else
 		if (wm_data->en_ubwc) {
 			CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
 				wm_data->hw_regs->image_addr,
@@ -3232,6 +3426,7 @@ static int cam_vfe_bus_ver3_update_wm(void *priv, void *cmd_args,
 
 		CAM_DBG(CAM_ISP, "WM:%d image address 0x%X",
 			wm_data->index, reg_val_pair[j-1]);
+#endif
 
 		CAM_VFE_ADD_REG_VAL_PAIR(reg_val_pair, j,
 			wm_data->hw_regs->frame_incr, frame_inc);
@@ -3756,7 +3951,9 @@ static int cam_vfe_bus_ver3_process_cmd(
 {
 	int rc = -EINVAL;
 	struct cam_vfe_bus_ver3_priv		 *bus_priv;
+#ifndef CONFIG_MACH_XIAOMI
 	bool *support_consumed_addr;
+#endif
 
 	if (!priv || !cmd_args) {
 		CAM_ERR_RATE_LIMIT(CAM_ISP, "Invalid input arguments");
@@ -3787,6 +3984,7 @@ static int cam_vfe_bus_ver3_process_cmd(
 			bus_priv->error_irq_handle = 0;
 		}
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ISP_HW_CMD_DUMP_BUS_INFO: {
 		struct cam_isp_hw_event_info  *event_info;
 		enum cam_vfe_bus_ver3_vfe_out_type vfe_out_res_id;
@@ -3800,18 +3998,21 @@ static int cam_vfe_bus_ver3_process_cmd(
 			vfe_out_res_id, bus_priv);
 		break;
 		}
+#endif
 	case CAM_ISP_HW_CMD_UBWC_UPDATE_V2:
 		rc = cam_vfe_bus_ver3_update_ubwc_config_v2(cmd_args);
 		break;
 	case CAM_ISP_HW_CMD_WM_CONFIG_UPDATE:
 		rc = cam_vfe_bus_ver3_update_wm_config(cmd_args);
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ISP_HW_CMD_IS_CONSUMED_ADDR_SUPPORT:
 		bus_priv = (struct cam_vfe_bus_ver3_priv *) priv;
 		support_consumed_addr = (bool *)cmd_args;
 		*support_consumed_addr =
 			bus_priv->common_data.support_consumed_addr;
 		break;
+#endif
 	default:
 		CAM_ERR_RATE_LIMIT(CAM_ISP, "Invalid camif process command:%d",
 			cmd_type);
@@ -3833,6 +4034,9 @@ int cam_vfe_bus_ver3_init(
 	struct cam_vfe_bus              *vfe_bus_local;
 	struct cam_vfe_bus_ver3_hw_info *ver3_hw_info = bus_hw_info;
 	struct cam_vfe_soc_private      *soc_private = NULL;
+#ifdef CONFIG_MACH_XIAOMI
+	char rup_controller_name[12] = "";
+#endif
 
 	CAM_DBG(CAM_ISP, "Enter");
 
@@ -3884,8 +4088,10 @@ int cam_vfe_bus_ver3_init(
 	bus_priv->common_data.hw_init            = false;
 
 	bus_priv->common_data.is_lite = soc_private->is_ife_lite;
+#ifndef CONFIG_MACH_XIAOMI
 	bus_priv->common_data.support_consumed_addr =
 		ver3_hw_info->support_consumed_addr;
+#endif
 
 	for (i = 0; i < CAM_VFE_BUS_VER3_SRC_GRP_MAX; i++)
 		bus_priv->common_data.rup_irq_handle[i] = 0;

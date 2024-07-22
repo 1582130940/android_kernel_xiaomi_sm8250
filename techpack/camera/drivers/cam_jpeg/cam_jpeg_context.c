@@ -83,6 +83,7 @@ static int __cam_jpeg_ctx_release_dev_in_acquired(struct cam_context *ctx,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int __cam_jpeg_ctx_dump_dev_in_acquired(
 	struct cam_context      *ctx,
 	struct cam_dump_req_cmd *cmd)
@@ -95,6 +96,7 @@ static int __cam_jpeg_ctx_dump_dev_in_acquired(
 
 	return rc;
 }
+#endif
 
 static int __cam_jpeg_ctx_flush_dev_in_acquired(struct cam_context *ctx,
 	struct cam_flush_dev_cmd *cmd)
@@ -158,7 +160,9 @@ static struct cam_ctx_ops
 			.config_dev = __cam_jpeg_ctx_config_dev_in_acquired,
 			.stop_dev = __cam_jpeg_ctx_stop_dev_in_acquired,
 			.flush_dev = __cam_jpeg_ctx_flush_dev_in_acquired,
+#ifndef CONFIG_MACH_XIAOMI
 			.dump_dev = __cam_jpeg_ctx_dump_dev_in_acquired,
+#endif
 		},
 		.crm_ops = { },
 		.irq_ops = __cam_jpeg_ctx_handle_buf_done_in_acquired,

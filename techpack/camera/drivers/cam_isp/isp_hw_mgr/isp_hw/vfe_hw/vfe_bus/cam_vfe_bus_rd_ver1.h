@@ -88,7 +88,9 @@ struct cam_vfe_bus_rd_ver1_hw_info {
 	uint32_t num_bus_rd_resc;
 	struct cam_vfe_bus_rd_ver1_vfe_bus_hw_info
 		vfe_bus_rd_hw_info[CAM_VFE_BUS_RD_VER1_VFE_BUSRD_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t top_irq_shift;
+#endif
 };
 
 /*

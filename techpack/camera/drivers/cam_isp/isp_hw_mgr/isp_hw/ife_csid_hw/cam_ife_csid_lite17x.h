@@ -298,12 +298,14 @@ static const struct cam_ife_csid_common_reg_offset
 	.ipp_irq_mask_all                             = 0x7FFF,
 	.rdi_irq_mask_all                             = 0x7FFF,
 	.ppp_irq_mask_all                             = 0xFFFF,
+#ifndef CONFIG_MACH_XIAOMI
 	.measure_en_hbi_vbi_cnt_mask                  = 0xC,
 	.format_measure_en_val                        = 1,
 	.format_measure_height_mask_val               = 0xFFFF,
 	.format_measure_height_shift_val              = 0x10,
 	.format_measure_width_mask_val                = 0xFFFF,
 	.format_measure_width_shift_val               = 0x0,
+#endif
 };
 
 static const struct cam_ife_csid_reg_offset cam_ife_csid_lite_17x_reg_offset = {

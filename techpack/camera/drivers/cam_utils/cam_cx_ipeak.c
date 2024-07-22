@@ -35,7 +35,11 @@ int cam_cx_ipeak_register_cx_ipeak(struct cam_hw_soc_info *soc_info)
 	if (cam_cx_ipeak) {
 		goto exit;
 	} else {
+#ifdef CONFIG_MACH_XIAOMI
+		rc = -EINVAL;
+#else
 		CAM_WARN(CAM_UTIL, "cx_ipeak_register failed");
+#endif
 		goto exit;
 	}
 

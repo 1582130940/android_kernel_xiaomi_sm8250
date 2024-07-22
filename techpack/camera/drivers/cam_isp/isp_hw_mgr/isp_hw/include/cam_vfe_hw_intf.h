@@ -103,6 +103,7 @@ struct cam_vfe_hw_get_hw_cap {
 	uint32_t                max_rdi_num;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_vfe_hw_vfe_bus_rd_acquire_args:
  *
@@ -123,6 +124,7 @@ struct cam_vfe_hw_vfe_bus_rd_acquire_args {
 	uint32_t                              unpacker_fmt;
 	bool                                  is_offline;
 };
+#endif
 
 /*
  * struct cam_vfe_hw_vfe_out_acquire_args:
@@ -151,7 +153,9 @@ struct cam_vfe_hw_vfe_out_acquire_args {
 	uint32_t                              is_master;
 	uint32_t                              dual_slave_core;
 	struct cam_cdm_utils_ops             *cdm_ops;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                                  disable_ubwc_comp;
+#endif
 };
 
 /*
@@ -173,13 +177,17 @@ struct cam_vfe_hw_vfe_out_acquire_args {
 struct cam_vfe_hw_vfe_in_acquire_args {
 	struct cam_isp_resource_node         *rsrc_node;
 	uint32_t                              res_id;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                              dual_hw_idx;
 	uint32_t                              is_dual;
+#endif
 	void                                 *cdm_ops;
 	enum cam_isp_hw_sync_mode             sync_mode;
 	struct cam_isp_in_port_generic_info  *in_port;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                                  is_fe_enabled;
 	bool                                  is_offline;
+#endif
 };
 
 /*
@@ -202,7 +210,11 @@ struct cam_vfe_acquire_args {
 	cam_hw_mgr_event_cb_func             event_cb;
 	union {
 		struct cam_vfe_hw_vfe_out_acquire_args     vfe_out;
+#ifdef CONFIG_MACH_XIAOMI
+		struct cam_vfe_hw_vfe_out_acquire_args  vfe_bus_rd;
+#else
 		struct cam_vfe_hw_vfe_bus_rd_acquire_args  vfe_bus_rd;
+#endif
 		struct cam_vfe_hw_vfe_in_acquire_args      vfe_in;
 	};
 };
@@ -254,6 +266,7 @@ struct cam_vfe_bw_update_args {
 	uint64_t                           external_bw_bytes;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_vfe_num_of_acquired_resources:
  *
@@ -266,6 +279,7 @@ struct cam_vfe_num_of_acquired_resources {
 	uint32_t      num_pd_rsrc;
 	uint32_t      num_rdi_rsrc;
 };
+#endif
 
 /*
  * struct cam_vfe_fe_update_args:
@@ -312,7 +326,9 @@ struct cam_vfe_bw_control_args {
 struct cam_vfe_top_irq_evt_payload {
 	struct list_head            list;
 	uint32_t                    irq_reg_val[CAM_IFE_IRQ_REGISTERS_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                    reg_val;
+#endif
 	struct cam_isp_timestamp    ts;
 };
 

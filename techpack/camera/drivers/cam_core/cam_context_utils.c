@@ -297,6 +297,7 @@ int32_t cam_context_config_dev_to_hw(
 		return rc;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if ((len < sizeof(struct cam_packet)) ||
 		(cmd->offset >= (len - sizeof(struct cam_packet)))) {
 		CAM_ERR(CAM_CTXT, "Not enough buf, len : %zu offset = %llu",
@@ -305,6 +306,7 @@ int32_t cam_context_config_dev_to_hw(
 		return -EINVAL;
 
 	}
+#endif
 	packet = (struct cam_packet *) ((uint8_t *)packet_addr +
 		(uint32_t)cmd->offset);
 
@@ -462,6 +464,7 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 				"[%s][%d] : Moving req[%llu] from free_list to pending_list",
 				ctx->dev_name, ctx->ctx_id, req->request_id);
 
+#ifndef CONFIG_MACH_XIAOMI
 		for (j = 0; j < req->num_in_map_entries; j++) {
 			rc = cam_sync_check_valid(
 				req->in_map_entries[j].sync_id);
@@ -475,6 +478,7 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 				goto put_ref;
 			}
 		}
+#endif
 
 		for (j = 0; j < req->num_in_map_entries; j++) {
 			cam_context_getref(ctx);
@@ -497,8 +501,12 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 						ctx->dev_name, ctx->ctx_id,
 						req->request_id);
 
+#ifdef CONFIG_MACH_XIAOMI
+				goto put_ctx_ref;
+#else
 				cam_context_putref(ctx);
 				goto put_ref;
+#endif
 			}
 			CAM_DBG(CAM_CTXT, "register in fence cb: %d ret = %d",
 				req->in_map_entries[j].sync_id, rc);
@@ -506,6 +514,11 @@ int32_t cam_context_prepare_dev_to_hw(struct cam_context *ctx,
 	}
 	cam_mem_put_cpu_buf((int32_t) cmd->packet_handle);
 	return rc;
+#ifdef CONFIG_MACH_XIAOMI
+put_ctx_ref:
+	for (; j >= 0; j--)
+		cam_context_putref(ctx);
+#endif
 put_ref:
 	for (--i; i >= 0; i--) {
 		if (cam_sync_put_obj_ref(req->out_map_entries[i].sync_id))
@@ -567,7 +580,9 @@ int32_t cam_context_acquire_dev_to_hw(struct cam_context *ctx,
 	param.event_cb = ctx->irq_cb_intf;
 	param.num_acq = cmd->num_resources;
 	param.acquire_info = cmd->resource_hdl;
+#ifndef CONFIG_MACH_XIAOMI
 	param.session_hdl = cmd->session_handle;
+#endif
 
 	/* call HW manager to reserve the resource */
 	rc = ctx->hw_mgr_intf->hw_acquire(ctx->hw_mgr_intf->hw_mgr_priv,
@@ -1072,6 +1087,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_context_dump_context(struct cam_context *ctx,
 	struct cam_hw_dump_args *dump_args)
 {
@@ -1201,3 +1217,4 @@ int32_t cam_context_dump_dev_to_hw(struct cam_context *ctx,
 	}
 	return rc;
 }
+#endif
