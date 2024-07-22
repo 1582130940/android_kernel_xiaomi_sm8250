@@ -63,6 +63,7 @@ TRACE_EVENT(cam_isp_activated_irq,
 	)
 );
 
+#ifndef CONFIG_MACH_XIAOMI
 TRACE_EVENT(cam_log_event,
 	TP_PROTO(const char *string1, const char *string2,
 		uint64_t val1, uint64_t val2),
@@ -85,6 +86,7 @@ TRACE_EVENT(cam_log_event,
 			__entry->val1, __entry->val2
 	)
 );
+#endif
 
 TRACE_EVENT(cam_icp_fw_dbg,
 	TP_PROTO(char *dbg_message, uint64_t timestamp),

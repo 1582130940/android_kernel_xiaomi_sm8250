@@ -41,7 +41,11 @@
  * It includes both session and device handles
  */
 #define CAM_REQ_MGR_MAX_HANDLES           64
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_REQ_MGR_MAX_HANDLES_V2        182
+#else
 #define CAM_REQ_MGR_MAX_HANDLES_V2        128
+#endif
 #define MAX_LINKS_PER_SESSION             2
 
 /* V4L event type which user space will subscribe to */
@@ -51,7 +55,9 @@
 #define V4L_EVENT_CAM_REQ_MGR_SOF            0
 #define V4L_EVENT_CAM_REQ_MGR_ERROR          1
 #define V4L_EVENT_CAM_REQ_MGR_SOF_BOOT_TS    2
+#ifndef CONFIG_MACH_XIAOMI
 #define V4L_EVENT_CAM_REQ_MGR_CUSTOM_EVT     3
+#endif
 
 /* SOF Event status */
 #define CAM_REQ_MGR_SOF_EVENT_SUCCESS           0
@@ -243,7 +249,9 @@ struct cam_req_mgr_link_control {
 	int32_t session_hdl;
 	int32_t num_links;
 	int32_t reserved;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t init_timeout[MAX_LINKS_PER_SESSION];
+#endif
 	int32_t link_hdls[MAX_LINKS_PER_SESSION];
 };
 
@@ -264,7 +272,9 @@ struct cam_req_mgr_link_control {
 #define CAM_REQ_MGR_CACHE_OPS                   (CAM_COMMON_OPCODE_MAX + 12)
 #define CAM_REQ_MGR_LINK_CONTROL                (CAM_COMMON_OPCODE_MAX + 13)
 #define CAM_REQ_MGR_LINK_V2                     (CAM_COMMON_OPCODE_MAX + 14)
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_REQ_MGR_REQUEST_DUMP                (CAM_COMMON_OPCODE_MAX + 15)
+#endif
 
 /* end of cam_req_mgr opcodes */
 
@@ -286,7 +296,11 @@ struct cam_req_mgr_link_control {
 #define CAM_MEM_MMU_MAX_HANDLE                  16
 
 /* Maximum allowed buffers in existence */
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_MEM_BUFQ_MAX                        1536
+#else
 #define CAM_MEM_BUFQ_MAX                        1024
+#endif
 
 #define CAM_MEM_MGR_SECURE_BIT_POS              15
 #define CAM_MEM_MGR_HDL_IDX_SIZE                15
@@ -429,7 +443,9 @@ struct cam_mem_cache_ops_cmd {
 #define CAM_REQ_MGR_ERROR_TYPE_BUFFER           2
 #define CAM_REQ_MGR_ERROR_TYPE_RECOVERY         3
 #define CAM_REQ_MGR_ERROR_TYPE_SOF_FREEZE       4
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_REQ_MGR_ERROR_TYPE_FULL_RECOVERY    5
+#endif
 
 /**
  * struct cam_req_mgr_error_msg
@@ -468,6 +484,7 @@ struct cam_req_mgr_frame_msg {
 	uint32_t reserved;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_req_mgr_custom_msg
  * @custom_type: custom type
@@ -485,6 +502,7 @@ struct cam_req_mgr_custom_msg {
 	int32_t  link_hdl;
 	uint64_t custom_data;
 };
+#endif
 
 /**
  * struct cam_req_mgr_message
@@ -498,7 +516,9 @@ struct cam_req_mgr_message {
 	union {
 		struct cam_req_mgr_error_msg err_msg;
 		struct cam_req_mgr_frame_msg frame_msg;
+#ifndef CONFIG_MACH_XIAOMI
 		struct cam_req_mgr_custom_msg custom_msg;
+#endif
 	} u;
 };
 #endif /* __UAPI_LINUX_CAM_REQ_MGR_H */

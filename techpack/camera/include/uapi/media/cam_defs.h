@@ -26,10 +26,16 @@
 #define CAM_COMMON_OPCODE_BASE_v2           0x150
 #define CAM_ACQUIRE_HW                      (CAM_COMMON_OPCODE_BASE_v2 + 0x1)
 #define CAM_RELEASE_HW                      (CAM_COMMON_OPCODE_BASE_v2 + 0x2)
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_DUMP_REQ                        (CAM_COMMON_OPCODE_BASE_v2 + 0x3)
+#endif
 
 #define CAM_EXT_OPCODE_BASE                     0x200
 #define CAM_CONFIG_DEV_EXTERNAL                 (CAM_EXT_OPCODE_BASE + 0x1)
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_UPDATE_REG                          (CAM_EXT_OPCODE_BASE + 0x2)
+#define CAM_READ_REG                            (CAM_EXT_OPCODE_BASE + 0x3)
+#endif
 
 /* camera handle type */
 #define CAM_HANDLE_USER_POINTER                 1
@@ -857,6 +863,7 @@ struct cam_reg_dump_input_info {
 	uint32_t                   dump_set_offsets[1];
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_dump_req_cmd -
  *        Dump the information of issue req id
@@ -878,5 +885,6 @@ struct cam_dump_req_cmd {
 	int32_t        link_hdl;
 	int32_t        dev_handle;
 };
+#endif
 
 #endif /* __UAPI_CAM_DEFS_H__ */

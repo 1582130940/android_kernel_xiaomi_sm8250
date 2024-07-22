@@ -134,6 +134,7 @@ static int cam_cpas_util_path_type_to_idx(uint32_t *path_data_type)
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_cpas_update_camnoc_node(struct cam_cpas *cpas_core,
 	struct device_node *curr_node,
 	struct cam_cpas_tree_node *cpas_node_ptr,
@@ -174,6 +175,7 @@ static int cam_cpas_update_camnoc_node(struct cam_cpas *cpas_core,
 	}
 	return 0;
 }
+#endif
 
 static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 	struct device_node *of_node, struct cam_cpas_private_soc *soc_private)
@@ -183,7 +185,11 @@ static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 	struct device_node *curr_node;
 	struct device_node *parent_node;
 	struct device_node *mnoc_node;
+#ifdef CONFIG_MACH_XIAOMI
+	int mnoc_idx = 0;
+#else
 	int mnoc_idx = 0, camnoc_idx = 0;
+#endif
 	uint32_t path_idx;
 	bool camnoc_max_needed = false;
 	struct cam_cpas_tree_node *curr_node_ptr = NULL;
@@ -289,6 +295,7 @@ static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 				cpas_core->num_axi_ports++;
 			}
 
+#ifndef CONFIG_MACH_XIAOMI
 			if (!soc_private->control_camnoc_axi_clk) {
 				rc = cam_cpas_update_camnoc_node(
 					cpas_core, curr_node, curr_node_ptr,
@@ -299,6 +306,7 @@ static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 					return rc;
 				}
 			}
+#endif
 
 			rc = of_property_read_string(curr_node,
 				"client-name", &client_name);

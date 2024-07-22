@@ -97,7 +97,9 @@ struct cam_isp_in_port_generic_info {
 	uint32_t                        batch_size;
 	uint32_t                        dsp_mode;
 	uint32_t                        hbi_cnt;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                        fe_unpacker_fmt;
+#endif
 	uint32_t                        cust_node;
 	uint32_t                        num_out_res;
 	uint32_t                        horizontal_bin;
@@ -139,8 +141,10 @@ struct cam_csid_hw_reserve_resource_args {
 	struct cam_isp_resource_node             *node_res;
 	bool                                      crop_enable;
 	bool                                      drop_enable;
+#ifndef CONFIG_MACH_XIAOMI
 	void                                     *priv;
 	cam_hw_mgr_event_cb_func                  event_cb;
+#endif
 };
 
 /**
@@ -153,6 +157,7 @@ enum cam_ife_csid_halt_cmd {
 	CAM_CSID_HALT_MAX,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  *  enum cam_ife_csid_halt_mode_cmd - Specify the halt command type
  */
@@ -179,6 +184,7 @@ struct cam_csid_hw_halt_args {
 	enum cam_ife_csid_halt_mode   halt_mode;
 	struct cam_isp_resource_node *node_res;
 };
+#endif
 
 /**
  * struct cam_csid_hw_stop- stop all resources
@@ -236,8 +242,10 @@ enum cam_ife_csid_cmd_type {
 	CAM_IFE_CSID_CMD_GET_TIME_STAMP,
 	CAM_IFE_CSID_SET_CSID_DEBUG,
 	CAM_IFE_CSID_SOF_IRQ_DEBUG,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_IFE_CSID_SET_CONFIG,
 	CAM_IFE_CSID_SET_SENSOR_DIMENSION_CFG,
+#endif
 	CAM_IFE_CSID_CMD_MAX,
 };
 
@@ -270,6 +278,7 @@ struct cam_ife_csid_qcfa_update_args {
 	uint32_t                           qcfa_binning;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_ife_csid_epd_update_args:
  *
@@ -291,5 +300,6 @@ struct cam_ife_sensor_dimension_update_args {
 	struct cam_isp_sensor_dimension  ipp_path;
 	struct cam_isp_sensor_dimension  rdi_path[CAM_IFE_CSID_RDI_MAX];
 };
+#endif
 
 #endif /* _CAM_CSID_HW_INTF_H_ */

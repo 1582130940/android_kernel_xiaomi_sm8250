@@ -77,7 +77,9 @@ struct cam_hw_update_entry {
 struct cam_hw_fence_map_entry {
 	uint32_t           resource_handle;
 	int32_t            sync_id;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t            image_buf_addr[CAM_PACKET_MAX_PLANES];
+#endif
 };
 
 /**
@@ -119,13 +121,17 @@ struct cam_hw_acquire_args {
 	void                        *context_data;
 	cam_hw_event_cb_func         event_cb;
 	uint32_t                     num_acq;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                     session_hdl;
+#endif
 	uint32_t                     acquire_info_size;
 	uintptr_t                    acquire_info;
 	void                        *ctxt_to_hw_map;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                         custom_enabled;
 	bool                         use_frame_header_ts;
 	bool                         support_consumed_addr;
+#endif
 
 	uint32_t    acquired_hw_id[CAM_MAX_ACQ_RES];
 	uint32_t    acquired_hw_path[CAM_MAX_ACQ_RES][CAM_MAX_HW_SPLIT];
@@ -260,7 +266,9 @@ struct cam_hw_config_args {
 	uint64_t                        request_id;
 	bool                            init_packet;
 	bool                            reapply;
+#ifndef CONFIG_MACH_XIAOMI
 	bool                            cdm_reset_before_apply;
+#endif
 };
 
 /**
@@ -314,6 +322,7 @@ struct cam_hw_reset_args {
 	void                           *ctxt_to_hw_map;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_hw_dump_args - Dump arguments
  *
@@ -330,6 +339,7 @@ struct cam_hw_dump_args {
 	uint32_t          error_type;
 	void             *ctxt_to_hw_map;
 };
+#endif
 
 /* enum cam_hw_mgr_command - Hardware manager command type */
 enum cam_hw_mgr_command {
@@ -408,7 +418,9 @@ struct cam_hw_mgr_intf {
 	int (*hw_close)(void *hw_priv, void *hw_close_args);
 	int (*hw_flush)(void *hw_priv, void *hw_flush_args);
 	int (*hw_reset)(void *hw_priv, void *hw_reset_args);
+#ifndef CONFIG_MACH_XIAOMI
 	int (*hw_dump)(void *hw_priv, void *hw_dump_args);
+#endif
 };
 
 #endif /* _CAM_HW_MGR_INTF_H_ */

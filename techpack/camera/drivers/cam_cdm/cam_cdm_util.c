@@ -716,6 +716,7 @@ void cam_cdm_util_dump_cmd_buf(
 	} while (buf_now <= cmd_buf_end);
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static uint32_t cam_cdm_util_dump_reg_cont_cmd_v2(
 	uint32_t                         *cmd_buf_addr,
 	struct cam_cdm_cmd_buf_dump_info *dump_info)
@@ -883,3 +884,4 @@ int cam_cdm_util_dump_cmd_bufs_v2(
 	} while (buf_now <= dump_info->src_end);
 	return rc;
 }
+#endif

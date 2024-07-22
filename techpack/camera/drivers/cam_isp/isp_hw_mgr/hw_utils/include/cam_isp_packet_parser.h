@@ -34,6 +34,7 @@ struct cam_isp_generic_blob_info {
 	struct cam_kmd_buf_info               *kmd_buf_info;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_isp_frame_header_info
  *
@@ -46,6 +47,7 @@ struct cam_isp_frame_header_info {
 	uint64_t                 frame_header_iova_addr;
 	uint32_t                 frame_header_res_id;
 };
+#endif
 
 /*
  * cam_isp_add_change_base()
@@ -153,8 +155,12 @@ int cam_isp_add_io_buffers(
 	struct cam_ife_hw_mgr_res            *res_list_isp_out,
 	struct list_head                     *res_list_ife_in_rd,
 	uint32_t                              size_isp_out,
+#ifdef CONFIG_MACH_XIAOMI
+	bool                                  fill_fence);
+#else
 	bool                                  fill_fence,
 	struct cam_isp_frame_header_info     *frame_header_info);
+#endif
 
 /*
  * cam_isp_add_reg_update()
@@ -176,6 +182,7 @@ int cam_isp_add_reg_update(
 	uint32_t                              base_idx,
 	struct cam_kmd_buf_info              *kmd_buf_info);
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * cam_isp_add_go_cmd()
  *
@@ -193,6 +200,7 @@ int cam_isp_add_go_cmd(
 	struct list_head                     *res_list_isp_rd,
 	uint32_t                              base_idx,
 	struct cam_kmd_buf_info              *kmd_buf_info);
+#endif
 
 
 #endif /*_CAM_ISP_HW_PARSER_H */

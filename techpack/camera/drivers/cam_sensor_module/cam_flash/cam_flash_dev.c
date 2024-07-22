@@ -66,11 +66,13 @@ static int32_t cam_flash_driver_cmd(struct cam_flash_ctrl *fctrl,
 
 		flash_acq_dev.device_handle =
 			cam_create_device_hdl(&bridge_params);
+#ifndef CONFIG_MACH_XIAOMI
 		if (flash_acq_dev.device_handle <= 0) {
 			rc = -EFAULT;
 			CAM_ERR(CAM_FLASH, "Can not create device handle");
 			goto release_mutex;
 		}
+#endif
 		fctrl->bridge_intf.device_hdl =
 			flash_acq_dev.device_handle;
 		fctrl->bridge_intf.session_hdl =
@@ -347,6 +349,7 @@ static int32_t cam_flash_i2c_driver_remove(struct i2c_client *client)
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_flash_subdev_open(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -365,6 +368,7 @@ static int cam_flash_subdev_open(struct v4l2_subdev *sd,
 
 	return 0;
 }
+#endif
 
 static int cam_flash_subdev_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
@@ -378,6 +382,9 @@ static int cam_flash_subdev_close(struct v4l2_subdev *sd,
 	}
 
 	mutex_lock(&fctrl->flash_mutex);
+#ifdef CONFIG_MACH_XIAOMI
+	cam_flash_shutdown(fctrl);
+#else
 	if (fctrl->open_cnt <= 0) {
 		mutex_unlock(&fctrl->flash_mutex);
 		return -EINVAL;
@@ -386,6 +393,7 @@ static int cam_flash_subdev_close(struct v4l2_subdev *sd,
 	CAM_DBG(CAM_FLASH, "Flash open count %d", fctrl->open_cnt);
 	if (fctrl->open_cnt == 0)
 		cam_flash_shutdown(fctrl);
+#endif
 	mutex_unlock(&fctrl->flash_mutex);
 
 	return 0;
@@ -403,7 +411,9 @@ static struct v4l2_subdev_ops cam_flash_subdev_ops = {
 };
 
 static const struct v4l2_subdev_internal_ops cam_flash_internal_ops = {
+#ifndef CONFIG_MACH_XIAOMI
 	.open  = cam_flash_subdev_open,
+#endif
 	.close = cam_flash_subdev_close,
 };
 
@@ -509,6 +519,13 @@ static int32_t cam_flash_platform_probe(struct platform_device *pdev)
 		fctrl->func_tbl.power_ops = cam_flash_i2c_power_ops;
 		fctrl->func_tbl.flush_req = cam_flash_i2c_flush_request;
 	} else {
+#ifdef CONFIG_MACH_XIAOMI
+		/* PMIC Flash */
+		fctrl->func_tbl.parser = cam_flash_pmic_pkt_parser;
+		fctrl->func_tbl.apply_setting = cam_flash_pmic_apply_setting;
+		fctrl->func_tbl.power_ops = cam_flash_pmic_power_ops;
+		fctrl->func_tbl.flush_req = cam_flash_pmic_flush_request;
+#else
 		if (fctrl->soc_info.gpio_data) {
 			rc = cam_sensor_util_request_gpio_table(
 				&fctrl->soc_info,
@@ -529,6 +546,7 @@ static int32_t cam_flash_platform_probe(struct platform_device *pdev)
 			cam_flash_pmic_gpio_power_ops;
 		fctrl->func_tbl.flush_req =
 			cam_flash_pmic_gpio_flush_request;
+#endif
 	}
 
 	rc = cam_flash_init_subdev(fctrl);
@@ -550,17 +568,21 @@ static int32_t cam_flash_platform_probe(struct platform_device *pdev)
 	mutex_init(&(fctrl->flash_mutex));
 
 	fctrl->flash_state = CAM_FLASH_STATE_INIT;
+#ifndef CONFIG_MACH_XIAOMI
 	fctrl->open_cnt = 0;
+#endif
 	CAM_DBG(CAM_FLASH, "Probe success");
 	return rc;
 
 free_cci_resource:
 	kfree(fctrl->io_master_info.cci_client);
 	fctrl->io_master_info.cci_client = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 free_gpio_resource:
 	cam_sensor_util_request_gpio_table(&fctrl->soc_info, false);
 	kfree(fctrl->soc_info.gpio_data);
 	fctrl->soc_info.gpio_data = NULL;
+#endif
 free_resource:
 	kfree(fctrl->i2c_data.per_frame);
 	kfree(fctrl->soc_info.soc_private);
@@ -640,7 +662,9 @@ static int32_t cam_flash_i2c_driver_probe(struct i2c_client *client,
 
 	mutex_init(&(fctrl->flash_mutex));
 	fctrl->flash_state = CAM_FLASH_STATE_INIT;
+#ifndef CONFIG_MACH_XIAOMI
 	fctrl->open_cnt = 0;
+#endif
 
 	return rc;
 

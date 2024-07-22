@@ -21,11 +21,13 @@
 #define CAM_JPEG_WORKQ_TASK_MSG_TYPE 2
 #define CAM_JPEG_HW_CFG_Q_MAX        50
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * Response time threshold in ms beyond which a request is not expected
  * to be with JPEG hw
  */
 #define CAM_JPEG_RESPONSE_TIME_THRESHOLD   100000
+#endif
 
 /**
  * struct cam_jpeg_process_frame_work_data_t
@@ -82,7 +84,9 @@ struct cam_jpeg_hw_cfg_req {
 	struct cam_hw_config_args hw_cfg_args;
 	uint32_t dev_type;
 	uintptr_t req_id;
+#ifndef CONFIG_MACH_XIAOMI
 	ktime_t    submit_timestamp;
+#endif
 };
 
 /**

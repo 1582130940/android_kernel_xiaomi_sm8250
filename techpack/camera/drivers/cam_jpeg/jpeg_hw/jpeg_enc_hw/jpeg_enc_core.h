@@ -39,16 +39,20 @@ struct cam_jpeg_enc_int_status {
 	uint32_t stopdone;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_jpeg_enc_reg_dump {
 	uint32_t start_offset;
 	uint32_t end_offset;
 };
+#endif
 
 struct cam_jpeg_enc_device_hw_info {
 	struct cam_jpeg_enc_reg_offsets reg_offset;
 	struct cam_jpeg_enc_regval reg_val;
 	struct cam_jpeg_enc_int_status int_status;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_jpeg_enc_reg_dump reg_dump;
+#endif
 };
 
 enum cam_jpeg_enc_core_state {

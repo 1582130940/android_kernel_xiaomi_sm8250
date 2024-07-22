@@ -15,7 +15,9 @@
 enum cam_vfe_bus_ver2_vfe_core_id {
 	CAM_VFE_BUS_VER2_VFE_CORE_0,
 	CAM_VFE_BUS_VER2_VFE_CORE_1,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_VFE_BUS_VER2_VFE_CORE_2,
+#endif
 	CAM_VFE_BUS_VER2_VFE_CORE_MAX,
 };
 
@@ -62,6 +64,7 @@ enum cam_vfe_bus_ver2_vfe_out_type {
 	CAM_VFE_BUS_VER2_VFE_OUT_MAX,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_vfe_bus_ver2_dmi_lut_bank_info {
 	uint32_t size;
 	uint32_t bank_0;
@@ -91,6 +94,7 @@ struct cam_vfe_bus_ver2_stats_cfg_info {
 	struct cam_vfe_bus_ver2_stats_cfg_offset
 		stats_cfg_offset[CAM_VFE_BUS_VER2_VFE_OUT_MAX];
 };
+#endif
 
 /*
  * struct cam_vfe_bus_ver2_reg_offset_common:
@@ -130,7 +134,9 @@ struct cam_vfe_bus_ver2_reg_offset_ubwc_client {
 	uint32_t meta_stride;
 	uint32_t mode_cfg_0;
 	uint32_t bw_limit;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t ubwc_comp_en_bit;
+#endif
 };
 
 /*
@@ -148,7 +154,9 @@ struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client {
 	uint32_t mode_cfg_0;
 	uint32_t mode_cfg_1;
 	uint32_t bw_limit;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t ubwc_comp_en_bit;
+#endif
 };
 
 
@@ -201,6 +209,7 @@ struct cam_vfe_bus_ver2_vfe_out_hw_info {
 	uint32_t                            max_height;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_vfe_bus_ver2_reg_data:
  *
@@ -213,6 +222,7 @@ struct cam_vfe_bus_ver2_reg_data {
 	uint32_t      ubwc_8bit_threshold_lossy_0;
 	uint32_t      ubwc_8bit_threshold_lossy_1;
 };
+#endif
 
 /*
  * struct cam_vfe_bus_ver2_hw_info:
@@ -235,9 +245,11 @@ struct cam_vfe_bus_ver2_hw_info {
 	uint32_t num_out;
 	struct cam_vfe_bus_ver2_vfe_out_hw_info
 		vfe_out_hw_info[CAM_VFE_BUS_VER2_VFE_OUT_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_bus_ver2_reg_data  reg_data;
 	struct cam_vfe_bus_ver2_stats_cfg_info *stats_data;
 	bool support_consumed_addr;
+#endif
 };
 
 /*

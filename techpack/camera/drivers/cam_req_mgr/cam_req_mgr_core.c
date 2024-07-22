@@ -41,16 +41,20 @@ void cam_req_mgr_core_link_reset(struct cam_req_mgr_core_link *link)
 	link->open_req_cnt = 0;
 	link->last_flush_id = 0;
 	link->initial_sync_req = -1;
+#ifndef CONFIG_MACH_XIAOMI
 	link->dual_trigger = false;
 	link->trigger_cnt[0] = 0;
 	link->trigger_cnt[1] = 0;
+#endif
 	link->in_msync_mode = false;
 	link->retry_cnt = 0;
 	link->is_shutdown = false;
 	link->initial_skip = true;
 	link->sof_timestamp = 0;
 	link->prev_sof_timestamp = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	link->skip_wd_validation = false;
+#endif
 	link->last_applied_jiffies = 0;
 }
 
@@ -227,11 +231,13 @@ static int __cam_req_mgr_notify_error_on_link(
 	struct cam_req_mgr_message       msg;
 	int rc = 0, pd;
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (!link || !dev) {
 		CAM_ERR(CAM_CRM, "Invalid Arguments link: 0x%x dev: 0x%x!",
 			link, dev);
 		return -EINVAL;
 	}
+#endif
 
 	session = (struct cam_req_mgr_core_session *)link->parent;
 
@@ -530,12 +536,14 @@ static void __cam_req_mgr_validate_crm_wd_timer(
 	int next_frame_timeout = 0, current_frame_timeout = 0;
 	struct cam_req_mgr_req_queue *in_q = link->req.in_q;
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (link->skip_wd_validation) {
 		CAM_DBG(CAM_CRM,
 			"skipping modifying wd timer for first frame after streamon");
 		link->skip_wd_validation = false;
 		return;
 	}
+#endif
 
 	idx = in_q->rd_idx;
 	__cam_req_mgr_dec_idx(
@@ -555,40 +563,71 @@ static void __cam_req_mgr_validate_crm_wd_timer(
 		"rd_idx: %d idx: %d current_frame_timeout: %d ms",
 		in_q->rd_idx, idx, current_frame_timeout);
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (link->watchdog == NULL) {
+		CAM_ERR(CAM_CRM, "watchdog == null,link:%p", link);
+	} else {
+#else
 	spin_lock_bh(&link->link_state_spin_lock);
 	if (link->watchdog) {
+#endif
 		if ((next_frame_timeout + CAM_REQ_MGR_WATCHDOG_TIMEOUT) >
 			link->watchdog->expires) {
 			CAM_DBG(CAM_CRM,
 				"Modifying wd timer expiry from %d ms to %d ms",
 				link->watchdog->expires,
+#ifdef CONFIG_MACH_XIAOMI
+				(next_frame_timeout + CAM_REQ_MGR_WATCHDOG_TIMEOUT));
+#else
 				(next_frame_timeout +
 				 CAM_REQ_MGR_WATCHDOG_TIMEOUT));
+#endif
 			crm_timer_modify(link->watchdog,
 				next_frame_timeout +
 				CAM_REQ_MGR_WATCHDOG_TIMEOUT);
 		} else if (current_frame_timeout) {
 			CAM_DBG(CAM_CRM,
+#ifdef CONFIG_MACH_XIAOMI
+				"Reset wd timer to current frame from %d ms to %d ms",
+#else
 				"Reset wd timer to frame from %d ms to %d ms",
+#endif
 				link->watchdog->expires,
+#ifdef CONFIG_MACH_XIAOMI
+				(current_frame_timeout + CAM_REQ_MGR_WATCHDOG_TIMEOUT));
+#else
 				(current_frame_timeout +
 				 CAM_REQ_MGR_WATCHDOG_TIMEOUT));
+#endif
 			crm_timer_modify(link->watchdog,
 				current_frame_timeout +
 				CAM_REQ_MGR_WATCHDOG_TIMEOUT);
+#ifdef CONFIG_MACH_XIAOMI
+		} else if (link->watchdog->expires >
+			CAM_REQ_MGR_WATCHDOG_TIMEOUT) {
+#else
 		} else if (!next_frame_timeout && (link->watchdog->expires >
 			CAM_REQ_MGR_WATCHDOG_TIMEOUT)) {
+#endif
 			CAM_DBG(CAM_CRM,
 				"Reset wd timer to default from %d ms to %d ms",
+#ifdef CONFIG_MACH_XIAOMI
+				link->watchdog->expires, CAM_REQ_MGR_WATCHDOG_TIMEOUT);
+#else
 				link->watchdog->expires,
 				CAM_REQ_MGR_WATCHDOG_TIMEOUT);
+#endif
 			crm_timer_modify(link->watchdog,
 				CAM_REQ_MGR_WATCHDOG_TIMEOUT);
 		}
+#ifndef CONFIG_MACH_XIAOMI
 	} else {
 		CAM_WARN(CAM_CRM, "Watchdog timer exited already");
+#endif
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	spin_unlock_bh(&link->link_state_spin_lock);
+#endif
 }
 
 /**
@@ -679,11 +718,13 @@ static int __cam_req_mgr_send_req(struct cam_req_mgr_core_link *link,
 
 	apply_req.link_hdl = link->link_hdl;
 	apply_req.report_if_bubble = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	apply_req.re_apply = false;
 	if (link->retry_cnt > 0) {
 		if (g_crm_core_dev->recovery_on_apply_fail)
 			apply_req.re_apply = true;
 	}
+#endif
 
 	for (i = 0; i < link->num_devs; i++) {
 		dev = &link->l_dev[i];
@@ -716,10 +757,15 @@ static int __cam_req_mgr_send_req(struct cam_req_mgr_core_link *link,
 		apply_req.trigger_point = trigger;
 		if (dev->ops && dev->ops->apply_req) {
 			rc = dev->ops->apply_req(&apply_req);
+#ifdef CONFIG_MACH_XIAOMI
+			if (rc)
+				return rc;
+#else
 			if (rc) {
 				*failed_dev = dev;
 				return rc;
 			}
+#endif
 			CAM_DBG(CAM_REQ,
 				"SEND: link_hdl: %x pd: %d req_id %lld",
 				link->link_hdl, pd, apply_req.request_id);
@@ -1142,7 +1188,9 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 	int64_t req_id = 0, sync_req_id = 0;
 	int sync_slot_idx = 0, sync_rd_idx = 0, rc = 0;
 	int32_t sync_num_slots = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	int32_t max_idx_diff;
+#endif
 	uint64_t sync_frame_duration = 0;
 	uint64_t sof_timestamp_delta = 0;
 	uint64_t master_slave_diff = 0;
@@ -1246,6 +1294,7 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 		return -EAGAIN;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	/*
 	 * When the status of sync rd slot is APPLIED,
 	 * the maximum diff between sync_slot_idx and
@@ -1255,11 +1304,18 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 	 */
 	max_idx_diff =
 		(sync_rd_slot->status == CRM_SLOT_STATUS_REQ_APPLIED) ? 1 : 0;
+#endif
 
 	if ((sync_link->req.in_q->slot[sync_slot_idx].status !=
 		CRM_SLOT_STATUS_REQ_APPLIED) &&
 		(((sync_slot_idx - sync_rd_idx + sync_num_slots) %
+#ifdef CONFIG_MACH_XIAOMI
+		sync_num_slots) >= 1) &&
+		(sync_rd_slot->status !=
+		CRM_SLOT_STATUS_REQ_APPLIED)) {
+#else
 		sync_num_slots) > max_idx_diff)) {
+#endif
 		CAM_DBG(CAM_CRM,
 			"Req: %lld [other link] not next req to be applied on link: %x",
 			req_id, sync_link->link_hdl);
@@ -1363,6 +1419,85 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 	return 0;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+ /**
+ * __cam_req_mgr_check_peer_req_is_applied()
+ *
+ * @brief    : Check whether peer req is applied
+ * @link     : pointer to link whose input queue and req tbl are
+ *             traversed through
+ * @idx      : slot idx
+ * @return   : true means the req is applied, others not applied
+ *
+ */
+static bool __cam_req_mgr_check_peer_req_is_applied(
+	struct cam_req_mgr_core_link *link,
+	int32_t idx)
+{
+	bool applied = true;
+	int64_t req_id;
+	int sync_slot_idx = 0;
+	struct cam_req_mgr_core_link *sync_link;
+	struct cam_req_mgr_slot *slot, *sync_slot;
+	struct cam_req_mgr_req_queue *in_q;
+
+	if (idx < 0)
+		return true;
+
+	slot = &link->req.in_q->slot[idx];
+	req_id = slot->req_id;
+	in_q = link->req.in_q;
+
+	CAM_DBG(CAM_REQ,
+		"Check Req[%lld] idx %d req_status %d link_hdl %x is applied in peer link",
+		req_id, idx, slot->status, link->link_hdl);
+
+	if (slot->sync_mode == CAM_REQ_MGR_SYNC_MODE_NO_SYNC) {
+		applied = true;
+		goto end;
+	}
+
+	sync_link = link->sync_link;
+
+	if (!sync_link)
+		applied &= true;
+
+	in_q = sync_link->req.in_q;
+	if (!in_q) {
+		CAM_DBG(CAM_CRM, "Link hdl %x in_q is NULL",
+			sync_link->link_hdl);
+		applied &= true;
+	}
+
+	sync_slot_idx = __cam_req_mgr_find_slot_for_req(
+		sync_link->req.in_q, req_id);
+
+	if ((sync_slot_idx < 0) ||
+		(sync_slot_idx >= MAX_REQ_SLOTS)) {
+		CAM_DBG(CAM_CRM,
+			"Can't find req:%lld from peer link, idx:%d",
+			req_id, sync_slot_idx);
+		applied &= true;
+	}
+
+	sync_slot = &in_q->slot[sync_slot_idx];
+
+	if (sync_slot->status == CRM_SLOT_STATUS_REQ_APPLIED)
+		applied &= true;
+	else
+		applied &= false;
+	CAM_DBG(CAM_CRM,
+		"link:%x idx:%d status:%d applied:%d",
+		sync_link->link_hdl, sync_slot_idx, sync_slot->status, applied);
+
+end:
+	CAM_DBG(CAM_REQ,
+		"Check Req[%lld] idx %d applied:%d",
+		req_id, idx, link->link_hdl, applied);
+
+	return applied;
+}
+#endif
 /**
  * __cam_req_mgr_process_req()
  *
@@ -1466,9 +1601,27 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 
 			rc = __cam_req_mgr_inject_delay(link->req.l_tbl,
 				slot->idx);
+#ifdef CONFIG_MACH_XIAOMI
+			if (!rc) {
+				if (in_q->slot[in_q->rd_idx].req_id != -1){
+					rc = __cam_req_mgr_check_peer_req_is_applied(
+						link, in_q->last_applied_idx);
+
+					if (rc)
+						rc = __cam_req_mgr_check_link_is_ready(
+							link, slot->idx, false);
+					else
+						rc = -EINVAL;
+				}
+				else
+					rc = __cam_req_mgr_check_link_is_ready(link,
+						slot->idx, false);
+			}
+#else
 			if (!rc)
 				rc = __cam_req_mgr_check_link_is_ready(link,
 					slot->idx, false);
+#endif
 		}
 
 		if (rc < 0) {
@@ -1492,12 +1645,14 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 				rc = -EPERM;
 			}
 			spin_unlock_bh(&link->link_state_spin_lock);
+#ifndef CONFIG_MACH_XIAOMI
 			/*
 			 * Update wd timer so in next frame if the request
 			 * packet is available request can be applied, SOF
 			 * freeze will hit otherwise.
 			 */
 			__cam_req_mgr_validate_crm_wd_timer(link);
+#endif
 			goto error;
 		}
 	}
@@ -1525,11 +1680,15 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 				__cam_req_mgr_notify_error_on_link(link, dev);
 				link->retry_cnt = 0;
 			}
+#ifdef CONFIG_MACH_XIAOMI
+		}
+#else
 		} else
 			CAM_WARN(CAM_CRM,
 				"workqueue congestion, last applied idx:%d rd idx:%d",
 				in_q->last_applied_idx,
 				in_q->rd_idx);
+#endif
 	} else {
 		if (link->retry_cnt)
 			link->retry_cnt = 0;
@@ -1794,6 +1953,7 @@ static int __cam_req_mgr_process_sof_freeze(void *priv, void *data)
 	link = (struct cam_req_mgr_core_link *)priv;
 	session = (struct cam_req_mgr_core_session *)link->parent;
 
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock_bh(&link->link_state_spin_lock);
 	if ((link->watchdog) && (link->watchdog->pause_timer)) {
 		CAM_INFO(CAM_CRM, "Watchdog Paused");
@@ -1801,6 +1961,7 @@ static int __cam_req_mgr_process_sof_freeze(void *priv, void *data)
 		return rc;
 	}
 	spin_unlock_bh(&link->link_state_spin_lock);
+#endif
 
 	CAM_ERR(CAM_CRM, "SOF freeze for session %d link 0x%x",
 		session->session_hdl, link->link_hdl);
@@ -1846,6 +2007,11 @@ static void __cam_req_mgr_sof_freeze(struct timer_list *timer_data)
 
 	link = (struct cam_req_mgr_core_link *)timer->parent;
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (link->watchdog->pause_timer)
+		return;
+#endif
+
 	task = cam_req_mgr_workq_get_task(link->workq);
 	if (!task) {
 		CAM_ERR(CAM_CRM, "No empty task");
@@ -1887,13 +2053,22 @@ static int __cam_req_mgr_create_subdevs(
  *
  */
 static void __cam_req_mgr_destroy_subdev(
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_req_mgr_connected_device *l_device)
+#else
 	struct cam_req_mgr_connected_device **l_device)
+#endif
 {
+#ifdef CONFIG_MACH_XIAOMI
+	kfree(l_device);
+	l_device = NULL;
+#else
 	CAM_DBG(CAM_CRM, "*l_device %pK", *l_device);
 	if (*(l_device) != NULL) {
 		kfree(*(l_device));
 		*l_device = NULL;
 	}
+#endif
 }
 
 /**
@@ -1987,6 +2162,10 @@ static struct cam_req_mgr_core_link *__cam_req_mgr_reserve_link(
 		if (!atomic_cmpxchg(&g_links[i].is_used, 0, 1)) {
 			link = &g_links[i];
 			CAM_DBG(CAM_CRM, "alloc link index %d", i);
+#ifdef CONFIG_MACH_XIAOMI
+			CAM_DBG(CAM_CRM, "__cam_req_mgr_reserve_link :%p",
+				link);
+#endif
 			cam_req_mgr_core_link_reset(link);
 			break;
 		}
@@ -2057,6 +2236,9 @@ static void __cam_req_mgr_free_link(struct cam_req_mgr_core_link *link)
 	link->req.in_q = NULL;
 	i = link - g_links;
 	CAM_DBG(CAM_CRM, "free link index %d", i);
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_DBG(CAM_CRM, "__cam_req_mgr_free_link :%p", link);
+#endif
 	cam_req_mgr_core_link_reset(link);
 	atomic_set(&g_links[i].is_used, 0);
 }
@@ -2411,6 +2593,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * __cam_req_mgr_apply_on_bubble()
  *
@@ -2439,6 +2622,7 @@ void __cam_req_mgr_apply_on_bubble(
 		CAM_ERR(CAM_CRM,
 			"Failed to apply request on bubbled frame");
 }
+#endif
 
 /**
  * cam_req_mgr_process_error()
@@ -2530,7 +2714,9 @@ int cam_req_mgr_process_error(void *priv, void *data)
 			link->state = CAM_CRM_LINK_STATE_ERR;
 			spin_unlock_bh(&link->link_state_spin_lock);
 			link->open_req_cnt++;
+#ifndef CONFIG_MACH_XIAOMI
 			__cam_req_mgr_apply_on_bubble(link, err_info);
+#endif
 		}
 	}
 	mutex_unlock(&link->req.lock);
@@ -2622,12 +2808,14 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 
 	spin_lock_bh(&link->link_state_spin_lock);
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (link->state < CAM_CRM_LINK_STATE_READY) {
 		CAM_WARN(CAM_CRM, "invalid link state:%d", link->state);
 		spin_unlock_bh(&link->link_state_spin_lock);
 		rc = -EPERM;
 		goto release_lock;
 	}
+#endif
 
 	if (link->state == CAM_CRM_LINK_STATE_ERR)
 		CAM_WARN(CAM_CRM, "Error recovery idx %d status %d",
@@ -2651,8 +2839,10 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 			CAM_DBG(CAM_REQ,
 				"No pending req to apply to lower pd devices");
 			rc = 0;
+#ifndef CONFIG_MACH_XIAOMI
 			__cam_req_mgr_inc_idx(&in_q->rd_idx,
 				1, in_q->num_slots);
+#endif
 			goto release_lock;
 		}
 		__cam_req_mgr_inc_idx(&in_q->rd_idx, 1, in_q->num_slots);
@@ -2831,6 +3021,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int __cam_req_mgr_check_for_dual_trigger(
 	struct cam_req_mgr_core_link    *link)
 {
@@ -2857,6 +3048,7 @@ static int __cam_req_mgr_check_for_dual_trigger(
 
 	return rc;
 }
+#endif
 
 /**
  * cam_req_mgr_cb_notify_timer()
@@ -2893,9 +3085,16 @@ static int cam_req_mgr_cb_notify_timer(
 		rc = -EPERM;
 		goto end;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	if ((link->watchdog) && (!timer_data->state))
 		link->watchdog->pause_timer = true;
+#endif
 	spin_unlock_bh(&link->link_state_spin_lock);
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (!timer_data->state)
+		link->watchdog->pause_timer = true;
+#endif
 
 end:
 	return rc;
@@ -2974,7 +3173,11 @@ end:
 static int cam_req_mgr_cb_notify_trigger(
 	struct cam_req_mgr_trigger_notify *trigger_data)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	int                              rc = 0;
+#else
 	int32_t                          rc = 0, trigger_id = 0;
+#endif
 	struct crm_workq_task           *task = NULL;
 	struct cam_req_mgr_core_link    *link = NULL;
 	struct cam_req_mgr_trigger_notify   *notify_trigger;
@@ -2993,7 +3196,9 @@ static int cam_req_mgr_cb_notify_trigger(
 		goto end;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	trigger_id = trigger_data->trigger_id;
+#endif
 
 	spin_lock_bh(&link->link_state_spin_lock);
 	if (link->state < CAM_CRM_LINK_STATE_READY) {
@@ -3003,9 +3208,14 @@ static int cam_req_mgr_cb_notify_trigger(
 		goto end;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (link->watchdog->pause_timer)
+#else
 	if ((link->watchdog) && (link->watchdog->pause_timer))
+#endif
 		link->watchdog->pause_timer = false;
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (link->dual_trigger) {
 		if ((trigger_id >= 0) && (trigger_id <
 			CAM_REQ_MGR_MAX_TRIGGERS)) {
@@ -3022,6 +3232,7 @@ static int cam_req_mgr_cb_notify_trigger(
 			goto end;
 		}
 	}
+#endif
 
 	crm_timer_reset(link->watchdog);
 	spin_unlock_bh(&link->link_state_spin_lock);
@@ -3077,7 +3288,9 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 	struct cam_req_mgr_req_tbl             *pd_tbl;
 	enum cam_pipeline_delay                 max_delay;
 	uint32_t                                subscribe_event = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t num_trigger_devices = 0;
+#endif
 	if (link_info->version == VERSION_1) {
 		if (link_info->u.link_info_v1.num_devices >
 			CAM_REQ_MGR_MAX_HANDLES)
@@ -3169,10 +3382,13 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 			subscribe_event |= (uint32_t)dev->dev_info.trigger;
 		}
 
+#ifndef CONFIG_MACH_XIAOMI
 		if (dev->dev_info.trigger_on)
 			num_trigger_devices++;
+#endif
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (num_trigger_devices > CAM_REQ_MGR_MAX_TRIGGERS) {
 		CAM_ERR(CAM_CRM,
 			"Unsupported number of trigger devices %u",
@@ -3180,6 +3396,7 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 		rc = -EINVAL;
 		goto error;
 	}
+#endif
 
 	link->subscribe_event = subscribe_event;
 	link_data.link_enable = 1;
@@ -3187,10 +3404,12 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 	link_data.crm_cb = &cam_req_mgr_ops;
 	link_data.max_delay = max_delay;
 	link_data.subscribe_event = subscribe_event;
+#ifndef CONFIG_MACH_XIAOMI
 	if (num_trigger_devices == CAM_REQ_MGR_MAX_TRIGGERS)
 		link->dual_trigger = true;
 
 	num_trigger_devices = 0;
+#endif
 	for (i = 0; i < num_devices; i++) {
 		dev = &link->l_dev[i];
 
@@ -3230,11 +3449,13 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 		CAM_DBG(CAM_CRM, "dev_bit %u name %s pd %u mask %d",
 			dev->dev_bit, dev->dev_info.name, pd_tbl->pd,
 			pd_tbl->dev_mask);
+#ifndef CONFIG_MACH_XIAOMI
 		link_data.trigger_id = -1;
 		if ((dev->dev_info.trigger_on) && (link->dual_trigger)) {
 			link_data.trigger_id = num_trigger_devices;
 			num_trigger_devices++;
 		}
+#endif
 
 		/* Communicate with dev to establish the link */
 		dev->ops->link_setup(&link_data);
@@ -3329,16 +3550,24 @@ static int __cam_req_mgr_unlink(struct cam_req_mgr_core_link *link)
 
 	/* Destroy workq of link */
 	cam_req_mgr_workq_destroy(&link->workq);
+#ifndef CONFIG_MACH_XIAOMI
 	spin_lock_bh(&link->link_state_spin_lock);
+#endif
 	/* Destroy timer of link */
 	crm_timer_exit(&link->watchdog);
+#ifndef CONFIG_MACH_XIAOMI
 	spin_unlock_bh(&link->link_state_spin_lock);
+#endif
 
 	/* Cleanup request tables and unlink devices */
 	__cam_req_mgr_destroy_link_info(link);
 	/* Free memory holding data of linked devs */
 
+#ifdef CONFIG_MACH_XIAOMI
+	__cam_req_mgr_destroy_subdev(link->l_dev);
+#else
 	__cam_req_mgr_destroy_subdev(&link->l_dev);
+#endif
 
 	/* Destroy the link handle */
 	rc = cam_destroy_link_hdl(link->link_hdl);
@@ -3368,6 +3597,10 @@ int cam_req_mgr_destroy_session(
 
 	mutex_lock(&g_crm_core_dev->crm_lock);
 	cam_session = cam_get_session_priv(ses_info->session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cam_session) {
+		CAM_ERR(CAM_CRM, "failed to get session priv");
+#else
 	if (!cam_session ||
 		(cam_session->session_hdl != ses_info->session_hdl)) {
 		CAM_ERR(CAM_CRM,
@@ -3375,6 +3608,7 @@ int cam_req_mgr_destroy_session(
 			CAM_IS_NULL_TO_STR(cam_session), ses_info->session_hdl,
 			(!cam_session) ? CAM_REQ_MGR_DEFAULT_HDL_VAL :
 			cam_session->session_hdl);
+#endif
 		rc = -ENOENT;
 		goto end;
 
@@ -3410,10 +3644,12 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static void cam_req_mgr_process_workq_link_worker(struct work_struct *w)
 {
 	cam_req_mgr_process_workq(w);
 }
+#endif
 
 int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 {
@@ -3439,6 +3675,10 @@ int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 	/* session hdl's priv data is cam session struct */
 	cam_session =
 		cam_get_session_priv(link_info->u.link_info_v1.session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cam_session) {
+		CAM_DBG(CAM_CRM, "NULL pointer");
+#else
 	if (!cam_session || (cam_session->session_hdl !=
 		link_info->u.link_info_v1.session_hdl)) {
 		CAM_ERR(CAM_CRM,
@@ -3447,6 +3687,7 @@ int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 			link_info->u.link_info_v1.session_hdl,
 			(!cam_session) ? CAM_REQ_MGR_DEFAULT_HDL_VAL :
 			cam_session->session_hdl);
+#endif
 		mutex_unlock(&g_crm_core_dev->crm_lock);
 		return -EINVAL;
 	}
@@ -3499,8 +3740,12 @@ int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 		link_info->u.link_info_v1.session_hdl, link->link_hdl);
 	wq_flag = CAM_WORKQ_FLAG_HIGH_PRIORITY | CAM_WORKQ_FLAG_SERIAL;
 	rc = cam_req_mgr_workq_create(buf, CRM_WORKQ_NUM_TASKS,
+#ifdef CONFIG_MACH_XIAOMI
+		&link->workq, CRM_WORKQ_USAGE_NON_IRQ, wq_flag);
+#else
 		&link->workq, CRM_WORKQ_USAGE_NON_IRQ, wq_flag, false,
 		cam_req_mgr_process_workq_link_worker);
+#endif
 	if (rc < 0) {
 		CAM_ERR(CAM_CRM, "FATAL: unable to create worker");
 		__cam_req_mgr_destroy_link_info(link);
@@ -3519,7 +3764,11 @@ int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 	mutex_unlock(&g_crm_core_dev->crm_lock);
 	return rc;
 setup_failed:
+#ifdef CONFIG_MACH_XIAOMI
+	__cam_req_mgr_destroy_subdev(link->l_dev);
+#else
 	__cam_req_mgr_destroy_subdev(&link->l_dev);
+#endif
 create_subdev_failed:
 	cam_destroy_link_hdl(link->link_hdl);
 	link_info->u.link_info_v1.link_hdl = -1;
@@ -3555,6 +3804,10 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 	/* session hdl's priv data is cam session struct */
 	cam_session =
 		cam_get_session_priv(link_info->u.link_info_v2.session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cam_session) {
+		CAM_DBG(CAM_CRM, "NULL pointer");
+#else
 	if (!cam_session || (cam_session->session_hdl !=
 		link_info->u.link_info_v2.session_hdl)) {
 		CAM_ERR(CAM_CRM,
@@ -3563,6 +3816,7 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 			link_info->u.link_info_v2.session_hdl,
 			(!cam_session) ? CAM_REQ_MGR_DEFAULT_HDL_VAL :
 			cam_session->session_hdl);
+#endif
 		mutex_unlock(&g_crm_core_dev->crm_lock);
 		return -EINVAL;
 	}
@@ -3615,8 +3869,12 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 		link_info->u.link_info_v2.session_hdl, link->link_hdl);
 	wq_flag = CAM_WORKQ_FLAG_HIGH_PRIORITY | CAM_WORKQ_FLAG_SERIAL;
 	rc = cam_req_mgr_workq_create(buf, CRM_WORKQ_NUM_TASKS,
+#ifdef CONFIG_MACH_XIAOMI
+		&link->workq, CRM_WORKQ_USAGE_NON_IRQ, wq_flag);
+#else
 		&link->workq, CRM_WORKQ_USAGE_NON_IRQ, wq_flag, false,
 		cam_req_mgr_process_workq_link_worker);
+#endif
 	if (rc < 0) {
 		CAM_ERR(CAM_CRM, "FATAL: unable to create worker");
 		__cam_req_mgr_destroy_link_info(link);
@@ -3635,7 +3893,11 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 	mutex_unlock(&g_crm_core_dev->crm_lock);
 	return rc;
 setup_failed:
+#ifdef CONFIG_MACH_XIAOMI
+	__cam_req_mgr_destroy_subdev(link->l_dev);
+#else
 	__cam_req_mgr_destroy_subdev(&link->l_dev);
+#endif
 create_subdev_failed:
 	cam_destroy_link_hdl(link->link_hdl);
 	link_info->u.link_info_v2.link_hdl = -1;
@@ -3663,6 +3925,10 @@ int cam_req_mgr_unlink(struct cam_req_mgr_unlink_info *unlink_info)
 
 	/* session hdl's priv data is cam session struct */
 	cam_session = cam_get_session_priv(unlink_info->session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cam_session) {
+		CAM_ERR(CAM_CRM, "NULL pointer");
+#else
 	if (!cam_session ||
 		(cam_session->session_hdl != unlink_info->session_hdl)) {
 		CAM_ERR(CAM_CRM,
@@ -3671,16 +3937,22 @@ int cam_req_mgr_unlink(struct cam_req_mgr_unlink_info *unlink_info)
 			unlink_info->session_hdl,
 			(!cam_session) ? CAM_REQ_MGR_DEFAULT_HDL_VAL :
 			cam_session->session_hdl);
+#endif
 		mutex_unlock(&g_crm_core_dev->crm_lock);
 		return -EINVAL;
 	}
 
 	/* link hdl's priv data is core_link struct */
 	link = cam_get_link_priv(unlink_info->link_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!link) {
+		CAM_ERR(CAM_CRM, "NULL pointer");
+#else
 	if (!link || (link->link_hdl != unlink_info->link_hdl)) {
 		CAM_ERR(CAM_CRM, "link:%s unlink->lnk_hdl:%x link->lnk_hdl:%x",
 			CAM_IS_NULL_TO_STR(link), unlink_info->link_hdl,
 			(!link) ? CAM_REQ_MGR_DEFAULT_HDL_VAL : link->link_hdl);
+#endif
 		rc = -EINVAL;
 		goto done;
 	}
@@ -3711,10 +3983,15 @@ int cam_req_mgr_schedule_request(
 
 	mutex_lock(&g_crm_core_dev->crm_lock);
 	link = cam_get_link_priv(sched_req->link_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!link) {
+		CAM_DBG(CAM_CRM, "link ptr NULL %x", sched_req->link_hdl);
+#else
 	if (!link || (link->link_hdl != sched_req->link_hdl)) {
 		CAM_ERR(CAM_CRM, "lnk:%s schd_req->lnk_hdl:%x lnk->lnk_hdl:%x",
 			CAM_IS_NULL_TO_STR(link), sched_req->link_hdl,
 			(!link) ? CAM_REQ_MGR_DEFAULT_HDL_VAL : link->link_hdl);
+#endif
 		rc = -EINVAL;
 		goto end;
 	}
@@ -3824,6 +4101,10 @@ int cam_req_mgr_sync_config(
 	mutex_lock(&g_crm_core_dev->crm_lock);
 	/* session hdl's priv data is cam session struct */
 	cam_session = cam_get_session_priv(sync_info->session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cam_session) {
+		CAM_ERR(CAM_CRM, "NULL pointer");
+#else
 	if (!cam_session ||
 		(cam_session->session_hdl != sync_info->session_hdl)) {
 		CAM_ERR(CAM_CRM,
@@ -3832,6 +4113,7 @@ int cam_req_mgr_sync_config(
 			sync_info->session_hdl,
 			(!cam_session) ? CAM_REQ_MGR_DEFAULT_HDL_VAL :
 			cam_session->session_hdl);
+#endif
 		mutex_unlock(&g_crm_core_dev->crm_lock);
 		return -EINVAL;
 	}
@@ -3843,21 +4125,31 @@ int cam_req_mgr_sync_config(
 
 	/* only two links existing per session in dual cam use case*/
 	link1 = cam_get_link_priv(sync_info->link_hdls[0]);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!link1) {
+		CAM_ERR(CAM_CRM, "link1 NULL pointer");
+#else
 	if (!link1 || (link1->link_hdl != sync_info->link_hdls[0])) {
 		CAM_ERR(CAM_CRM, "lnk:%s sync_info->lnk_hdl[0]:%x lnk1_hdl:%x",
 			CAM_IS_NULL_TO_STR(link1), sync_info->link_hdls[0],
 			(!link1) ?
 			CAM_REQ_MGR_DEFAULT_HDL_VAL : link1->link_hdl);
+#endif
 		rc = -EINVAL;
 		goto done;
 	}
 
 	link2 = cam_get_link_priv(sync_info->link_hdls[1]);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!link2) {
+		CAM_ERR(CAM_CRM, "link2 NULL pointer");
+#else
 	if (!link2 || (link2->link_hdl != sync_info->link_hdls[1])) {
 		CAM_ERR(CAM_CRM, "lnk:%s sync_info->lnk_hdl[1]:%x lnk2_hdl:%x",
 			CAM_IS_NULL_TO_STR(link2), sync_info->link_hdls[1],
 			(!link2) ?
 			CAM_REQ_MGR_DEFAULT_HDL_VAL : link2->link_hdl);
+#endif
 		rc = -EINVAL;
 		goto done;
 	}
@@ -3927,11 +4219,16 @@ int cam_req_mgr_flush_requests(
 
 	/* session hdl's priv data is cam session struct */
 	session = cam_get_session_priv(flush_info->session_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!session) {
+		CAM_ERR(CAM_CRM, "Invalid session %x", flush_info->session_hdl);
+#else
 	if (!session || (session->session_hdl != flush_info->session_hdl)) {
 		CAM_ERR(CAM_CRM, "ses: %s flush->ses_hdl:%x ses->ses_hdl:%x",
 			CAM_IS_NULL_TO_STR(session), flush_info->session_hdl,
 			(!session) ?
 			CAM_REQ_MGR_DEFAULT_HDL_VAL : session->session_hdl);
+#endif
 		rc = -EINVAL;
 		goto end;
 	}
@@ -3942,10 +4239,15 @@ int cam_req_mgr_flush_requests(
 	}
 
 	link = cam_get_link_priv(flush_info->link_hdl);
+#ifdef CONFIG_MACH_XIAOMI
+	if (!link) {
+		CAM_DBG(CAM_CRM, "link ptr NULL %x", flush_info->link_hdl);
+#else
 	if (!link || (link->link_hdl != flush_info->link_hdl)) {
 		CAM_ERR(CAM_CRM, "link:%s flush->link_hdl:%x link->link_hdl:%x",
 			CAM_IS_NULL_TO_STR(link), flush_info->link_hdl,
 			(!link) ? CAM_REQ_MGR_DEFAULT_HDL_VAL : link->link_hdl);
+#endif
 		rc = -EINVAL;
 		goto end;
 	}
@@ -3983,7 +4285,9 @@ int cam_req_mgr_link_control(struct cam_req_mgr_link_control *control)
 
 	struct cam_req_mgr_connected_device *dev = NULL;
 	struct cam_req_mgr_link_evt_data     evt_data;
+#ifndef CONFIG_MACH_XIAOMI
 	int                                init_timeout = 0;
+#endif
 
 	if (!control) {
 		CAM_ERR(CAM_CRM, "Control command is NULL");
@@ -4002,28 +4306,41 @@ int cam_req_mgr_link_control(struct cam_req_mgr_link_control *control)
 	mutex_lock(&g_crm_core_dev->crm_lock);
 	for (i = 0; i < control->num_links; i++) {
 		link = cam_get_link_priv(control->link_hdls[i]);
+#ifdef CONFIG_MACH_XIAOMI
+		if (!link) {
+			CAM_ERR(CAM_CRM, "Link(%d) is NULL on session 0x%x",
+				i, control->session_hdl);
+#else
 		if (!link || (link->link_hdl != control->link_hdls[i])) {
 			CAM_ERR(CAM_CRM,
 				"link:%s control->lnk_hdl:%x link->lnk_hdl:%x",
 				CAM_IS_NULL_TO_STR(link), control->link_hdls[i],
 				(!link) ?
 				CAM_REQ_MGR_DEFAULT_HDL_VAL : link->link_hdl);
+#endif
 			rc = -EINVAL;
 			break;
 		}
 
 		mutex_lock(&link->lock);
 		if (control->ops == CAM_REQ_MGR_LINK_ACTIVATE) {
+#ifndef CONFIG_MACH_XIAOMI
 			spin_lock_bh(&link->link_state_spin_lock);
 			link->state = CAM_CRM_LINK_STATE_READY;
 			spin_unlock_bh(&link->link_state_spin_lock);
 			if (control->init_timeout[i])
 				link->skip_wd_validation = true;
 			init_timeout = (2 * control->init_timeout[i]);
+#endif
 			/* Start SOF watchdog timer */
 			rc = crm_timer_init(&link->watchdog,
+#ifdef CONFIG_MACH_XIAOMI
+				CAM_REQ_MGR_WATCHDOG_TIMEOUT, link,
+				&__cam_req_mgr_sof_freeze);
+#else
 				(init_timeout + CAM_REQ_MGR_WATCHDOG_TIMEOUT),
 				link, &__cam_req_mgr_sof_freeze);
+#endif
 			if (rc < 0) {
 				CAM_ERR(CAM_CRM,
 					"SOF timer start fails: link=0x%x",
@@ -4041,6 +4358,12 @@ int cam_req_mgr_link_control(struct cam_req_mgr_link_control *control)
 					dev->ops->process_evt(&evt_data);
 			}
 		} else if (control->ops == CAM_REQ_MGR_LINK_DEACTIVATE) {
+#ifdef CONFIG_MACH_XIAOMI
+			/* Destroy SOF watchdog timer */
+			spin_lock_bh(&link->link_state_spin_lock);
+			crm_timer_exit(&link->watchdog);
+			spin_unlock_bh(&link->link_state_spin_lock);
+#endif
 			/* notify nodes */
 			for (j = 0; j < link->num_devs; j++) {
 				dev = &link->l_dev[j];
@@ -4051,12 +4374,14 @@ int cam_req_mgr_link_control(struct cam_req_mgr_link_control *control)
 				if (dev->ops && dev->ops->process_evt)
 					dev->ops->process_evt(&evt_data);
 			}
+#ifndef CONFIG_MACH_XIAOMI
 			/* Destroy SOF watchdog timer */
 			spin_lock_bh(&link->link_state_spin_lock);
 			link->state = CAM_CRM_LINK_STATE_IDLE;
 			link->skip_wd_validation = false;
 			crm_timer_exit(&link->watchdog);
 			spin_unlock_bh(&link->link_state_spin_lock);
+#endif
 		} else {
 			CAM_ERR(CAM_CRM, "Invalid link control command");
 			rc = -EINVAL;
@@ -4068,6 +4393,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_req_mgr_dump_request(struct cam_dump_req_cmd *dump_req)
 {
 	int                                  rc = 0;
@@ -4130,6 +4456,7 @@ end:
 	mutex_unlock(&g_crm_core_dev->crm_lock);
 	return 0;
 }
+#endif
 
 int cam_req_mgr_core_device_init(void)
 {
@@ -4154,6 +4481,9 @@ int cam_req_mgr_core_device_init(void)
 		mutex_init(&g_links[i].lock);
 		spin_lock_init(&g_links[i].link_state_spin_lock);
 		atomic_set(&g_links[i].is_used, 0);
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_DBG(CAM_CRM, "cam_req_mgr_core_device_init: %p",&g_links[i]);
+#endif
 		cam_req_mgr_core_link_reset(&g_links[i]);
 	}
 	return 0;

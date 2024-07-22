@@ -114,7 +114,9 @@ struct cam_vfe_bus_ver3_reg_offset_ubwc_client {
 	uint32_t lossy_thresh1;
 	uint32_t off_lossy_var;
 	uint32_t bw_limit;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t ubwc_comp_en_bit;
+#endif
 };
 
 /*
@@ -186,7 +188,9 @@ struct cam_vfe_bus_ver3_hw_info {
 		vfe_out_hw_info[CAM_VFE_BUS_VER3_VFE_OUT_MAX];
 	uint32_t comp_done_shift;
 	uint32_t top_irq_shift;
+#ifndef CONFIG_MACH_XIAOMI
 	bool support_consumed_addr;
+#endif
 };
 
 /*

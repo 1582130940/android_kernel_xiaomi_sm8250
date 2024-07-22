@@ -179,9 +179,13 @@ static int cam_jpeg_mgr_process_irq(void *priv, void *data)
 		PTR_TO_U64(p_cfg_req->hw_cfg_args.priv);
 	ctx_data->ctxt_event_cb(ctx_data->context_priv, 0, &buf_data);
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&g_jpeg_hw_mgr.hw_mgr_mutex);
+#endif
 	list_add_tail(&p_cfg_req->list, &hw_mgr->free_req_list);
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&g_jpeg_hw_mgr.hw_mgr_mutex);
+#endif
 	cam_mem_put_cpu_buf(mem_hdl);
 	return rc;
 }
@@ -492,7 +496,9 @@ static int cam_jpeg_mgr_process_cmd(void *priv, void *data)
 			rc);
 		goto end_callcb;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	p_cfg_req->submit_timestamp = ktime_get();
+#endif
 
 	mutex_unlock(&hw_mgr->hw_mgr_mutex);
 	return rc;
@@ -735,6 +741,13 @@ static int cam_jpeg_mgr_prepare_hw_update(void *hw_mgr_priv,
 		return rc;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if ((packet->num_cmd_buf > 5) || !packet->num_patches ||
+		!packet->num_io_configs) {
+		CAM_ERR(CAM_JPEG, "wrong number of cmd/patch info: %u %u",
+			packet->num_cmd_buf,
+			packet->num_patches);
+#else
 	if (!packet->num_cmd_buf ||
 		(packet->num_cmd_buf > 5) ||
 		!packet->num_patches || !packet->num_io_configs ||
@@ -743,6 +756,7 @@ static int cam_jpeg_mgr_prepare_hw_update(void *hw_mgr_priv,
 			"wrong number of cmd/patch/io_configs info: %u %u %u",
 			packet->num_cmd_buf, packet->num_patches,
 			packet->num_io_configs);
+#endif
 		return -EINVAL;
 	}
 
@@ -1296,6 +1310,7 @@ copy_error:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static void cam_req_mgr_process_workq_jpeg_command_queue(struct work_struct *w)
 {
 	cam_req_mgr_process_workq(w);
@@ -1305,6 +1320,7 @@ static void cam_req_mgr_process_workq_jpeg_message_queue(struct work_struct *w)
 {
 	cam_req_mgr_process_workq(w);
 }
+#endif
 
 static int cam_jpeg_setup_workqs(void)
 {
@@ -1314,8 +1330,12 @@ static int cam_jpeg_setup_workqs(void)
 		"jpeg_command_queue",
 		CAM_JPEG_WORKQ_NUM_TASK,
 		&g_jpeg_hw_mgr.work_process_frame,
+#ifdef CONFIG_MACH_XIAOMI
+		CRM_WORKQ_USAGE_NON_IRQ, 0);
+#else
 		CRM_WORKQ_USAGE_NON_IRQ, 0, false,
 		cam_req_mgr_process_workq_jpeg_command_queue);
+#endif
 	if (rc) {
 		CAM_ERR(CAM_JPEG, "unable to create a worker %d", rc);
 		goto work_process_frame_failed;
@@ -1325,8 +1345,12 @@ static int cam_jpeg_setup_workqs(void)
 		"jpeg_message_queue",
 		CAM_JPEG_WORKQ_NUM_TASK,
 		&g_jpeg_hw_mgr.work_process_irq_cb,
+#ifdef CONFIG_MACH_XIAOMI
+		CRM_WORKQ_USAGE_IRQ, 0);
+#else
 		CRM_WORKQ_USAGE_IRQ, 0, false,
 		cam_req_mgr_process_workq_jpeg_message_queue);
+#endif
 	if (rc) {
 		CAM_ERR(CAM_JPEG, "unable to create a worker %d", rc);
 		goto work_process_irq_cb_failed;
@@ -1510,6 +1534,7 @@ num_dev_failed:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_jpeg_mgr_hw_dump(void *hw_mgr_priv, void *dump_hw_args)
 {
 	int                             rc;
@@ -1649,6 +1674,7 @@ hw_dump:
 	cam_mem_put_cpu_buf(dump_args->buf_handle);
 	return rc;
 }
+#endif
 
 static int cam_jpeg_mgr_cmd(void *hw_mgr_priv, void *cmd_args)
 {
@@ -1703,7 +1729,9 @@ int cam_jpeg_hw_mgr_init(struct device_node *of_node, uint64_t *hw_mgr_hdl,
 	hw_mgr_intf->hw_flush = cam_jpeg_mgr_hw_flush;
 	hw_mgr_intf->hw_stop = cam_jpeg_mgr_hw_stop;
 	hw_mgr_intf->hw_cmd = cam_jpeg_mgr_cmd;
+#ifndef CONFIG_MACH_XIAOMI
 	hw_mgr_intf->hw_dump = cam_jpeg_mgr_hw_dump;
+#endif
 
 	mutex_init(&g_jpeg_hw_mgr.hw_mgr_mutex);
 	spin_lock_init(&g_jpeg_hw_mgr.hw_mgr_lock);

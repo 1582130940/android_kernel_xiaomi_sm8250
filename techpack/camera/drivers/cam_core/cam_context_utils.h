@@ -30,6 +30,8 @@ int32_t cam_context_dump_pf_info_to_hw(struct cam_context *ctx,
 	struct cam_packet *packet, unsigned long iova, uint32_t buf_info,
 	bool *mem_found);
 int32_t cam_context_dump_hw_acq_info(struct cam_context *ctx);
+#ifndef CONFIG_MACH_XIAOMI
 int32_t cam_context_dump_dev_to_hw(struct cam_context *ctx,
 	struct cam_dump_req_cmd *cmd);
+#endif
 #endif /* _CAM_CONTEXT_UTILS_H_ */

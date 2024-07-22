@@ -7,7 +7,9 @@
 #ifndef _CAM_DEBUG_UTIL_H_
 #define _CAM_DEBUG_UTIL_H_
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_IS_NULL_TO_STR(ptr) ((ptr) ? "Non-NULL" : "NULL")
+#endif
 
 /* Module IDs used for debug logging */
 #define CAM_CDM        (1 << 0)

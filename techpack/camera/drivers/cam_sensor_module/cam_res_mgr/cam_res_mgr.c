@@ -377,14 +377,18 @@ static bool cam_res_mgr_gpio_is_shared(uint gpio)
 	bool found = false;
 	struct cam_res_mgr_dt *dt = &cam_res->dt;
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&cam_res->gpio_res_lock);
+#endif
 	for (; index < dt->num_shared_gpio; index++) {
 		if (gpio == dt->shared_gpio[index]) {
 			found = true;
 			break;
 		}
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&cam_res->gpio_res_lock);
+#endif
 
 	return found;
 }
@@ -396,15 +400,23 @@ int cam_res_mgr_gpio_request(struct device *dev, uint gpio,
 	bool found = false;
 	struct cam_gpio_res *gpio_res = NULL;
 
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_lock(&cam_res->gpio_res_lock);
+#endif
+
 	if (cam_res && cam_res->shared_gpio_enabled) {
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_lock(&cam_res->gpio_res_lock);
+#endif
 		list_for_each_entry(gpio_res, &cam_res->gpio_res_list, list) {
 			if (gpio == gpio_res->gpio) {
 				found = true;
 				break;
 			}
 		}
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_unlock(&cam_res->gpio_res_lock);
+#endif
 	}
 
 	/*
@@ -433,15 +445,25 @@ int cam_res_mgr_gpio_request(struct device *dev, uint gpio,
 		cam_res_mgr_gpio_is_shared(gpio)) {
 
 		gpio_res = kzalloc(sizeof(struct cam_gpio_res), GFP_KERNEL);
+#ifdef CONFIG_MACH_XIAOMI
+		if (!gpio_res) {
+			CAM_ERR(CAM_RES, "NO MEM for cam_gpio_res");
+			mutex_unlock(&cam_res->gpio_res_lock);
+			return -ENOMEM;
+		}
+#else
 		if (!gpio_res)
 			return -ENOMEM;
+#endif
 
 		gpio_res->gpio = gpio;
 		gpio_res->power_on_count = 0;
 		INIT_LIST_HEAD(&gpio_res->list);
 		INIT_LIST_HEAD(&gpio_res->dev_list);
 
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_lock(&cam_res->gpio_res_lock);
+#endif
 		rc = cam_res_mgr_add_device(dev, gpio_res);
 		if (rc) {
 			kfree(gpio_res);
@@ -450,7 +472,9 @@ int cam_res_mgr_gpio_request(struct device *dev, uint gpio,
 		}
 
 		list_add_tail(&gpio_res->list, &cam_res->gpio_res_list);
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_unlock(&cam_res->gpio_res_lock);
+#endif
 	}
 
 	if (found && cam_res
@@ -458,7 +482,9 @@ int cam_res_mgr_gpio_request(struct device *dev, uint gpio,
 		struct cam_dev_res *dev_res = NULL;
 
 		found = 0;
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_lock(&cam_res->gpio_res_lock);
+#endif
 		list_for_each_entry(dev_res, &gpio_res->dev_list, list) {
 			if (dev_res->dev == dev) {
 				found = 1;
@@ -469,9 +495,14 @@ int cam_res_mgr_gpio_request(struct device *dev, uint gpio,
 		if (!found)
 			rc = cam_res_mgr_add_device(dev, gpio_res);
 
+#ifndef CONFIG_MACH_XIAOMI
 		mutex_unlock(&cam_res->gpio_res_lock);
+#endif
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	mutex_unlock(&cam_res->gpio_res_lock);
+#endif
 	return rc;
 }
 EXPORT_SYMBOL(cam_res_mgr_gpio_request);

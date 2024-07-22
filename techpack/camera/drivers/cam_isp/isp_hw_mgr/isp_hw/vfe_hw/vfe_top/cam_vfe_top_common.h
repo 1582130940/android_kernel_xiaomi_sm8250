@@ -13,9 +13,11 @@
 #include "cam_vfe_hw_intf.h"
 #include "cam_vfe_soc.h"
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_VFE_TOP_MAX_REG_DUMP_ENTRIES 70
 
 #define CAM_VFE_TOP_MAX_LUT_DUMP_ENTRIES 6
+#endif
 
 struct cam_vfe_top_priv_common {
 	struct cam_isp_resource_node    mux_rsrc[CAM_VFE_TOP_MUX_MAX];
@@ -30,6 +32,7 @@ struct cam_vfe_top_priv_common {
 	enum cam_vfe_bw_control_action  axi_vote_control[CAM_VFE_TOP_MUX_MAX];
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_vfe_top_reg_dump_entry {
 	uint32_t reg_dump_start;
 	uint32_t reg_dump_end;
@@ -53,6 +56,7 @@ struct cam_vfe_top_dump_data {
 	struct cam_vfe_top_lut_dump_entry
 		lut_entry[CAM_VFE_TOP_MAX_LUT_DUMP_ENTRIES];
 };
+#endif
 
 int cam_vfe_top_set_axi_bw_vote(struct cam_vfe_soc_private *soc_private,
 	struct cam_vfe_top_priv_common *top_common, bool start_stop);

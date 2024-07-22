@@ -394,7 +394,9 @@ static struct cam_vfe_bus_ver3_hw_info vfe48x_bus_hw_info = {
 	},
 	.comp_done_shift = 4,
 	.top_irq_shift   = 4,
+#ifndef CONFIG_MACH_XIAOMI
 	.support_consumed_addr = true,
+#endif
 };
 
 static struct cam_vfe_hw_info cam_vfe_lite48x_hw_info = {

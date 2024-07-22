@@ -561,7 +561,11 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				rc = cam_sensor_i2c_command_parser(
 					&a_ctrl->io_master_info,
 					i2c_reg_settings,
+#ifdef CONFIG_MACH_XIAOMI
+					&cmd_desc[i], 1);
+#else
 					&cmd_desc[i], 1, NULL);
+#endif
 				if (rc < 0) {
 					CAM_ERR(CAM_ACTUATOR,
 					"Failed:parse init settings: %d",
@@ -622,7 +626,11 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		rc = cam_sensor_i2c_command_parser(
 			&a_ctrl->io_master_info,
 			i2c_reg_settings,
+#ifdef CONFIG_MACH_XIAOMI
+			cmd_desc, 1);
+#else
 			cmd_desc, 1, NULL);
+#endif
 		if (rc < 0) {
 			CAM_ERR(CAM_ACTUATOR,
 				"Auto move lens parsing failed: %d", rc);
@@ -653,7 +661,11 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		rc = cam_sensor_i2c_command_parser(
 			&a_ctrl->io_master_info,
 			i2c_reg_settings,
+#ifdef CONFIG_MACH_XIAOMI
+			cmd_desc, 1);
+#else
 			cmd_desc, 1, NULL);
+#endif
 		if (rc < 0) {
 			CAM_ERR(CAM_ACTUATOR,
 				"Manual move lens parsing failed: %d", rc);
@@ -672,6 +684,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		}
 		cam_actuator_update_req_mgr(a_ctrl, csl_packet);
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ACTUATOR_PACKET_OPCODE_READ: {
 		struct cam_buf_io_cfg *io_cfg;
 		struct i2c_settings_array i2c_read_settings;
@@ -734,6 +747,7 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		}
 		break;
 		}
+#endif
 	default:
 		CAM_ERR(CAM_ACTUATOR, "Wrong Opcode: %d",
 			csl_packet->header.op_code & 0xFFFFFF);
@@ -836,11 +850,13 @@ int32_t cam_actuator_driver_cmd(struct cam_actuator_ctrl_t *a_ctrl,
 
 		actuator_acq_dev.device_handle =
 			cam_create_device_hdl(&bridge_params);
+#ifndef CONFIG_MACH_XIAOMI
 		if (actuator_acq_dev.device_handle <= 0) {
 			rc = -EFAULT;
 			CAM_ERR(CAM_ACTUATOR, "Can not create device handle");
 			goto release_mutex;
 		}
+#endif
 		a_ctrl->bridge_intf.device_hdl = actuator_acq_dev.device_handle;
 		a_ctrl->bridge_intf.session_hdl =
 			actuator_acq_dev.session_handle;

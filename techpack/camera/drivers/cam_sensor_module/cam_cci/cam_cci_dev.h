@@ -40,6 +40,9 @@
 
 #define CCI_TIMEOUT msecs_to_jiffies(100)
 
+#ifdef CONFIG_MACH_XIAOMI
+#define NUM_MASTERS 2
+#endif
 #define NUM_QUEUES 2
 
 #define CCI_PINCTRL_STATE_DEFAULT "cci_default"
@@ -124,7 +127,11 @@ struct cam_cci_i2c_queue_info {
 };
 
 struct cam_cci_master_info {
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t status;
+#else
 	int32_t status;
+#endif
 	atomic_t q_free[NUM_QUEUES];
 	uint8_t q_lock[NUM_QUEUES];
 	uint8_t reset_pending;
@@ -136,10 +143,19 @@ struct cam_cci_master_info {
 	struct completion report_q[NUM_QUEUES];
 	atomic_t done_pending[NUM_QUEUES];
 	spinlock_t lock_q[NUM_QUEUES];
+#ifdef CONFIG_MACH_XIAOMI
+	spinlock_t freq_cnt;
+#endif
 	struct semaphore master_sem;
+#ifdef CONFIG_MACH_XIAOMI
+	bool is_first_req;
+#else
 	spinlock_t freq_cnt_lock;
+#endif
 	uint16_t freq_ref_cnt;
+#ifndef CONFIG_MACH_XIAOMI
 	bool is_initilized;
+#endif
 };
 
 struct cam_cci_clk_params_t {
@@ -207,10 +223,16 @@ struct cci_device {
 	uint8_t ref_count;
 	enum cam_cci_state_t cci_state;
 	struct cam_cci_i2c_queue_info
+#ifdef CONFIG_MACH_XIAOMI
+		cci_i2c_queue_info[NUM_MASTERS][NUM_QUEUES];
+	struct cam_cci_master_info cci_master_info[NUM_MASTERS];
+	enum i2c_freq_mode i2c_freq_mode[NUM_MASTERS];
+#else
 		cci_i2c_queue_info[MASTER_MAX][NUM_QUEUES];
 	struct cam_cci_master_info cci_master_info[MASTER_MAX];
 	enum i2c_freq_mode i2c_freq_mode[MASTER_MAX];
 	uint8_t master_active_slave[MASTER_MAX];
+#endif
 	struct cam_cci_clk_params_t cci_clk_params[I2C_MAX_MODES];
 	struct msm_pinctrl_info cci_pinctrl;
 	uint8_t cci_pinctrl_status;
@@ -275,6 +297,9 @@ struct cam_sensor_cci_client {
 	uint16_t retries;
 	uint16_t id_map;
 	uint16_t cci_device;
+#ifdef CONFIG_MACH_XIAOMI
+	uint16_t disable_optmz;
+#endif
 };
 
 struct cam_cci_ctrl {
@@ -303,6 +328,10 @@ irqreturn_t cam_cci_irq(int irq_num, void *data);
 struct v4l2_subdev *cam_cci_get_subdev(int cci_dev_index);
 
 #define VIDIOC_MSM_CCI_CFG \
+#ifdef CONFIG_MACH_XIAOMI
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 23, struct cam_cci_ctrl *)
+#else
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 23, struct cam_cci_ctrl)
+#endif
 
 #endif /* _CAM_CCI_DEV_H_ */

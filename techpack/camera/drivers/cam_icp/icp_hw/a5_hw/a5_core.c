@@ -235,6 +235,7 @@ fw_download_failed:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_a5_fw_dump(
 	struct cam_icp_hw_dump_args    *dump_args,
 	struct cam_a5_device_core_info *core_info)
@@ -281,6 +282,7 @@ static int cam_a5_fw_dump(
 	dump_args->offset += hdr->size + sizeof(struct cam_icp_dump_header);
 	return 0;
 }
+#endif
 
 int cam_a5_init_hw(void *device_priv,
 	void *init_hw_args, uint32_t arg_size)
@@ -535,7 +537,9 @@ int cam_a5_process_cmd(void *device_priv, uint32_t cmd_type,
 		break;
 	case CAM_ICP_A5_CMD_UBWC_CFG: {
 		struct a5_ubwc_cfg_ext *ubwc_cfg_ext = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 		uint32_t *disable_ubwc_comp;
+#endif
 
 		a5_soc = soc_info->soc_private;
 		if (!a5_soc) {
@@ -543,12 +547,14 @@ int cam_a5_process_cmd(void *device_priv, uint32_t cmd_type,
 			return -EINVAL;
 		}
 
+#ifndef CONFIG_MACH_XIAOMI
 		if (!cmd_args) {
 			CAM_ERR(CAM_ICP, "Invalid args");
 			return -EINVAL;
 		}
 
 		disable_ubwc_comp = (uint32_t *)cmd_args;
+#endif
 
 		if (a5_soc->ubwc_config_ext) {
 			/* Invoke kernel API to determine DDR type */
@@ -567,6 +573,7 @@ int cam_a5_process_cmd(void *device_priv, uint32_t cmd_type,
 			ubwc_bps_cfg[1] =
 				ubwc_cfg_ext->ubwc_bps_write_cfg[index];
 
+#ifndef CONFIG_MACH_XIAOMI
 			if (*disable_ubwc_comp) {
 				ubwc_ipe_cfg[1] &= ~CAM_ICP_UBWC_COMP_EN;
 				ubwc_bps_cfg[1] &= ~CAM_ICP_UBWC_COMP_EN;
@@ -574,16 +581,21 @@ int cam_a5_process_cmd(void *device_priv, uint32_t cmd_type,
 					"UBWC comp force disable, ubwc_ipe_cfg:  0x%x, ubwc_bps_cfg: 0x%x",
 					ubwc_ipe_cfg[1], ubwc_bps_cfg[1]);
 			}
+#endif
 
 			rc = hfi_cmd_ubwc_config_ext(&ubwc_ipe_cfg[0],
 					&ubwc_bps_cfg[0]);
 		} else {
+#ifdef CONFIG_MACH_XIAOMI
+			rc = hfi_cmd_ubwc_config(a5_soc->uconfig.ubwc_cfg);
+#else
 			if (*disable_ubwc_comp)
 				rc = hfi_cmd_ubwc_config(
 					a5_soc->uconfig.ubwc_cfg, true);
 			else
 				rc = hfi_cmd_ubwc_config(
 					a5_soc->uconfig.ubwc_cfg, false);
+#endif
 		}
 
 		break;
@@ -612,12 +624,14 @@ int cam_a5_process_cmd(void *device_priv, uint32_t cmd_type,
 			core_info->cpas_handle, &ahb_vote);
 		break;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ICP_A5_CMD_HW_DUMP: {
 		struct cam_icp_hw_dump_args *dump_args = cmd_args;
 
 		rc = cam_a5_fw_dump(dump_args, core_info);
 		break;
 	}
+#endif
 	default:
 		break;
 	}

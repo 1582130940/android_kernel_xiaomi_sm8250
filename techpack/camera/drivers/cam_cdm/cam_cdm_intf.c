@@ -379,6 +379,7 @@ int cam_cdm_reset_hw(uint32_t handle)
 }
 EXPORT_SYMBOL(cam_cdm_reset_hw);
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_cdm_detect_hang_error(uint32_t handle)
 {
 	uint32_t hw_index;
@@ -405,6 +406,7 @@ int cam_cdm_detect_hang_error(uint32_t handle)
 	return rc;
 }
 EXPORT_SYMBOL(cam_cdm_detect_hang_error);
+#endif
 
 int cam_cdm_intf_register_hw_cdm(struct cam_hw_intf *hw,
 	struct cam_cdm_private_dt_data *data, enum cam_cdm_type type,

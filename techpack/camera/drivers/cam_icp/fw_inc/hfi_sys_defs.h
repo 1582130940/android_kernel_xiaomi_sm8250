@@ -36,7 +36,9 @@
 #define HFI_ERR_SYS_UNSUPPORT_CMD       (HFI_COMMON_BASE + 0x4)
 #define HFI_ERR_SYS_CMDFAILED           (HFI_COMMON_BASE + 0x5)
 #define HFI_ERR_SYS_CMDSIZE             (HFI_COMMON_BASE + 0x6)
+#ifndef CONFIG_MACH_XIAOMI
 #define HFI_ERR_SYS_RESET_FAILURE       (HFI_COMMON_BASE + 0x7)
+#endif
 
 /* System Level Event types */
 #define HFI_EVENT_SYS_ERROR             (HFI_COMMON_BASE + 0x1)
@@ -83,11 +85,13 @@
 #define CAMERAICP_EHWVIOLATION         11
 #define CAMERAICP_ECDMERROR            12
 
+#ifndef CONFIG_MACH_XIAOMI
 /* HFI Specific errors. */
 #define CAMERAICP_HFI_ERR_COMMAND_SIZE 1000
 #define CAMERAICP_HFI_ERR_MESSAGE_SIZE 1001
 #define CAMERAICP_HFI_QUEUE_EMPTY      1002
 #define CAMERAICP_HFI_QUEUE_FULL       1003
+#endif
 
 /* Core level commands */
 /* IPE/BPS core Commands */

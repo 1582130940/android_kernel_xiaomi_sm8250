@@ -40,10 +40,12 @@ struct cam_vfe_mux_camif_lite_data {
 	uint32_t                                     camif_debug;
 	struct cam_vfe_top_irq_evt_payload
 		evt_payload[CAM_VFE_CAMIF_LITE_EVT_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	struct timeval                               sof_ts;
 	struct timeval                               epoch_ts;
 	struct timeval                               eof_ts;
 	struct timeval                               error_ts;
+#endif
 };
 
 static int cam_vfe_camif_lite_get_evt_payload(
@@ -141,12 +143,14 @@ static int cam_vfe_camif_lite_err_irq_top_half(
 		return rc;
 
 	cam_isp_hw_get_timestamp(&evt_payload->ts);
+#ifndef CONFIG_MACH_XIAOMI
 	if (error_flag) {
 		camif_lite_priv->error_ts.tv_sec =
 			evt_payload->ts.mono_time.tv_sec;
 		camif_lite_priv->error_ts.tv_usec =
 			evt_payload->ts.mono_time.tv_usec;
 	}
+#endif
 
 	for (i = 0; i < th_payload->num_registers; i++)
 		evt_payload->irq_reg_val[i] = th_payload->evt_status_arr[i];
@@ -303,6 +307,7 @@ static int cam_vfe_camif_lite_resource_start(
 		rsrc_data->mem_base +
 		rsrc_data->camif_lite_reg->lite_epoch_irq);
 
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->error_ts.tv_sec = 0;
 	rsrc_data->error_ts.tv_usec = 0;
 	rsrc_data->sof_ts.tv_sec = 0;
@@ -311,6 +316,7 @@ static int cam_vfe_camif_lite_resource_start(
 	rsrc_data->epoch_ts.tv_usec = 0;
 	rsrc_data->eof_ts.tv_sec = 0;
 	rsrc_data->eof_ts.tv_usec = 0;
+#endif
 
 skip_core_cfg:
 
@@ -840,7 +846,11 @@ static void cam_vfe_camif_lite_print_status(uint32_t *status,
 	uint32_t violation_mask = 0x3F00, violation_status = 0;
 	uint32_t bus_overflow_status = 0, status_0 = 0, status_2 = 0;
 	struct cam_vfe_soc_private *soc_private = NULL;
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t val0, val1, val2;
+#else
 	uint32_t val0, val1, val2, val3;
+#endif
 
 	if (!status) {
 		CAM_ERR(CAM_ISP, "Invalid params");
@@ -878,8 +888,13 @@ static void cam_vfe_camif_lite_print_status(uint32_t *status,
 		if (status_0 & 0x20000000)
 			CAM_INFO(CAM_ISP, "RDI0 OVERFLOW");
 
+#ifdef CONFIG_MACH_XIAOMI
+		if (status_0 & 0x40000000)
+#else
 		if (status_0 & 0x40000000) {
+#endif
 			CAM_INFO(CAM_ISP, "PD PIPE OVERFLOW");
+#ifndef CONFIG_MACH_XIAOMI
 			cam_cpas_reg_read(soc_private->cpas_handle,
 				CAM_CPAS_REG_CAMNOC, 0xA20, true, &val0);
 			cam_cpas_reg_read(soc_private->cpas_handle,
@@ -895,6 +910,7 @@ static void cam_vfe_camif_lite_print_status(uint32_t *status,
 			CAM_INFO(CAM_ISP, "ife_rdi_Rd: 0x%x", val3);
 			cam_cpas_log_votes();
 		}
+#endif
 	}
 
 	if (err_type == CAM_VFE_IRQ_STATUS_OVERFLOW && bus_overflow_status) {
@@ -922,7 +938,9 @@ static void cam_vfe_camif_lite_print_status(uint32_t *status,
 		CAM_INFO(CAM_ISP,
 			"CAMNOC REG ife_linear: 0x%X ife_rdi_wr: 0x%X ife_ubwc_stats: 0x%X",
 			val0, val1, val2);
+#ifndef CONFIG_MACH_XIAOMI
 		cam_cpas_log_votes();
+#endif
 	}
 
 	if (err_type == CAM_VFE_IRQ_STATUS_OVERFLOW && !bus_overflow_status) {
@@ -1097,8 +1115,10 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 	struct cam_vfe_soc_private *soc_private = NULL;
 	uint32_t irq_status[CAM_IFE_IRQ_REGISTERS_MAX] = {0};
 	int i = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t status_0 = 0;
 	struct timespec64 ts;
+#endif
 
 	if (!handler_priv || !evt_payload_priv) {
 		CAM_ERR(CAM_ISP, "Invalid params");
@@ -1134,10 +1154,12 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 		CAM_DBG(CAM_ISP, "VFE:%d CAMIF LITE:%d Received SOF",
 			evt_info.hw_idx, evt_info.res_id);
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
+#ifndef CONFIG_MACH_XIAOMI
 		camif_lite_priv->sof_ts.tv_sec =
 			payload->ts.mono_time.tv_sec;
 		camif_lite_priv->sof_ts.tv_usec =
 			payload->ts.mono_time.tv_usec;
+#endif
 
 		if (camif_lite_priv->event_cb)
 			camif_lite_priv->event_cb(camif_lite_priv->priv,
@@ -1149,10 +1171,12 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 		CAM_DBG(CAM_ISP, "VFE:%d CAMIF LITE:%d Received EPOCH",
 			evt_info.hw_idx, evt_info.res_id);
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
+#ifndef CONFIG_MACH_XIAOMI
 		camif_lite_priv->epoch_ts.tv_sec =
 			payload->ts.mono_time.tv_sec;
 		camif_lite_priv->epoch_ts.tv_usec =
 			payload->ts.mono_time.tv_usec;
+#endif
 
 		if (camif_lite_priv->event_cb)
 			camif_lite_priv->event_cb(camif_lite_priv->priv,
@@ -1164,23 +1188,31 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 		CAM_DBG(CAM_ISP, "VFE:%d CAMIF LITE:%d Received EOF",
 			evt_info.hw_idx, evt_info.res_id);
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
+#ifndef CONFIG_MACH_XIAOMI
 		camif_lite_priv->eof_ts.tv_sec =
 			payload->ts.mono_time.tv_sec;
 		camif_lite_priv->eof_ts.tv_usec =
 			payload->ts.mono_time.tv_usec;
+#endif
 
 		if (camif_lite_priv->event_cb)
 			camif_lite_priv->event_cb(camif_lite_priv->priv,
 				CAM_ISP_HW_EVENT_EOF, (void *)&evt_info);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (irq_status[CAM_IFE_IRQ_CAMIF_REG_STATUS0]
+		& camif_lite_priv->reg_data->error_irq_mask0) {
+#else
 	status_0 = irq_status[CAM_IFE_IRQ_CAMIF_REG_STATUS0]
 		& camif_lite_priv->reg_data->error_irq_mask0;
 	if (status_0) {
+#endif
 		CAM_ERR(CAM_ISP, "VFE:%d Overflow",
 			camif_lite_node->hw_intf->hw_idx);
 
 		evt_info.err_type = CAM_VFE_IRQ_STATUS_OVERFLOW;
+#ifndef CONFIG_MACH_XIAOMI
 		ktime_get_boottime_ts64(&ts);
 		CAM_INFO(CAM_ISP,
 			"current monotonic time stamp seconds %lld:%lld",
@@ -1208,6 +1240,7 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 
 		if (status_0 & 0x20000000)
 			evt_info.res_id = CAM_ISP_IFE_OUT_RES_RDI_0;
+#endif
 
 		if (camif_lite_priv->event_cb)
 			camif_lite_priv->event_cb(camif_lite_priv->priv,
@@ -1215,8 +1248,10 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 
 		ret = CAM_VFE_IRQ_STATUS_OVERFLOW;
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP, "ife_clk_src:%lld",
 			soc_private->ife_clk_src);
+#endif
 
 		cam_vfe_camif_lite_print_status(irq_status, ret,
 			camif_lite_priv);
@@ -1237,8 +1272,10 @@ static int cam_vfe_camif_lite_handle_irq_bottom_half(
 
 		ret = CAM_VFE_IRQ_STATUS_VIOLATION;
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP, "ife_clk_src:%lld",
 			soc_private->ife_clk_src);
+#endif
 
 		cam_vfe_camif_lite_print_status(irq_status, ret,
 			camif_lite_priv);

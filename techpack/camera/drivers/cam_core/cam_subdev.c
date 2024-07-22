@@ -53,10 +53,14 @@ static long cam_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd,
 
 	switch (cmd) {
 	case VIDIOC_CAM_CONTROL:
+#ifndef CONFIG_MACH_XIAOMI
 		cam_req_mgr_rwsem_read_op(CAM_SUBDEV_LOCK);
+#endif
 		rc = cam_node_handle_ioctl(node,
 			(struct cam_control *) arg);
+#ifndef CONFIG_MACH_XIAOMI
 		cam_req_mgr_rwsem_read_op(CAM_SUBDEV_UNLOCK);
+#endif
 		break;
 	default:
 		CAM_ERR(CAM_CORE, "Invalid command %d for %s", cmd,

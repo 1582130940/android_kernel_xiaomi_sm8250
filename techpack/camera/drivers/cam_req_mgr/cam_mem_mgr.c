@@ -11,14 +11,18 @@
 #include <linux/slab.h>
 #include <linux/ion_kernel.h>
 #include <linux/dma-buf.h>
+#ifndef CONFIG_MACH_XIAOMI
 #include <linux/debugfs.h>
+#endif
 
 #include "cam_req_mgr_util.h"
 #include "cam_mem_mgr.h"
 #include "cam_smmu_api.h"
 #include "cam_debug_util.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "cam_trace.h"
 #include "cam_common_util.h"
+#endif
 
 static struct cam_mem_table tbl;
 static atomic_t cam_mem_mgr_state = ATOMIC_INIT(CAM_MEM_MGR_UNINITIALIZED);
@@ -120,6 +124,7 @@ static int cam_mem_util_unmap_cpu_va(struct dma_buf *dmabuf,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_mem_mgr_create_debug_fs(void)
 {
 	tbl.dentry = debugfs_create_dir("camera_memmgr", NULL);
@@ -142,6 +147,7 @@ err:
 	debugfs_remove_recursive(tbl.dentry);
 	return -ENOMEM;
 }
+#endif
 
 int cam_mem_mgr_init(void)
 {
@@ -168,7 +174,9 @@ int cam_mem_mgr_init(void)
 
 	atomic_set(&cam_mem_mgr_state, CAM_MEM_MGR_INITIALIZED);
 
+#ifndef CONFIG_MACH_XIAOMI
 	cam_mem_mgr_create_debug_fs();
+#endif
 
 	return 0;
 }
@@ -178,6 +186,20 @@ static int32_t cam_mem_get_slot(void)
 	int32_t idx;
 
 	mutex_lock(&tbl.m_lock);
+#ifdef CONFIG_MACH_XIAOMI
+	idx = find_first_zero_bit(tbl.bitmap, tbl.bits);
+	if (idx >= CAM_MEM_BUFQ_MAX || idx <= 0) {
+		mutex_unlock(&tbl.m_lock);
+		return -ENOMEM;
+	}
+
+	set_bit(idx, tbl.bitmap);
+	tbl.bufq[idx].active = true;
+	mutex_init(&tbl.bufq[idx].q_lock);
+	mutex_unlock(&tbl.m_lock);
+
+	return idx;
+#else
 	if (tbl.bitmap) {
 		idx = find_first_zero_bit(tbl.bitmap, tbl.bits);
 		if (idx >= CAM_MEM_BUFQ_MAX || idx <= 0) {
@@ -194,6 +216,7 @@ static int32_t cam_mem_get_slot(void)
 
 	mutex_unlock(&tbl.m_lock);
 	return -EINVAL;
+#endif
 }
 
 static void cam_mem_put_slot(int32_t idx)
@@ -412,16 +435,20 @@ static int cam_mem_util_get_dma_buf_fd(size_t len,
 	int *fd)
 {
 	int rc = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	struct timespec64 ts1, ts2;
 	long microsec = 0;
+#endif
 
 	if (!buf || !fd) {
 		CAM_ERR(CAM_MEM, "Invalid params, buf=%pK, fd=%pK", buf, fd);
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (tbl.alloc_profile_enable)
 		CAM_GET_TIMESTAMP(ts1);
+#endif
 
 	*buf = ion_alloc(len, heap_id_mask, flags);
 	if (IS_ERR_OR_NULL(*buf))
@@ -440,12 +467,14 @@ static int cam_mem_util_get_dma_buf_fd(size_t len,
 		goto get_fd_fail;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (tbl.alloc_profile_enable) {
 		CAM_GET_TIMESTAMP(ts2);
 		CAM_GET_TIMESTAMP_DIFF_IN_MICRO(ts1, ts2, microsec);
 		trace_cam_log_event("IONAllocProfile", "size and time in micro",
 			len, microsec);
 	}
+#endif
 
 	return rc;
 
@@ -600,10 +629,18 @@ static int cam_mem_util_map_hw_va(uint32_t flags,
 	return rc;
 multi_map_fail:
 	if (flags & CAM_MEM_FLAG_PROTECTED_MODE)
+#ifdef CONFIG_MACH_XIAOMI
+		for (--i; i >= 0; i--)
+#else
 		for (--i; i > 0; i--)
+#endif
 			cam_smmu_unmap_stage2_iova(mmu_hdls[i], fd);
 	else
+#ifdef CONFIG_MACH_XIAOMI
+		for (--i; i >= 0; i--)
+#else
 		for (--i; i > 0; i--)
+#endif
 			cam_smmu_unmap_user_iova(mmu_hdls[i],
 				fd,
 				CAM_SMMU_REGION_IO);
@@ -657,7 +694,9 @@ int cam_mem_mgr_alloc_and_map(struct cam_mem_mgr_alloc_cmd *cmd)
 		goto slot_fail;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&tbl.m_lock);
+#endif
 	if ((cmd->flags & CAM_MEM_FLAG_HW_READ_WRITE) ||
 		(cmd->flags & CAM_MEM_FLAG_HW_SHARED_ACCESS) ||
 		(cmd->flags & CAM_MEM_FLAG_PROTECTED_MODE)) {
@@ -684,14 +723,21 @@ int cam_mem_mgr_alloc_and_map(struct cam_mem_mgr_alloc_cmd *cmd)
 
 		if (rc) {
 			CAM_ERR(CAM_MEM,
+#ifdef CONFIG_MACH_XIAOMI
+				"Failed in map_hw_va, flags=0x%x, fd=%d, region=%d, num_hdl=%d, rc=%d",
+				cmd->flags, fd, region, cmd->num_hdl, rc);
+#else
 				"Failed in map_hw_va, len=%llu, flags=0x%x, fd=%d, region=%d, num_hdl=%d, rc=%d",
 				len, cmd->flags, fd, region,
 				cmd->num_hdl, rc);
 			mutex_unlock(&tbl.m_lock);
+#endif
 			goto map_hw_fail;
 		}
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&tbl.m_lock);
+#endif
 	mutex_lock(&tbl.bufq[idx].q_lock);
 	tbl.bufq[idx].fd = fd;
 	tbl.bufq[idx].dma_buf = NULL;
@@ -712,7 +758,11 @@ int cam_mem_mgr_alloc_and_map(struct cam_mem_mgr_alloc_cmd *cmd)
 	tbl.bufq[idx].kmdvaddr = kvaddr;
 	tbl.bufq[idx].vaddr = hw_vaddr;
 	tbl.bufq[idx].dma_buf = dmabuf;
+#ifdef CONFIG_MACH_XIAOMI
+	tbl.bufq[idx].len = cmd->len;
+#else
 	tbl.bufq[idx].len = len;
+#endif
 	tbl.bufq[idx].num_hdl = cmd->num_hdl;
 	memcpy(tbl.bufq[idx].hdls, cmd->mmu_hdls,
 		sizeof(int32_t) * cmd->num_hdl);
@@ -743,6 +793,10 @@ map_hw_fail:
 	cam_mem_put_slot(idx);
 slot_fail:
 	dma_buf_put(dmabuf);
+#ifdef CONFIG_MACH_XIAOMI
+	fput(dmabuf->file);
+	put_unused_fd(fd);
+#endif
 	return rc;
 }
 
@@ -782,7 +836,9 @@ int cam_mem_mgr_map(struct cam_mem_mgr_map_cmd *cmd)
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&tbl.m_lock);
+#endif
 	if ((cmd->flags & CAM_MEM_FLAG_HW_READ_WRITE) ||
 		(cmd->flags & CAM_MEM_FLAG_PROTECTED_MODE)) {
 		rc = cam_mem_util_map_hw_va(cmd->flags,
@@ -797,11 +853,15 @@ int cam_mem_mgr_map(struct cam_mem_mgr_map_cmd *cmd)
 				"Failed in map_hw_va, flags=0x%x, fd=%d, region=%d, num_hdl=%d, rc=%d",
 				cmd->flags, cmd->fd, CAM_SMMU_REGION_IO,
 				cmd->num_hdl, rc);
+#ifndef CONFIG_MACH_XIAOMI
 			mutex_unlock(&tbl.m_lock);
+#endif
 			goto map_fail;
 		}
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&tbl.m_lock);
+#endif
 
 	idx = cam_mem_get_slot();
 	if (idx < 0) {
@@ -872,7 +932,11 @@ static int cam_mem_util_unmap_hw_va(int32_t idx,
 	fd = tbl.bufq[idx].fd;
 
 	CAM_DBG(CAM_MEM,
+#ifdef CONFIG_MACH_XIAOMI
+		"unmap_hw_va : idx=%d, fd=%d, flags=0x%x, num_hdls=%d, client=%d",
+#else
 		"unmap_hw_va : idx=%d, fd=%x, flags=0x%x, num_hdls=%d, client=%d",
+#endif
 		idx, fd, flags, num_hdls, client);
 
 	if (flags & CAM_MEM_FLAG_PROTECTED_MODE) {

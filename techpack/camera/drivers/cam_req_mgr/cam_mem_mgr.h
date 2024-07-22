@@ -12,7 +12,11 @@
 #include <media/cam_req_mgr.h>
 #include "cam_mem_mgr_api.h"
 
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_MEM_BUFQ_MAX 1536
+#else
 #define CAM_MEM_BUFQ_MAX 1024
+#endif
 
 /* Enum for possible mem mgr states */
 enum cam_mem_mgr_state {
@@ -83,8 +87,10 @@ struct cam_mem_table {
 	void *bitmap;
 	size_t bits;
 	struct cam_mem_buf_queue bufq[CAM_MEM_BUFQ_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	struct dentry *dentry;
 	bool alloc_profile_enable;
+#endif
 };
 
 /**

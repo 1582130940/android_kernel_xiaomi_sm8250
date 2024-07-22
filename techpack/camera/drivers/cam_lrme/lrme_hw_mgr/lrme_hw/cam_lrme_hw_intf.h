@@ -66,7 +66,9 @@ enum cam_lrme_hw_cmd_type {
 	CAM_LRME_HW_CMD_REGISTER_CB,
 	CAM_LRME_HW_CMD_SUBMIT,
 	CAM_LRME_HW_CMD_DUMP_REGISTER,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_LRME_HW_CMD_DUMP,
+#endif
 };
 
 /**
@@ -98,7 +100,9 @@ struct cam_lrme_frame_request {
 	struct cam_lrme_device    *hw_device;
 	struct cam_hw_update_entry hw_update_entries[CAM_LRME_MAX_HW_ENTRIES];
 	uint32_t                   num_hw_update_entries;
+#ifndef CONFIG_MACH_XIAOMI
 	ktime_t                    submit_timestamp;
+#endif
 };
 
 /**
@@ -196,6 +200,7 @@ struct cam_lrme_hw_submit_args {
 	struct cam_lrme_frame_request *frame_req;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_lrme_hw_dump_args : Args for dump request
  *
@@ -210,5 +215,6 @@ struct cam_lrme_hw_dump_args {
 	size_t    offset;
 	size_t    buf_len;
 };
+#endif
 
 #endif /* _CAM_LRME_HW_INTF_H_ */

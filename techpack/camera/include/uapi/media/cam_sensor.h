@@ -118,6 +118,14 @@ struct cam_ois_opcode {
 	uint32_t coeff;
 	uint32_t pheripheral;
 	uint32_t memory;
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t  fw_addr_type;
+	uint8_t  is_addr_increase;
+	uint8_t  is_addr_indata;
+	uint8_t  fwversion;
+	uint32_t fwchecksumsize;
+	uint32_t fwchecksum;
+#endif
 } __attribute__((packed));
 
 /**
@@ -137,6 +145,9 @@ struct cam_cmd_ois_info {
 	uint8_t               cmd_type;
 	uint8_t               ois_fw_flag;
 	uint8_t               is_ois_calib;
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t               is_ois_pre_init;
+#endif
 	char                  ois_name[MAX_OIS_NAME_SIZE];
 	struct cam_ois_opcode opcode;
 } __attribute__((packed));
@@ -346,8 +357,10 @@ struct cam_csiphy_info {
 	uint8_t     secure_mode;
 	uint64_t    settle_time;
 	uint64_t    data_rate;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t    mipi_flags;
 	uint32_t    reserved;
+#endif
 } __attribute__((packed));
 
 /**

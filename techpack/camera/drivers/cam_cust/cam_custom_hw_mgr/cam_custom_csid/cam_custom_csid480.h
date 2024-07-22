@@ -56,7 +56,11 @@ static struct cam_ife_csid_udi_reg_offset
 	.csid_udi_byte_cntr_pong_addr             = 0x2e4,
 	/* configurations */
 	.ccif_violation_en                        = 1,
+#ifdef CONFIG_MACH_XIAOMI
+	.overflow_ctrl_en                         = 1,
+#else
 	.overflow_ctrl_en                         = 0,
+#endif
 };
 
 static struct cam_ife_csid_udi_reg_offset
@@ -105,7 +109,11 @@ static struct cam_ife_csid_udi_reg_offset
 	.csid_udi_byte_cntr_pong_addr             = 0x3e4,
 	/* configurations */
 	.ccif_violation_en                        = 1,
+#ifdef CONFIG_MACH_XIAOMI
+	.overflow_ctrl_en                         = 1,
+#else
 	.overflow_ctrl_en                         = 0,
+#endif
 };
 
 static struct cam_ife_csid_udi_reg_offset
@@ -155,7 +163,11 @@ static struct cam_ife_csid_udi_reg_offset
 	.csid_udi_byte_cntr_pong_addr             = 0x4e4,
 	/* configurations */
 	.ccif_violation_en                        = 1,
+#ifdef CONFIG_MACH_XIAOMI
+	.overflow_ctrl_en                         = 1,
+#else
 	.overflow_ctrl_en                         = 0,
+#endif
 };
 
 static struct cam_ife_csid_csi2_rx_reg_offset

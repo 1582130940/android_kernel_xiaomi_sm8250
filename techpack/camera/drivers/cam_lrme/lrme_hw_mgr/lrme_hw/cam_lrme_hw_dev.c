@@ -76,10 +76,12 @@ error:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static void cam_req_mgr_process_workq_cam_lrme_hw_worker(struct work_struct *w)
 {
 	cam_req_mgr_process_workq(w);
 }
+#endif
 
 static int cam_lrme_hw_dev_probe(struct platform_device *pdev)
 {
@@ -118,8 +120,12 @@ static int cam_lrme_hw_dev_probe(struct platform_device *pdev)
 
 	rc = cam_req_mgr_workq_create("cam_lrme_hw_worker",
 		CAM_LRME_HW_WORKQ_NUM_TASK,
+#ifdef CONFIG_MACH_XIAOMI
+		&lrme_core->work, CRM_WORKQ_USAGE_IRQ, 0);
+#else
 		&lrme_core->work, CRM_WORKQ_USAGE_IRQ, 0, false,
 		cam_req_mgr_process_workq_cam_lrme_hw_worker);
+#endif
 	if (rc) {
 		CAM_ERR(CAM_LRME, "Unable to create a workq, rc=%d", rc);
 		goto free_memory;

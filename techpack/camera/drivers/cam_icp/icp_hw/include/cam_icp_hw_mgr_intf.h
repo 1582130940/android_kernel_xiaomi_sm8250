@@ -16,11 +16,17 @@
 
 #define CAM_ICP_A5_BW_BYTES_VOTE 40000000
 
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_ICP_CTX_MAX          65
+#else
 #define CAM_ICP_CTX_MAX          54
+#endif
 
 #define CPAS_IPE1_BIT            0x2000
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_ICP_UBWC_COMP_EN     BIT(1)
+#endif
 
 #define CAM_IPE_DEFAULT_AXI_PATH    CAM_AXI_PATH_DATA_IPE_WR_VID
 #define CAM_IPE_DEFAULT_AXI_TRANSAC CAM_AXI_TRANSACTION_WRITE
@@ -29,8 +35,10 @@
 #define CAM_ICP_DEFAULT_AXI_PATH    CAM_AXI_PATH_DATA_ALL
 #define CAM_ICP_DEFAULT_AXI_TRANSAC CAM_AXI_TRANSACTION_READ
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_ICP_DUMP_TAG_MAX_LEN 32
 #define CAM_ICP_DUMP_NUM_WORDS   5
+#endif
 
 int cam_icp_hw_mgr_init(struct device_node *of_node,
 	uint64_t *hw_mgr_hdl, int *iommu_hdl);
@@ -49,6 +57,7 @@ struct cam_icp_cpas_vote {
 	uint32_t axi_vote_valid;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_icp_hw_dump_args
  * @cpu_addr: kernel vaddr
@@ -72,5 +81,6 @@ struct cam_icp_dump_header {
 	uint64_t   size;
 	int32_t    word_size;
 };
+#endif
 
 #endif /* CAM_ICP_HW_MGR_INTF_H */

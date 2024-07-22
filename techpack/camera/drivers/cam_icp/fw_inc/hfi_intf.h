@@ -149,7 +149,11 @@ int hfi_cmd_ubwc_config_ext(uint32_t *ubwc_ipe_cfg,
  * @ubwc_cfg:           UBWC configuration parameters
  * @disable_ubwc_comp:  Disable UBWC compression
  */
+#ifdef CONFIG_MACH_XIAOMI
+int hfi_cmd_ubwc_config(uint32_t *ubwc_cfg);
+#else
 int hfi_cmd_ubwc_config(uint32_t *ubwc_cfg, bool disable_ubwc_comp);
+#endif
 
 /**
  * cam_hfi_resume() - function to resume

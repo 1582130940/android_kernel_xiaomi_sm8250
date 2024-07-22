@@ -3,7 +3,9 @@
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
+#ifndef CONFIG_MACH_XIAOMI
 #include <linux/timer.h>
+#endif
 #include "cam_lrme_hw_core.h"
 #include "cam_lrme_hw_soc.h"
 #include "cam_smmu_api.h"
@@ -22,6 +24,7 @@ static void cam_lrme_dump_registers(void __iomem *base)
 	cam_io_dump(base, 0x900, (0x928 - 0x900) / 0x4);
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int  cam_lrme_dump_regs_to_buf(
 	struct cam_lrme_frame_request *req,
 	struct cam_hw_info *lrme_hw,
@@ -174,6 +177,7 @@ static int cam_lrme_hw_dump(
 	mutex_unlock(&lrme_hw->hw_mutex);
 	return 0;
 }
+#endif
 
 static void cam_lrme_cdm_write_reg_val_pair(uint32_t *buffer,
 	uint32_t *index, uint32_t reg_offset, uint32_t reg_value)
@@ -1111,7 +1115,9 @@ int cam_lrme_hw_submit_req(void *hw_priv, void *hw_submit_args,
 		goto error;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	frame_req->submit_timestamp = ktime_get();
+#endif
 
 	switch (lrme_core->state) {
 	case CAM_LRME_CORE_STATE_PROCESSING:
@@ -1422,12 +1428,14 @@ int cam_lrme_hw_process_cmd(void *hw_priv, uint32_t cmd_type,
 		break;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_LRME_HW_CMD_DUMP: {
 		struct cam_lrme_hw_dump_args *dump_args =
 		   (struct cam_lrme_hw_dump_args *)cmd_args;
 		rc = cam_lrme_hw_dump(lrme_hw, dump_args);
 		break;
 		}
+#endif
 	default:
 		break;
 	}

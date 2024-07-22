@@ -48,12 +48,14 @@ struct cam_vfe_mux_camif_data {
 	bool                               enable_sof_irq_debug;
 	uint32_t                           irq_debug_cnt;
 	uint32_t                           camif_debug;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                           dual_hw_idx;
 	uint32_t                           is_dual;
 	struct timeval                     sof_ts;
 	struct timeval                     epoch_ts;
 	struct timeval                     eof_ts;
 	struct timeval                     error_ts;
+#endif
 };
 
 static int cam_vfe_camif_get_evt_payload(
@@ -148,12 +150,14 @@ static int cam_vfe_camif_err_irq_top_half(
 	}
 
 	cam_isp_hw_get_timestamp(&evt_payload->ts);
+#ifndef CONFIG_MACH_XIAOMI
 	if (error_flag) {
 		camif_priv->error_ts.tv_sec =
 			evt_payload->ts.mono_time.tv_sec;
 		camif_priv->error_ts.tv_usec =
 			evt_payload->ts.mono_time.tv_usec;
 	}
+#endif
 
 	for (i = 0; i < th_payload->num_registers; i++)
 		evt_payload->irq_reg_val[i] = th_payload->evt_status_arr[i];
@@ -268,11 +272,13 @@ int cam_vfe_camif_ver2_acquire_resource(
 	camif_data->last_line   = acquire_data->vfe_in.in_port->line_stop;
 	camif_data->event_cb    = acquire_data->event_cb;
 	camif_data->priv        = acquire_data->priv;
+#ifndef CONFIG_MACH_XIAOMI
 	camif_data->is_dual     = acquire_data->vfe_in.is_dual;
 
 	if (acquire_data->vfe_in.is_dual)
 		camif_data->dual_hw_idx =
 			acquire_data->vfe_in.dual_hw_idx;
+#endif
 
 	CAM_DBG(CAM_ISP, "hw id:%d pix_pattern:%d dsp_mode=%d",
 		camif_res->hw_intf->hw_idx,
@@ -303,6 +309,7 @@ static int cam_vfe_camif_resource_init(
 		if (rc)
 			CAM_ERR(CAM_ISP, "failed to enable dsp clk");
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	camif_data->sof_ts.tv_sec = 0;
 	camif_data->sof_ts.tv_usec = 0;
 	camif_data->epoch_ts.tv_sec = 0;
@@ -311,6 +318,7 @@ static int cam_vfe_camif_resource_init(
 	camif_data->eof_ts.tv_usec = 0;
 	camif_data->error_ts.tv_sec = 0;
 	camif_data->error_ts.tv_usec = 0;
+#endif
 
 	return rc;
 }
@@ -353,7 +361,9 @@ static int cam_vfe_camif_resource_start(
 	int                             rc = 0;
 	uint32_t                        err_irq_mask[CAM_IFE_IRQ_REGISTERS_MAX];
 	uint32_t                        irq_mask[CAM_IFE_IRQ_REGISTERS_MAX];
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                        dual_vfe_sync_val;
+#endif
 	struct cam_vfe_soc_private     *soc_private;
 
 	if (!camif_res) {
@@ -438,12 +448,14 @@ static int cam_vfe_camif_resource_start(
 		break;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (rsrc_data->is_dual && rsrc_data->reg_data->dual_vfe_sync_mask) {
 		dual_vfe_sync_val = (rsrc_data->dual_hw_idx &
 			rsrc_data->reg_data->dual_vfe_sync_mask) + 1;
 		cam_io_w_mb(dual_vfe_sync_val, rsrc_data->mem_base +
 			rsrc_data->camif_reg->dual_vfe_sync);
 	}
+#endif
 	camif_res->res_state = CAM_ISP_RESOURCE_STATE_STREAMING;
 
 	/* Reg Update */
@@ -507,6 +519,9 @@ static int cam_vfe_camif_reg_dump(
 	struct cam_isp_resource_node *camif_res)
 {
 	struct cam_vfe_mux_camif_data *camif_priv;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_vfe_soc_private *soc_private;
+#endif
 	uint32_t offset, val, wm_idx;
 
 	if (!camif_res) {
@@ -537,6 +552,36 @@ static int cam_vfe_camif_reg_dump(
 				"offset 0x%x value 0x%x", offset, val);
 		}
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	soc_private = camif_priv->soc_info->soc_private;
+	if (soc_private->cpas_version == CAM_CPAS_TITAN_175_V120 ||
+		soc_private->cpas_version == CAM_CPAS_TITAN_175_V130) {
+		cam_cpas_reg_read(soc_private->cpas_handle,
+			CAM_CPAS_REG_CAMNOC, 0x3A20, true, &val);
+		CAM_INFO(CAM_ISP, "IFE0_nRDI_MAXWR_LOW offset 0x3A20 val 0x%x",
+			val);
+
+		cam_cpas_reg_read(soc_private->cpas_handle,
+			CAM_CPAS_REG_CAMNOC, 0x5420, true, &val);
+		CAM_INFO(CAM_ISP, "IFE1_nRDI_MAXWR_LOW offset 0x5420 val 0x%x",
+			val);
+
+		cam_cpas_reg_read(soc_private->cpas_handle,
+			CAM_CPAS_REG_CAMNOC, 0x3620, true, &val);
+		CAM_INFO(CAM_ISP,
+			"IFE0123_RDI_WR_MAXWR_LOW offset 0x3620 val 0x%x", val);
+
+	} else if (soc_private->cpas_version < CAM_CPAS_TITAN_175_V120) {
+		cam_cpas_reg_read(soc_private->cpas_handle,
+			CAM_CPAS_REG_CAMNOC, 0x420, true, &val);
+		CAM_INFO(CAM_ISP, "IFE02_MAXWR_LOW offset 0x420 val 0x%x", val);
+
+		cam_cpas_reg_read(soc_private->cpas_handle,
+			CAM_CPAS_REG_CAMNOC, 0x820, true, &val);
+		CAM_INFO(CAM_ISP, "IFE13_MAXWR_LOW offset 0x820 val 0x%x", val);
+	}
+#endif
 
 	return 0;
 }
@@ -614,6 +659,7 @@ static int cam_vfe_camif_sof_irq_debug(
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_vfe_camif_dump_timestamps(
 	struct cam_isp_resource_node *rsrc_node, void *cmd_args)
 {
@@ -675,6 +721,7 @@ static int cam_vfe_camif_irq_reg_dump(
 			camif_priv->common_reg->irq_status_1));
 	return rc;
 }
+#endif
 
 static int cam_vfe_camif_process_cmd(struct cam_isp_resource_node *rsrc_node,
 	uint32_t cmd_type, void *cmd_args, uint32_t arg_size)
@@ -700,6 +747,7 @@ static int cam_vfe_camif_process_cmd(struct cam_isp_resource_node *rsrc_node,
 			(struct cam_vfe_mux_camif_data *)rsrc_node->res_priv;
 		camif_priv->camif_debug = *((uint32_t *)cmd_args);
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ISP_HW_CMD_CAMIF_DATA:
 		rc = cam_vfe_camif_dump_timestamps(rsrc_node, cmd_args);
 	case CAM_ISP_HW_CMD_GET_IRQ_REGISTER_DUMP:
@@ -711,6 +759,7 @@ static int cam_vfe_camif_process_cmd(struct cam_isp_resource_node *rsrc_node,
 		*((struct cam_hw_soc_info **)cmd_args) = camif_priv->soc_info;
 		rc = 0;
 		break;
+#endif
 	default:
 		CAM_ERR(CAM_ISP,
 			"unsupported process command:%d", cmd_type);
@@ -763,12 +812,16 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 	struct cam_vfe_mux_camif_data        *camif_priv;
 	struct cam_vfe_top_irq_evt_payload *payload;
 	struct cam_isp_hw_event_info          evt_info;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_hw_soc_info               *soc_info = NULL;
 	struct cam_vfe_soc_private           *soc_private = NULL;
+#endif
 	uint32_t                              irq_status0;
 	uint32_t                              irq_status1;
 	uint32_t                              val;
+#ifndef CONFIG_MACH_XIAOMI
 	struct timespec64                     ts;
+#endif
 
 	if (!handler_priv || !evt_payload_priv) {
 		CAM_ERR(CAM_ISP, "Invalid params");
@@ -781,8 +834,10 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 	irq_status0 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS0];
 	irq_status1 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS1];
 
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = camif_priv->soc_info;
 	soc_private = (struct cam_vfe_soc_private *)soc_info->soc_private;
+#endif
 
 	evt_info.hw_idx   = camif_node->hw_intf->hw_idx;
 	evt_info.res_id   = camif_node->res_id;
@@ -791,6 +846,7 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 	CAM_DBG(CAM_ISP, "irq_status_0 = 0x%x irq_status_1 = 0x%x",
 		irq_status0, irq_status1);
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (irq_status0 & camif_priv->reg_data->eof_irq_mask) {
 		CAM_DBG(CAM_ISP, "Received EOF");
 		camif_priv->eof_ts.tv_sec =
@@ -804,6 +860,7 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
 	}
+#endif
 
 	if (irq_status0 & camif_priv->reg_data->sof_irq_mask) {
 		if ((camif_priv->enable_sof_irq_debug) &&
@@ -818,13 +875,19 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 					false;
 				camif_priv->irq_debug_cnt = 0;
 			}
+#ifdef CONFIG_MACH_XIAOMI
+		} else
+#else
 		} else {
+#endif
 			CAM_DBG(CAM_ISP, "Received SOF");
+#ifndef CONFIG_MACH_XIAOMI
 			camif_priv->sof_ts.tv_sec =
 				payload->ts.mono_time.tv_sec;
 			camif_priv->sof_ts.tv_usec =
 				payload->ts.mono_time.tv_usec;
 		}
+#endif
 
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
@@ -832,6 +895,18 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (irq_status0 & camif_priv->reg_data->epoch0_irq_mask) {
+		CAM_DBG(CAM_ISP, "Received EPOCH");
+
+		if (camif_priv->event_cb)
+			camif_priv->event_cb(camif_priv->priv,
+				CAM_ISP_HW_EVENT_EPOCH, (void *)&evt_info);
+
+		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
+	}
+#endif
 
 	if (irq_status0 & camif_priv->reg_data->reg_update_irq_mask) {
 		CAM_DBG(CAM_ISP, "Received REG_UPDATE_ACK");
@@ -843,16 +918,25 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (irq_status0 & camif_priv->reg_data->eof_irq_mask) {
+		CAM_DBG(CAM_ISP, "Received EOF");
+#else
 	if (irq_status0 & camif_priv->reg_data->epoch0_irq_mask) {
 		CAM_DBG(CAM_ISP, "Received EPOCH");
 		camif_priv->epoch_ts.tv_sec =
 			payload->ts.mono_time.tv_sec;
 		camif_priv->epoch_ts.tv_usec =
 			payload->ts.mono_time.tv_usec;
+#endif
 
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
+#ifdef CONFIG_MACH_XIAOMI
+				CAM_ISP_HW_EVENT_EOF, (void *)&evt_info);
+#else
 				CAM_ISP_HW_EVENT_EPOCH, (void *)&evt_info);
+#endif
 
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
 	}
@@ -860,15 +944,18 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 	if (irq_status0 & camif_priv->reg_data->error_irq_mask0) {
 		CAM_DBG(CAM_ISP, "Received ERROR");
 
+#ifndef CONFIG_MACH_XIAOMI
 		ktime_get_boottime_ts64(&ts);
 		CAM_INFO(CAM_ISP,
 			"current monotonic time stamp seconds %lld:%lld",
 			ts.tv_sec, ts.tv_nsec/1000);
+#endif
 
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
 				CAM_ISP_HW_EVENT_ERROR, (void *)&evt_info);
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP,
 			"SOF %lld:%lld EPOCH %lld:%lld EOF %lld:%lld",
 			camif_priv->sof_ts.tv_sec,
@@ -877,12 +964,14 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 			camif_priv->epoch_ts.tv_usec,
 			camif_priv->eof_ts.tv_sec,
 			camif_priv->eof_ts.tv_usec);
+#endif
 
 		CAM_INFO(CAM_ISP, "Violation status = %x",
 			payload->irq_reg_val[2]);
 
 		ret = CAM_VFE_IRQ_STATUS_OVERFLOW;
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP, "ife_clk_src:%lld",
 			soc_private->ife_clk_src);
 
@@ -890,6 +979,7 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 			soc_private->cpas_version,
 			soc_private->cpas_handle);
 		cam_cpas_log_votes();
+#endif
 
 		if (camif_priv->camif_debug & CAMIF_DEBUG_ENABLE_REG_DUMP)
 			cam_vfe_camif_reg_dump(camif_node->res_priv);
@@ -898,6 +988,7 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 	if (irq_status1 & camif_priv->reg_data->error_irq_mask1) {
 		CAM_DBG(CAM_ISP, "Received ERROR");
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP,
 			"SOF %lld:%lld EPOCH %lld:%lld EOF %lld:%lld",
 			camif_priv->sof_ts.tv_sec,
@@ -907,17 +998,24 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 			camif_priv->eof_ts.tv_sec,
 			camif_priv->eof_ts.tv_usec);
 		ktime_get_boottime_ts64(&ts);
+#endif
 
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
 				CAM_ISP_HW_EVENT_ERROR, (void *)&evt_info);
 
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_INFO(CAM_ISP, "Violation status = %x",
+			payload->irq_reg_val[2]);
+#else
 		CAM_INFO(CAM_ISP,
 			"curr mono time sec %lld.%lld Violation status = %x",
 			ts.tv_sec, ts.tv_nsec/1000, payload->irq_reg_val[2]);
+#endif
 
 		ret = CAM_VFE_IRQ_STATUS_OVERFLOW;
 
+#ifndef CONFIG_MACH_XIAOMI
 		CAM_INFO(CAM_ISP, "ife_clk_src:%lld",
 			soc_private->ife_clk_src);
 
@@ -925,6 +1023,7 @@ static int cam_vfe_camif_handle_irq_bottom_half(void *handler_priv,
 			soc_private->cpas_version,
 			soc_private->cpas_handle);
 		cam_cpas_log_votes();
+#endif
 
 		if (camif_priv->camif_debug & CAMIF_DEBUG_ENABLE_REG_DUMP)
 			cam_vfe_camif_reg_dump(camif_node->res_priv);

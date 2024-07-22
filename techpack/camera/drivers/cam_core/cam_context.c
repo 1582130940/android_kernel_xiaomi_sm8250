@@ -230,6 +230,7 @@ int cam_context_handle_crm_process_evt(struct cam_context *ctx,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_context_handle_crm_dump_req(struct cam_context *ctx,
 	struct cam_req_mgr_dump_info *dump)
 {
@@ -257,6 +258,7 @@ int cam_context_handle_crm_dump_req(struct cam_context *ctx,
 
 	return rc;
 }
+#endif
 
 int cam_context_dump_pf_info(struct cam_context *ctx, unsigned long iova,
 	uint32_t buf_info)
@@ -268,7 +270,9 @@ int cam_context_dump_pf_info(struct cam_context *ctx, unsigned long iova,
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_lock(&ctx->ctx_mutex);
+#endif
 	if ((ctx->state > CAM_CTX_AVAILABLE) &&
 		(ctx->state < CAM_CTX_STATE_MAX)) {
 		if (ctx->state_machine[ctx->state].pagefault_ops) {
@@ -279,7 +283,9 @@ int cam_context_dump_pf_info(struct cam_context *ctx, unsigned long iova,
 				ctx->dev_hdl, ctx->state);
 		}
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	mutex_unlock(&ctx->ctx_mutex);
+#endif
 
 	return rc;
 }
@@ -554,6 +560,7 @@ int cam_context_handle_info_dump(void *context,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_context_handle_dump_dev(struct cam_context *ctx,
 	struct cam_dump_req_cmd *cmd)
 {
@@ -590,6 +597,7 @@ int cam_context_handle_dump_dev(struct cam_context *ctx,
 
 	return rc;
 }
+#endif
 
 int cam_context_init(struct cam_context *ctx,
 	const char *dev_name,
