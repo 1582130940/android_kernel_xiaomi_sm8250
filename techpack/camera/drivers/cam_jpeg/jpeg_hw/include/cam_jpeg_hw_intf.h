@@ -8,6 +8,9 @@
 
 #include "cam_cpas_api.h"
 
+#ifdef CONFIG_MACH_XIAOMI
+#define CAM_JPEG_CTX_MAX              8
+#endif
 #define CAM_JPEG_DEV_PER_TYPE_MAX     1
 
 #define CAM_JPEG_CMD_BUF_MAX_SIZE     128
@@ -15,8 +18,10 @@
 
 #define JPEG_VOTE                     640000000
 
+#ifndef CONFIG_MACH_XIAOMI
 #define CAM_JPEG_HW_DUMP_TAG_MAX_LEN 32
 #define CAM_JPEG_HW_DUMP_NUM_WORDS   5
+#endif
 
 enum cam_jpeg_hw_type {
 	CAM_JPEG_DEV_ENC,
@@ -30,6 +35,7 @@ struct cam_jpeg_set_irq_cb {
 	uint32_t b_set_cb;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_jpeg_hw_dump_args {
 	uint64_t  request_id;
 	uintptr_t cpu_addr;
@@ -42,11 +48,14 @@ struct cam_jpeg_hw_dump_header {
 	uint64_t    size;
 	uint32_t    word_size;
 };
+#endif
 
 enum cam_jpeg_cmd_type {
 	CAM_JPEG_CMD_CDM_CFG,
 	CAM_JPEG_CMD_SET_IRQ_CB,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_JPEG_CMD_HW_DUMP,
+#endif
 	CAM_JPEG_CMD_MAX,
 };
 

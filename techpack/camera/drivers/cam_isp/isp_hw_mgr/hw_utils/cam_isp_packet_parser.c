@@ -143,6 +143,7 @@ static int cam_isp_update_dual_config(
 		}
 
 		hw_mgr_res = &res_list_isp_out[i];
+#ifndef CONFIG_MACH_XIAOMI
 		if (!hw_mgr_res) {
 			CAM_ERR(CAM_ISP,
 				"Invalid isp out resource i %d num_out_res %d",
@@ -150,6 +151,7 @@ static int cam_isp_update_dual_config(
 			rc = -EINVAL;
 			goto end;
 		}
+#endif
 
 		for (j = 0; j < CAM_ISP_HW_SPLIT_MAX; j++) {
 			if (!hw_mgr_res->hw_res[j])
@@ -208,8 +210,13 @@ int cam_isp_add_cmd_buf_update(
 	uint32_t                            total_used_bytes = 0;
 
 	if (hw_mgr_res->res_type == CAM_IFE_HW_MGR_RES_UNINIT) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_ISP, "io res id:%d not valid",
+			hw_mgr_res->res_type);
+#else
 		CAM_ERR(CAM_ISP, "VFE out resource:0x%X type:%d not valid",
 			hw_mgr_res->res_id, hw_mgr_res->res_type);
+#endif
 		return -EINVAL;
 	}
 
@@ -475,8 +482,12 @@ int cam_isp_add_io_buffers(
 	struct cam_ife_hw_mgr_res            *res_list_isp_out,
 	struct list_head                     *res_list_ife_in_rd,
 	uint32_t                              size_isp_out,
+#ifdef CONFIG_MACH_XIAOMI
+	bool                                  fill_fence)
+#else
 	bool                                  fill_fence,
 	struct cam_isp_frame_header_info     *frame_header_info)
+#endif
 {
 	int                                 rc = 0;
 	dma_addr_t                          io_addr[CAM_PACKET_MAX_PLANES];
@@ -492,9 +503,11 @@ int cam_isp_add_io_buffers(
 	uint32_t                            i, j, num_out_buf, num_in_buf;
 	uint32_t                            res_id_out, res_id_in, plane_id;
 	uint32_t                            io_cfg_used_bytes, num_ent;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                           *image_buf_addr;
 	uint32_t                           *image_buf_offset;
 	uint64_t                            iova_addr;
+#endif
 	size_t                              size;
 	int32_t                             hdl;
 	int                                 mmu_hdl;
@@ -695,6 +708,7 @@ int cam_isp_add_io_buffers(
 			wm_update.image_buf = io_addr;
 			wm_update.num_buf   = plane_id;
 			wm_update.io_cfg    = &io_cfg[i];
+#ifndef CONFIG_MACH_XIAOMI
 			wm_update.frame_header = 0;
 			for (plane_id = 0; plane_id < CAM_PACKET_MAX_PLANES;
 				plane_id++)
@@ -713,6 +727,7 @@ int cam_isp_add_io_buffers(
 					frame_header_info->frame_header_res_id,
 					wm_update.frame_header);
 			}
+#endif
 
 			update_buf.cmd.size = kmd_buf_remain_size;
 			update_buf.wm_update = &wm_update;
@@ -732,6 +747,7 @@ int cam_isp_add_io_buffers(
 				return rc;
 			}
 			io_cfg_used_bytes += update_buf.cmd.used_bytes;
+#ifndef CONFIG_MACH_XIAOMI
 			image_buf_addr =
 				out_map_entries->image_buf_addr;
 			image_buf_offset =
@@ -744,6 +760,7 @@ int cam_isp_add_io_buffers(
 						io_addr[plane_id] +
 						image_buf_offset[plane_id];
 			}
+#endif
 		}
 		for (j = 0; j < CAM_ISP_HW_SPLIT_MAX &&
 			io_cfg[i].direction == CAM_BUF_INPUT; j++) {
@@ -956,7 +973,11 @@ int cam_isp_add_reg_update(
 				return rc;
 
 			CAM_DBG(CAM_ISP, "Reg update added for res %d hw_id %d",
+#ifdef CONFIG_MACH_XIAOMI
+				res->res_id, res->hw_intf->hw_idx);
+#else
 				res->res_type, res->hw_intf->hw_idx);
+#endif
 			reg_update_size += get_regup.cmd.used_bytes;
 		}
 	}
@@ -991,6 +1012,7 @@ int cam_isp_add_reg_update(
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_isp_add_go_cmd(
 	struct cam_hw_prepare_update_args    *prepare,
 	struct list_head                     *res_list_isp_rd,
@@ -1086,4 +1108,5 @@ int cam_isp_add_go_cmd(
 
 	return rc;
 }
+#endif
 

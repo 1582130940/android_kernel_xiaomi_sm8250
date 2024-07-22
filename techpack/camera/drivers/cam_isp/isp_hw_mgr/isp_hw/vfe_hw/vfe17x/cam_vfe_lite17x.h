@@ -88,6 +88,7 @@ static struct cam_vfe_rdi_reg_data  vfe17x_rdi_3_data = {
 	.reg_update_irq_mask      = 0x100,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 static struct cam_vfe_rdi_overflow_status vfe17x_rdi_irq_status = {
 	.rdi0_overflow_mask = 0x8,
 	.rdi1_overflow_mask = 0x10,
@@ -95,6 +96,7 @@ static struct cam_vfe_rdi_overflow_status vfe17x_rdi_irq_status = {
 	.rdi3_overflow_mask = 0x20,
 	.rdi_overflow_mask  = 0x3c,
 };
+#endif
 
 static struct cam_vfe_top_ver2_hw_info vfe17x_top_hw_info = {
 	.common_reg = &vfe17x_top_common_reg,
@@ -113,7 +115,9 @@ static struct cam_vfe_top_ver2_hw_info vfe17x_top_hw_info = {
 			&vfe17x_rdi_2_data,
 			&vfe17x_rdi_3_data,
 			},
+#ifndef CONFIG_MACH_XIAOMI
 		.rdi_irq_status  = &vfe17x_rdi_irq_status,
+#endif
 		},
 	.num_mux = 4,
 	.mux_type = {
@@ -332,7 +336,9 @@ static struct cam_vfe_bus_ver2_hw_info vfe17x_bus_hw_info = {
 			.max_height    = -1,
 		},
 	},
+#ifndef CONFIG_MACH_XIAOMI
 	.support_consumed_addr = false,
+#endif
 };
 
 static struct cam_vfe_hw_info cam_vfe_lite17x_hw_info = {

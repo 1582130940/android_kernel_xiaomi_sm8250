@@ -234,6 +234,7 @@ static int32_t cam_sensor_handle_continuous_write(
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int32_t cam_sensor_get_io_buffer(
 	struct cam_buf_io_cfg *io_cfg,
 	struct cam_sensor_i2c_reg_setting *i2c_settings)
@@ -369,14 +370,26 @@ static int32_t cam_sensor_handle_continuous_read(
 
 	return rc;
 }
+#endif
 
 static int cam_sensor_handle_slave_info(
+#ifdef CONFIG_MACH_XIAOMI
+	struct camera_io_master *io_master,
+	uint32_t *cmd_buf)
+#else
 	uint32_t *cmd_buf,
 	struct i2c_settings_array *i2c_reg_settings,
 	struct list_head **list_ptr)
+#endif
 {
 	int rc = 0;
 	struct cam_cmd_i2c_info *i2c_info = (struct cam_cmd_i2c_info *)cmd_buf;
+#ifdef CONFIG_MACH_XIAOMI
+	if (io_master == NULL || cmd_buf == NULL) {
+		CAM_ERR(CAM_SENSOR, "Invalid args");
+		return -EINVAL;
+	}
+#else
 	struct i2c_settings_list  *i2c_list;
 
 	i2c_list =
@@ -385,9 +398,32 @@ static int cam_sensor_handle_slave_info(
 		CAM_ERR(CAM_SENSOR, "Failed in allocating mem for list");
 		return -ENOMEM;
 	}
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+	switch (io_master->master_type) {
+	case CCI_MASTER:
+		io_master->cci_client->sid = (i2c_info->slave_addr >> 1);
+		io_master->cci_client->i2c_freq_mode = i2c_info->i2c_freq_mode;
+		break;
+
+	case I2C_MASTER:
+		io_master->client->addr = i2c_info->slave_addr;
+		break;
+
+	case SPI_MASTER:
+		break;
+
+	default:
+		CAM_ERR(CAM_SENSOR, "Invalid master type: %d",
+			io_master->master_type);
+		rc = -EINVAL;
+		break;
+	}
+#else
 	i2c_list->op_code = CAM_SENSOR_I2C_SET_I2C_INFO;
 	i2c_list->slave_info = *i2c_info;
+#endif
 
 	return rc;
 }
@@ -410,8 +446,12 @@ int cam_sensor_i2c_command_parser(
 	struct camera_io_master *io_master,
 	struct i2c_settings_array *i2c_reg_settings,
 	struct cam_cmd_buf_desc   *cmd_desc,
+#ifdef CONFIG_MACH_XIAOMI
+	int32_t num_cmd_buffers)
+#else
 	int32_t num_cmd_buffers,
 	struct cam_buf_io_cfg *io_cfg)
+#endif
 {
 	int16_t                   rc = 0, i = 0;
 	size_t                    len_of_buff = 0;
@@ -608,7 +648,11 @@ int cam_sensor_i2c_command_parser(
 					goto end;
 				}
 				rc = cam_sensor_handle_slave_info(
+#ifdef CONFIG_MACH_XIAOMI
+					io_master, cmd_buf);
+#else
 					cmd_buf, i2c_reg_settings, &list);
+#endif
 				if (rc) {
 					CAM_ERR(CAM_SENSOR,
 					"Handle slave info failed with rc: %d",
@@ -622,6 +666,7 @@ int cam_sensor_i2c_command_parser(
 				byte_cnt += cmd_length_in_bytes;
 				break;
 			}
+#ifndef CONFIG_MACH_XIAOMI
 			case CAMERA_SENSOR_CMD_TYPE_I2C_RNDM_RD: {
 				uint16_t cmd_length_in_bytes   = 0;
 				struct cam_cmd_i2c_random_rd *i2c_random_rd =
@@ -704,6 +749,7 @@ int cam_sensor_i2c_command_parser(
 				byte_cnt += cmd_length_in_bytes;
 				break;
 			}
+#endif
 			default:
 				CAM_ERR(CAM_SENSOR, "Invalid Command Type:%d",
 					 cmm_hdr->cmd_type);
@@ -792,6 +838,7 @@ int cam_sensor_util_i2c_apply_setting(
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int32_t cam_sensor_i2c_read_data(
 	struct i2c_settings_array *i2c_settings,
 	struct camera_io_master *io_master_info)
@@ -881,6 +928,7 @@ int32_t cam_sensor_i2c_read_data(
 
 	return rc;
 }
+#endif
 
 int32_t msm_camera_fill_vreg_params(
 	struct cam_hw_soc_info *soc_info,
@@ -1061,6 +1109,31 @@ int32_t msm_camera_fill_vreg_params(
 			if (j == num_vreg)
 				power_setting[i].seq_val = INVALID_VREG;
 			break;
+#ifdef CONFIG_MACH_XIAOMI
+		case SENSOR_CUSTOM_REG3:
+			for (j = 0; j < num_vreg; j++) {
+
+				if (!strcmp(soc_info->rgltr_name[j],
+					"cam_v_custom3")) {
+					CAM_DBG(CAM_SENSOR,
+						"i:%d j:%d cam_vcustom3", i, j);
+					power_setting[i].seq_val = j;
+
+					if (VALIDATE_VOLTAGE(
+						soc_info->rgltr_min_volt[j],
+						soc_info->rgltr_max_volt[j],
+						power_setting[i].config_val)) {
+						soc_info->rgltr_min_volt[j] =
+						soc_info->rgltr_max_volt[j] =
+						power_setting[i].config_val;
+					}
+					break;
+				}
+			}
+			if (j == num_vreg)
+				power_setting[i].seq_val = INVALID_VREG;
+			break;
+#endif
 		default:
 			break;
 		}
@@ -2002,6 +2075,9 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 		case SENSOR_VAF_PWDM:
 		case SENSOR_CUSTOM_REG1:
 		case SENSOR_CUSTOM_REG2:
+#ifdef CONFIG_MACH_XIAOMI
+		case SENSOR_CUSTOM_REG3:
+#endif
 			if (power_setting->seq_val == INVALID_VREG)
 				break;
 
@@ -2118,6 +2194,9 @@ power_up_failed:
 		case SENSOR_VAF_PWDM:
 		case SENSOR_CUSTOM_REG1:
 		case SENSOR_CUSTOM_REG2:
+#ifdef CONFIG_MACH_XIAOMI
+		case SENSOR_CUSTOM_REG3:
+#endif
 			if (power_setting->seq_val < num_vreg) {
 				CAM_DBG(CAM_SENSOR, "Disable Regulator");
 				vreg_idx = power_setting->seq_val;
@@ -2286,6 +2365,9 @@ int cam_sensor_util_power_down(struct cam_sensor_power_ctrl_t *ctrl,
 		case SENSOR_VAF_PWDM:
 		case SENSOR_CUSTOM_REG1:
 		case SENSOR_CUSTOM_REG2:
+#ifdef CONFIG_MACH_XIAOMI
+		case SENSOR_CUSTOM_REG3:
+#endif
 			if (pd->seq_val == INVALID_VREG)
 				break;
 

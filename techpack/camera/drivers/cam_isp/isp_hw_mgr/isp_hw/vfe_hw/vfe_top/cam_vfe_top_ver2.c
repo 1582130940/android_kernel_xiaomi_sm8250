@@ -19,7 +19,9 @@ struct cam_vfe_top_ver2_common_data {
 	struct cam_hw_soc_info                     *soc_info;
 	struct cam_hw_intf                         *hw_intf;
 	struct cam_vfe_top_ver2_reg_offset_common  *common_reg;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_top_dump_data               *dump_data;
+#endif
 };
 
 struct cam_vfe_top_ver2_priv {
@@ -28,9 +30,11 @@ struct cam_vfe_top_ver2_priv {
 	unsigned long                       req_clk_rate[
 						CAM_VFE_TOP_MUX_MAX];
 	struct cam_vfe_top_priv_common      top_common;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                            num_pix_rsrc;
 	uint32_t                            num_pd_rsrc;
 	uint32_t                            num_rdi_rsrc;
+#endif
 };
 
 static int cam_vfe_top_mux_get_base(struct cam_vfe_top_ver2_priv *top_priv,
@@ -86,11 +90,15 @@ static int cam_vfe_top_set_hw_clk_rate(
 	struct cam_hw_soc_info        *soc_info = NULL;
 	int                            i, rc = 0;
 	unsigned long                  max_clk_rate = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_soc_private    *soc_private = NULL;
+#endif
 
 	soc_info = top_priv->common_data.soc_info;
+#ifndef CONFIG_MACH_XIAOMI
 	soc_private =
 		(struct cam_vfe_soc_private *)soc_info->soc_private;
+#endif
 
 	for (i = 0; i < top_priv->top_common.num_mux; i++) {
 		if (top_priv->req_clk_rate[i] > max_clk_rate)
@@ -102,7 +110,9 @@ static int cam_vfe_top_set_hw_clk_rate(
 	CAM_DBG(CAM_PERF, "VFE: Clock name=%s idx=%d clk=%llu",
 		soc_info->clk_name[soc_info->src_clk_idx],
 		soc_info->src_clk_idx, max_clk_rate);
+#ifndef CONFIG_MACH_XIAOMI
 	soc_private->ife_clk_src = max_clk_rate;
+#endif
 	rc = cam_soc_util_set_src_clk_rate(soc_info, max_clk_rate);
 
 	if (!rc)
@@ -185,6 +195,7 @@ static int cam_vfe_top_mux_get_reg_update(
 	return -EINVAL;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_vfe_top_get_data(
 	struct cam_vfe_top_ver2_priv *top_priv,
 	void *cmd_args, uint32_t arg_size)
@@ -197,6 +208,7 @@ static int cam_vfe_top_get_data(
 
 	return -EINVAL;
 }
+#endif
 
 int cam_vfe_top_get_hw_caps(void *device_priv,
 	void *get_hw_cap_args, uint32_t arg_size)
@@ -204,6 +216,7 @@ int cam_vfe_top_get_hw_caps(void *device_priv,
 	return -EPERM;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_vfe_hw_dump(
 	struct cam_vfe_top_ver2_priv *top_priv,
 	void *cmd_args,
@@ -344,6 +357,7 @@ static int cam_vfe_hw_dump(
 	CAM_DBG(CAM_ISP, "offset %zu", dump_args->offset);
 	return 0;
 }
+#endif
 
 int cam_vfe_top_init_hw(void *device_priv,
 	void *init_hw_args, uint32_t arg_size)
@@ -487,9 +501,11 @@ int cam_vfe_top_release(void *device_priv,
 	top_priv = (struct cam_vfe_top_ver2_priv   *)device_priv;
 	mux_res = (struct cam_isp_resource_node *)release_args;
 
+#ifndef CONFIG_MACH_XIAOMI
 	top_priv->num_pix_rsrc = 0;
 	top_priv->num_pd_rsrc = 0;
 	top_priv->num_rdi_rsrc = 0;
+#endif
 
 	CAM_DBG(CAM_ISP, "Resource in state %d", mux_res->res_state);
 	if (mux_res->res_state < CAM_ISP_RESOURCE_STATE_RESERVED) {
@@ -565,8 +581,10 @@ int cam_vfe_top_stop(void *device_priv,
 	struct cam_vfe_top_ver2_priv            *top_priv;
 	struct cam_isp_resource_node            *mux_res;
 	struct cam_hw_info                      *hw_info = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_hw_soc_info                  *soc_info = NULL;
 	struct cam_vfe_soc_private              *soc_private = NULL;
+#endif
 	int i, rc = 0;
 
 	if (!device_priv || !stop_args) {
@@ -577,8 +595,10 @@ int cam_vfe_top_stop(void *device_priv,
 	top_priv = (struct cam_vfe_top_ver2_priv   *)device_priv;
 	mux_res = (struct cam_isp_resource_node *)stop_args;
 	hw_info = (struct cam_hw_info  *)mux_res->hw_intf->hw_priv;
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = top_priv->common_data.soc_info;
 	soc_private = soc_info->soc_private;
+#endif
 
 	if ((mux_res->res_id == CAM_ISP_HW_VFE_IN_CAMIF) ||
 		(mux_res->res_id == CAM_ISP_HW_VFE_IN_PDLIB) ||
@@ -609,7 +629,9 @@ int cam_vfe_top_stop(void *device_priv,
 			}
 		}
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	soc_private->ife_clk_src = 0;
+#endif
 	return rc;
 }
 
@@ -625,6 +647,7 @@ int cam_vfe_top_write(void *device_priv,
 	return -EPERM;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_vfe_top_query(struct cam_vfe_top_ver2_priv *top_priv,
 		void *cmd_args, uint32_t arg_size)
 {
@@ -698,6 +721,7 @@ static int cam_vfe_get_num_of_acquired_resource(
 
 	return 0;
 }
+#endif
 
 int cam_vfe_top_process_cmd(void *device_priv, uint32_t cmd_type,
 	void *cmd_args, uint32_t arg_size)
@@ -727,10 +751,12 @@ int cam_vfe_top_process_cmd(void *device_priv, uint32_t cmd_type,
 		rc = cam_vfe_top_mux_get_reg_update(top_priv, cmd_args,
 			arg_size);
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ISP_HW_CMD_CAMIF_DATA:
 		rc = cam_vfe_top_get_data(top_priv, cmd_args,
 			arg_size);
 		break;
+#endif
 	case CAM_ISP_HW_CMD_CLOCK_UPDATE:
 		rc = cam_vfe_top_clock_update(top_priv, cmd_args,
 			arg_size);
@@ -751,6 +777,7 @@ int cam_vfe_top_process_cmd(void *device_priv, uint32_t cmd_type,
 		rc = cam_vfe_top_bw_control(soc_private, &top_priv->top_common,
 			cmd_args, arg_size);
 		break;
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_ISP_HW_CMD_DUMP_HW:
 		rc = cam_vfe_hw_dump(top_priv,
 			cmd_args, arg_size);
@@ -770,6 +797,7 @@ int cam_vfe_top_process_cmd(void *device_priv, uint32_t cmd_type,
 		rc = cam_vfe_get_num_of_acquired_resource(top_priv,
 			cmd_args, arg_size);
 		break;
+#endif
 	default:
 		rc = -EINVAL;
 		CAM_ERR(CAM_ISP, "Error! Invalid cmd:%d", cmd_type);
@@ -892,7 +920,9 @@ int cam_vfe_top_ver2_init(
 	top_priv->common_data.hw_intf      = hw_intf;
 	top_priv->top_common.hw_idx        = hw_intf->hw_idx;
 	top_priv->common_data.common_reg   = ver2_hw_info->common_reg;
+#ifndef CONFIG_MACH_XIAOMI
 	top_priv->common_data.dump_data    = ver2_hw_info->dump_data;
+#endif
 
 	return rc;
 

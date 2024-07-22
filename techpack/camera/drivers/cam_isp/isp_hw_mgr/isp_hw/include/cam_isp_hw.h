@@ -14,8 +14,10 @@
 #include "cam_irq_controller.h"
 #include "cam_hw_intf.h"
 
+#ifndef CONFIG_MACH_XIAOMI
 /* Maximum length of tag while dumping */
 #define CAM_ISP_HW_DUMP_TAG_MAX_LEN 32
+#endif
 /*
  * struct cam_isp_timestamp:
  *
@@ -95,10 +97,14 @@ enum cam_isp_hw_cmd_type {
 	CAM_ISP_HW_CMD_BW_CONTROL,
 	CAM_ISP_HW_CMD_STOP_BUS_ERR_IRQ,
 	CAM_ISP_HW_CMD_UBWC_UPDATE,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_HW_CMD_DUMP_BUS_INFO,
+#endif
 	CAM_ISP_HW_CMD_SOF_IRQ_DEBUG,
 	CAM_ISP_HW_CMD_SET_CAMIF_DEBUG,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_HW_CMD_CAMIF_DATA,
+#endif
 	CAM_ISP_HW_CMD_CSID_CLOCK_UPDATE,
 	CAM_ISP_HW_CMD_FE_UPDATE_IN_RD,
 	CAM_ISP_HW_CMD_FE_UPDATE_BUS_RD,
@@ -107,6 +113,7 @@ enum cam_isp_hw_cmd_type {
 	CAM_ISP_HW_CMD_WM_CONFIG_UPDATE,
 	CAM_ISP_HW_CMD_CSID_QCFA_SUPPORTED,
 	CAM_ISP_HW_CMD_QUERY_REGSPACE_DATA,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_ISP_HW_CMD_QUERY,
 	CAM_ISP_HW_CMD_QUERY_DSP_MODE,
 	CAM_ISP_HW_CMD_DUMP_HW,
@@ -117,9 +124,11 @@ enum cam_isp_hw_cmd_type {
 	CAM_ISP_HW_CMD_SET_NUM_OF_ACQUIRED_RESOURCE,
 	CAM_ISP_HW_CMD_GET_NUM_OF_ACQUIRED_RESOURCE,
 	CAM_ISP_HW_CMD_IS_CONSUMED_ADDR_SUPPORT,
+#endif
 	CAM_ISP_HW_CMD_MAX,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_isp_hw_cmd_query
  *
@@ -130,6 +139,7 @@ enum cam_isp_hw_cmd_type {
 struct cam_isp_hw_cmd_query {
 	int query_cmd;
 };
+#endif
 
 /*
  * struct cam_isp_resource_node:
@@ -199,7 +209,9 @@ struct cam_isp_hw_event_info {
 	uint32_t                       res_id;
 	uint32_t                       hw_idx;
 	uint32_t                       err_type;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                       reg_val;
+#endif
 };
 
 /*
@@ -233,10 +245,14 @@ struct cam_isp_hw_cmd_buf_update {
  */
 struct cam_isp_hw_get_wm_update {
 	dma_addr_t                     *image_buf;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                        image_buf_offset[CAM_PACKET_MAX_PLANES];
+#endif
 	uint32_t                        num_buf;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t                        frame_header;
 	uint32_t                        local_id;
+#endif
 	struct cam_buf_io_cfg          *io_cfg;
 };
 
@@ -284,6 +300,7 @@ struct cam_isp_hw_dual_isp_update_args {
 	struct cam_isp_dual_config      *dual_cfg;
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /*
  * struct cam_isp_hw_dump_args:
  *
@@ -318,5 +335,6 @@ struct cam_isp_hw_dump_header {
 	uint64_t  size;
 	uint32_t  word_size;
 };
+#endif
 
 #endif /* _CAM_ISP_HW_H_ */

@@ -27,6 +27,7 @@ static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_sensor_subdev_open(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -46,6 +47,7 @@ static int cam_sensor_subdev_open(struct v4l2_subdev *sd,
 
 	return 0;
 }
+#endif
 
 static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
@@ -59,6 +61,9 @@ static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
 	}
 
 	mutex_lock(&(s_ctrl->cam_sensor_mutex));
+#ifdef CONFIG_MACH_XIAOMI
+	cam_sensor_shutdown(s_ctrl);
+#else
 	if (s_ctrl->open_cnt <= 0) {
 		mutex_unlock(&(s_ctrl->cam_sensor_mutex));
 		return -EINVAL;
@@ -69,6 +74,7 @@ static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
 
 	if (s_ctrl->open_cnt == 0)
 		cam_sensor_shutdown(s_ctrl);
+#endif
 	mutex_unlock(&(s_ctrl->cam_sensor_mutex));
 
 	return 0;
@@ -126,7 +132,9 @@ static struct v4l2_subdev_ops cam_sensor_subdev_ops = {
 };
 
 static const struct v4l2_subdev_internal_ops cam_sensor_internal_ops = {
+#ifndef CONFIG_MACH_XIAOMI
 	.open  = cam_sensor_subdev_open,
+#endif
 	.close = cam_sensor_subdev_close,
 };
 
@@ -185,7 +193,9 @@ static int32_t cam_sensor_driver_i2c_probe(struct i2c_client *client,
 	s_ctrl->of_node = client->dev.of_node;
 	s_ctrl->io_master_info.master_type = I2C_MASTER;
 	s_ctrl->is_probe_succeed = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	s_ctrl->open_cnt = 0;
+#endif
 	s_ctrl->last_flush_req = 0;
 
 	rc = cam_sensor_parse_dt(s_ctrl);
@@ -210,9 +220,11 @@ static int32_t cam_sensor_driver_i2c_probe(struct i2c_client *client,
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.config_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamon_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamoff_settings.list_head));
+#ifndef CONFIG_MACH_XIAOMI
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweron_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweroff_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.read_settings.list_head));
+#endif
 
 	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++)
 		INIT_LIST_HEAD(&(s_ctrl->i2c_data.per_frame[i].list_head));
@@ -316,7 +328,9 @@ static int32_t cam_sensor_driver_platform_probe(
 	/* Initialize sensor device type */
 	s_ctrl->of_node = pdev->dev.of_node;
 	s_ctrl->is_probe_succeed = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	s_ctrl->open_cnt = 0;
+#endif
 	s_ctrl->last_flush_req = 0;
 
 	/*fill in platform device*/
@@ -349,9 +363,11 @@ static int32_t cam_sensor_driver_platform_probe(
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.config_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamon_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.streamoff_settings.list_head));
+#ifndef CONFIG_MACH_XIAOMI
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweron_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.poweroff_reg_settings.list_head));
 	INIT_LIST_HEAD(&(s_ctrl->i2c_data.read_settings.list_head));
+#endif
 
 	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++)
 		INIT_LIST_HEAD(&(s_ctrl->i2c_data.per_frame[i].list_head));

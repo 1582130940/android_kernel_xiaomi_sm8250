@@ -172,6 +172,7 @@ rel_kmd_buf:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 void cam_packet_dump_patch_info(struct cam_packet *packet,
 	int32_t iommu_hdl, int32_t sec_mmu_hdl)
 {
@@ -226,6 +227,7 @@ void cam_packet_dump_patch_info(struct cam_packet *packet,
 		cam_mem_put_cpu_buf(patch_desc[i].dst_buf_hdl);
 	}
 }
+#endif
 
 int cam_packet_util_process_patches(struct cam_packet *packet,
 	int32_t iommu_hdl, int32_t sec_mmu_hdl)

@@ -16,6 +16,7 @@
 
 #define CAM_SUBDEVICE_EVENT_MAX 30
 
+#ifndef CONFIG_MACH_XIAOMI
 enum cam_subdev_message_type_t {
 	CAM_SUBDEV_MESSAGE_IRQ_ERR = 0x1
 };
@@ -24,6 +25,7 @@ enum cam_subdev_rwsem {
 	CAM_SUBDEV_LOCK = 1,
 	CAM_SUBDEV_UNLOCK,
 };
+#endif
 
 /**
  * struct cam_subdev - describes a camera sub-device
@@ -59,12 +61,15 @@ struct cam_subdev {
 	u32                                    sd_flags;
 	void                                  *token;
 	u32                                    ent_function;
+#ifndef CONFIG_MACH_XIAOMI
 	void                                  (*msg_cb)(
 				struct v4l2_subdev *sd,
 				enum cam_subdev_message_type_t msg_type,
 				uint32_t data);
+#endif
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
   * cam_subdev_notify_message()
   *
@@ -78,6 +83,7 @@ struct cam_subdev {
 void cam_subdev_notify_message(u32 subdev_type,
 	enum cam_subdev_message_type_t message_type,
 	uint32_t data);
+#endif
 
 /**
  * cam_subdev_probe()
@@ -133,6 +139,7 @@ int cam_register_subdev(struct cam_subdev *sd);
  */
 int cam_unregister_subdev(struct cam_subdev *sd);
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_req_mgr_rwsem_read_op()
  *
@@ -156,5 +163,6 @@ bool  cam_req_mgr_is_open(void);
  * @brief:    This common utility function returns the shutdown state
  */
 bool cam_req_mgr_is_shutdown(void);
+#endif
 
 #endif /* _CAM_SUBDEV_H_ */

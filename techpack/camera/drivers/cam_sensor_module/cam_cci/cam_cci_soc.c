@@ -6,6 +6,7 @@
 #include "cam_cci_dev.h"
 #include "cam_cci_core.h"
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_cci_init_master(struct cci_device *cci_dev,
 	enum cci_i2c_master_t master)
 {
@@ -75,11 +76,16 @@ static int cam_cci_init_master(struct cci_device *cci_dev,
 
 	return 0;
 }
+#endif
 
 int cam_cci_init(struct v4l2_subdev *sd,
 	struct cam_cci_ctrl *c_ctrl)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	uint8_t i = 0, j = 0;
+#else
 	uint8_t i = 0;
+#endif
 	int32_t rc = 0;
 	struct cci_device *cci_dev;
 	enum cci_i2c_master_t master = c_ctrl->cci_info->cci_i2c_master;
@@ -90,8 +96,12 @@ int cam_cci_init(struct v4l2_subdev *sd,
 
 	cci_dev = v4l2_get_subdevdata(sd);
 	if (!cci_dev || !c_ctrl) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_CCI, "failed: invalid params %pK %pK",
+#else
 		CAM_ERR(CAM_CCI,
 			"failed: invalid params cci_dev:%pK, c_ctrl:%pK",
+#endif
 			cci_dev, c_ctrl);
 		rc = -EINVAL;
 		return rc;
@@ -101,13 +111,20 @@ int cam_cci_init(struct v4l2_subdev *sd,
 	base = soc_info->reg_map[0].mem_base;
 
 	if (!soc_info || !base) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_ERR(CAM_CCI, "failed: invalid params %pK %pK",
+#else
 		CAM_ERR(CAM_CCI,
 			"failed: invalid params soc_info:%pK, base:%pK",
+#endif
 			soc_info, base);
 		rc = -EINVAL;
 		return rc;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	CAM_DBG(CAM_CCI, "Base address %pK", base);
+#else
 	if (master >= MASTER_MAX || master < 0) {
 		CAM_ERR(CAM_CCI, "Incorrect Master: %d", master);
 		return -EINVAL;
@@ -118,8 +135,44 @@ int cam_cci_init(struct v4l2_subdev *sd,
 		rc = -ENOMEM;
 		return rc;
 	}
+#endif
 
 	if (cci_dev->ref_count++) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_DBG(CAM_CCI, "ref_count %d", cci_dev->ref_count);
+		CAM_DBG(CAM_CCI, "master %d", master);
+		if (master < MASTER_MAX && master >= 0) {
+			mutex_lock(&cci_dev->cci_master_info[master].mutex);
+			flush_workqueue(cci_dev->write_wq[master]);
+			/* Re-initialize the completion */
+			reinit_completion(
+			&cci_dev->cci_master_info[master].reset_complete);
+			reinit_completion(
+			&cci_dev->cci_master_info[master].rd_done);
+			for (i = 0; i < NUM_QUEUES; i++)
+				reinit_completion(
+				&cci_dev->cci_master_info[master].report_q[i]);
+			/* Set reset pending flag to true */
+			cci_dev->cci_master_info[master].reset_pending = true;
+			cci_dev->cci_master_info[master].status = 0;
+			/* Set proper mask to RESET CMD address */
+			if (master == MASTER_0)
+				cam_io_w_mb(CCI_M0_RESET_RMSK,
+					base + CCI_RESET_CMD_ADDR);
+			else
+				cam_io_w_mb(CCI_M1_RESET_RMSK,
+					base + CCI_RESET_CMD_ADDR);
+			/* wait for reset done irq */
+			rc = wait_for_completion_timeout(
+			&cci_dev->cci_master_info[master].reset_complete,
+				CCI_TIMEOUT);
+			if (rc <= 0)
+				CAM_ERR(CAM_CCI, "wait failed %d", rc);
+			cci_dev->cci_master_info[master].status = 0;
+			mutex_unlock(&cci_dev->cci_master_info[master].mutex);
+		}
+		return 0;
+#else
 		rc = cam_cci_init_master(cci_dev, master);
 		if (rc) {
 			CAM_ERR(CAM_CCI, "Failed to init: Master: %d: rc: %d",
@@ -129,11 +182,29 @@ int cam_cci_init(struct v4l2_subdev *sd,
 		CAM_DBG(CAM_CCI, "ref_count %d, master: %d",
 			cci_dev->ref_count, master);
 		return rc;
+#endif
 	}
 
 	ahb_vote.type = CAM_VOTE_ABSOLUTE;
 	ahb_vote.vote.level = CAM_LOWSVS_VOTE;
 	axi_vote.num_paths = 1;
+#ifdef CONFIG_MACH_XIAOMI
+	axi_vote.axi_path[0].path_data_type =
+		CAM_AXI_PATH_DATA_ALL;
+	axi_vote.axi_path[0].transac_type =
+		CAM_AXI_TRANSACTION_WRITE;
+	axi_vote.axi_path[0].camnoc_bw =
+		CAM_CPAS_DEFAULT_AXI_BW;
+	axi_vote.axi_path[0].mnoc_ab_bw =
+		CAM_CPAS_DEFAULT_AXI_BW;
+	axi_vote.axi_path[0].mnoc_ib_bw =
+		CAM_CPAS_DEFAULT_AXI_BW;
+
+	rc = cam_cpas_start(cci_dev->cpas_handle,
+		&ahb_vote, &axi_vote);
+	if (rc != 0)
+		CAM_ERR(CAM_CCI, "CPAS start failed");
+#else
 	axi_vote.axi_path[0].path_data_type = CAM_AXI_PATH_DATA_ALL;
 	axi_vote.axi_path[0].transac_type = CAM_AXI_TRANSACTION_WRITE;
 	axi_vote.axi_path[0].camnoc_bw = CAM_CPAS_DEFAULT_AXI_BW;
@@ -145,15 +216,29 @@ int cam_cci_init(struct v4l2_subdev *sd,
 		CAM_ERR(CAM_CCI, "CPAS start failed rc= %d", rc);
 		return rc;
 	}
+#endif
 
 	cam_cci_get_clk_rates(cci_dev, c_ctrl);
+
+#ifdef CONFIG_MACH_XIAOMI
+	/* Re-initialize the completion */
+	reinit_completion(&cci_dev->cci_master_info[master].reset_complete);
+	reinit_completion(&cci_dev->cci_master_info[master].rd_done);
+	for (i = 0; i < NUM_QUEUES; i++)
+		reinit_completion(
+			&cci_dev->cci_master_info[master].report_q[i]);
+#endif
 
 	/* Enable Regulators and IRQ*/
 	rc = cam_soc_util_enable_platform_resource(soc_info, true,
 		CAM_LOWSVS_VOTE, true);
 	if (rc < 0) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_DBG(CAM_CCI, "request platform resources failed");
+#else
 		CAM_DBG(CAM_CCI, "request platform resources failed, rc: %d",
 			rc);
+#endif
 		goto platform_enable_failed;
 	}
 
@@ -163,12 +248,44 @@ int cam_cci_init(struct v4l2_subdev *sd,
 	cci_dev->payload_size = MSM_CCI_WRITE_DATA_PAYLOAD_SIZE_11;
 	cci_dev->support_seq_write = 1;
 
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < NUM_MASTERS; i++) {
+		for (j = 0; j < NUM_QUEUES; j++) {
+			if (j == QUEUE_0)
+				cci_dev->cci_i2c_queue_info[i][j].max_queue_size
+					= CCI_I2C_QUEUE_0_SIZE;
+			else
+				cci_dev->cci_i2c_queue_info[i][j].max_queue_size
+					= CCI_I2C_QUEUE_1_SIZE;
+
+			CAM_DBG(CAM_CCI, "CCI Master[%d] :: Q0 : %d Q1 : %d", i,
+			cci_dev->cci_i2c_queue_info[i][j].max_queue_size,
+			cci_dev->cci_i2c_queue_info[i][j].max_queue_size);
+		}
+	}
+
+	cci_dev->cci_master_info[master].reset_pending = true;
+	cci_dev->cci_master_info[master].status = 0;
+	cam_io_w_mb(CCI_RESET_CMD_RMSK, base +
+			CCI_RESET_CMD_ADDR);
+	cam_io_w_mb(0x1, base + CCI_RESET_CMD_ADDR);
+	rc = wait_for_completion_timeout(
+		&cci_dev->cci_master_info[master].reset_complete,
+		CCI_TIMEOUT);
+	if (rc <= 0) {
+		CAM_ERR(CAM_CCI, "wait_for_completion_timeout");
+		if (rc == 0)
+			rc = -ETIMEDOUT;
+		goto reset_complete_failed;
+	}
+#else
 	rc = cam_cci_init_master(cci_dev, master);
 	if (rc) {
 		CAM_ERR(CAM_CCI, "Failed to init: Master: %d, rc: %d",
 			master, rc);
 		goto reset_complete_failed;
 	}
+#endif
 
 	for (i = 0; i < MASTER_MAX; i++)
 		cci_dev->i2c_freq_mode[i] = I2C_MAX_MODES;
@@ -178,6 +295,18 @@ int cam_cci_init(struct v4l2_subdev *sd,
 	cam_io_w_mb(CCI_IRQ_MASK_1_RMSK, base + CCI_IRQ_MASK_1_ADDR);
 	cam_io_w_mb(CCI_IRQ_MASK_1_RMSK, base + CCI_IRQ_CLEAR_1_ADDR);
 	cam_io_w_mb(0x1, base + CCI_IRQ_GLOBAL_CLEAR_CMD_ADDR);
+
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < MASTER_MAX; i++) {
+		if (!cci_dev->write_wq[i]) {
+			CAM_ERR(CAM_CCI, "Failed to flush write wq");
+			rc = -ENOMEM;
+			goto reset_complete_failed;
+		} else {
+			flush_workqueue(cci_dev->write_wq[i]);
+		}
+	}
+#endif
 
 	/* Set RD FIFO threshold for M0 & M1 */
 	cam_io_w_mb(CCI_I2C_RD_THRESHOLD_VALUE,
@@ -210,13 +339,25 @@ static void cam_cci_init_cci_params(struct cci_device *new_cci_dev)
 {
 	uint8_t i = 0, j = 0;
 
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < NUM_MASTERS; i++) {
+#else
 	for (i = 0; i < MASTER_MAX; i++) {
+#endif
 		new_cci_dev->cci_master_info[i].status = 0;
+#ifdef CONFIG_MACH_XIAOMI
+		new_cci_dev->cci_master_info[i].is_first_req = true;
+#else
 		new_cci_dev->cci_master_info[i].is_initilized = false;
 		new_cci_dev->cci_master_info[i].freq_ref_cnt = 0;
+#endif
 		mutex_init(&new_cci_dev->cci_master_info[i].mutex);
 		sema_init(&new_cci_dev->cci_master_info[i].master_sem, 1);
+#ifdef CONFIG_MACH_XIAOMI
+		spin_lock_init(&new_cci_dev->cci_master_info[i].freq_cnt);
+#else
 		spin_lock_init(&new_cci_dev->cci_master_info[i].freq_cnt_lock);
+#endif
 		init_completion(
 			&new_cci_dev->cci_master_info[i].reset_complete);
 		init_completion(
@@ -392,38 +533,63 @@ int cam_cci_parse_dt_info(struct platform_device *pdev,
 	return 0;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_cci_soc_release(struct cci_device *cci_dev)
+#else
 int cam_cci_soc_release(struct cci_device *cci_dev,
 	enum cci_i2c_master_t master)
+#endif
 {
 	uint8_t i = 0, rc = 0;
 	struct cam_hw_soc_info *soc_info = &cci_dev->soc_info;
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (!cci_dev->ref_count || cci_dev->cci_state != CCI_STATE_ENABLED) {
+		CAM_ERR(CAM_CCI, "invalid ref count %d / cci state %d",
+			cci_dev->ref_count, cci_dev->cci_state);
+#else
 	if (!cci_dev->ref_count || cci_dev->cci_state != CCI_STATE_ENABLED ||
 			!cci_dev->master_active_slave[master]) {
 		CAM_ERR(CAM_CCI,
 			"invalid cci_dev_ref count %u | cci state %d | master_ref_count %u",
 			cci_dev->ref_count, cci_dev->cci_state,
 			cci_dev->master_active_slave[master]);
+#endif
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (!(--cci_dev->master_active_slave[master])) {
 		cci_dev->cci_master_info[master].is_initilized = false;
 		CAM_DBG(CAM_CCI,
 			"All submodules are released for master: %d", master);
 	}
+#endif
 
 	if (--cci_dev->ref_count) {
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_DBG(CAM_CCI, "ref_count Exit %d", cci_dev->ref_count);
+#else
 		CAM_DBG(CAM_CCI, "Submodule release: Ref_count: %d",
 			cci_dev->ref_count);
+#endif
 		return 0;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < MASTER_MAX; i++)
+#else
 	for (i = 0; i < MASTER_MAX; i++) {
+#endif
 		if (cci_dev->write_wq[i])
 			flush_workqueue(cci_dev->write_wq[i]);
+#ifdef CONFIG_MACH_XIAOMI
+	for (i = 0; i < MASTER_MAX; i++)
+#endif
 		cci_dev->i2c_freq_mode[i] = I2C_MAX_MODES;
+#ifndef CONFIG_MACH_XIAOMI
 	}
+#endif
 
 	rc = cam_soc_util_disable_platform_resource(soc_info, true, true);
 	if (rc) {

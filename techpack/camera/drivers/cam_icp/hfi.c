@@ -269,7 +269,11 @@ err:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int hfi_cmd_ubwc_config(uint32_t *ubwc_cfg)
+#else
 int hfi_cmd_ubwc_config(uint32_t *ubwc_cfg, bool disable_ubwc_comp)
+#endif
 {
 	uint8_t *prop;
 	struct hfi_cmd_prop *dbg_prop;
@@ -292,11 +296,13 @@ int hfi_cmd_ubwc_config(uint32_t *ubwc_cfg, bool disable_ubwc_comp)
 	dbg_prop->num_prop = 1;
 	dbg_prop->prop_data[0] = HFI_PROP_SYS_UBWC_CFG;
 	dbg_prop->prop_data[1] = ubwc_cfg[0];
+#ifndef CONFIG_MACH_XIAOMI
 	if (disable_ubwc_comp) {
 		ubwc_cfg[1] &= ~CAM_ICP_UBWC_COMP_EN;
 		CAM_DBG(CAM_ICP, "UBWC comp force disable, val= 0x%x",
 			ubwc_cfg[1]);
 	}
+#endif
 	dbg_prop->prop_data[2] = ubwc_cfg[1];
 
 	hfi_write_cmd(prop);

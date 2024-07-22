@@ -19,7 +19,9 @@
 #include "cam_cdm_soc.h"
 #include "cam_io_util.h"
 #include "cam_hw_cdm170_reg.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "cam_trace.h"
+#endif
 
 #define CAM_HW_CDM_CPAS_0_NAME "qcom,cam170-cpas-cdm0"
 #define CAM_HW_CDM_IPE_0_NAME "qcom,cam170-ipe0-cdm"
@@ -381,7 +383,9 @@ int cam_hw_cdm_submit_gen_irq(struct cam_hw_info *cdm_hw,
 		rc = -EIO;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	trace_cam_log_event("CDM_START", "CDM_START_IRQ", req->data->cookie, 0);
+#endif
 
 end:
 	return rc;
@@ -564,8 +568,10 @@ static void cam_hw_cdm_work(struct work_struct *work)
 				payload->irq_data);
 			mutex_lock(&cdm_hw->hw_mutex);
 
+#ifndef CONFIG_MACH_XIAOMI
 			if (atomic_read(&core->work_record))
 				atomic_dec(&core->work_record);
+#endif
 
 			list_for_each_entry_safe(node, tnode,
 					&core->bl_request_list, entry) {
@@ -686,16 +692,20 @@ irqreturn_t cam_hw_cdm_irq(int irq_num, void *data)
 					"Failed to read CDM HW IRQ data");
 			}
 		}
+#ifndef CONFIG_MACH_XIAOMI
 		trace_cam_log_event("CDM_DONE", "CDM_DONE_IRQ",
 			payload->irq_status,
 			cdm_hw->soc_info.index);
+#endif
 		CAM_DBG(CAM_CDM, "Got payload=%d", payload->irq_status);
 		payload->hw = cdm_hw;
 		INIT_WORK((struct work_struct *)&payload->work,
 			cam_hw_cdm_work);
+#ifndef CONFIG_MACH_XIAOMI
 		if (payload->irq_status &
 			CAM_CDM_IRQ_STATUS_INFO_INLINE_IRQ_MASK)
 			atomic_inc(&cdm_core->work_record);
+#endif
 		work_status = queue_work(cdm_core->work_queue, &payload->work);
 		if (work_status == false) {
 			CAM_ERR(CAM_CDM, "Failed to queue work for irq=0x%x",
@@ -707,6 +717,7 @@ irqreturn_t cam_hw_cdm_irq(int irq_num, void *data)
 	return IRQ_HANDLED;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_hw_cdm_hang_detect(struct cam_hw_info *cdm_hw, uint32_t handle)
 {
 	struct cam_cdm *cdm_core = NULL;
@@ -722,6 +733,7 @@ int cam_hw_cdm_hang_detect(struct cam_hw_info *cdm_hw, uint32_t handle)
 	}
 	return rc;
 }
+#endif
 
 int cam_hw_cdm_alloc_genirq_mem(void *hw_priv)
 {
@@ -798,7 +810,9 @@ int cam_hw_cdm_init(void *hw_priv,
 	CAM_DBG(CAM_CDM, "Enable soc done");
 
 /* Before triggering the reset to HW, clear the reset complete */
+#ifndef CONFIG_MACH_XIAOMI
 	atomic_set(&cdm_core->work_record, 0);
+#endif
 	atomic_set(&cdm_core->error, 0);
 	atomic_set(&cdm_core->bl_done, 0);
 	reinit_completion(&cdm_core->reset_complete);
@@ -848,7 +862,9 @@ int cam_hw_cdm_deinit(void *hw_priv,
 
 	soc_info = &cdm_hw->soc_info;
 	cdm_core = cdm_hw->core_info;
+#ifndef CONFIG_MACH_XIAOMI
 	atomic_set(&cdm_core->work_record, 0);
+#endif
 	rc = cam_soc_util_disable_platform_resource(soc_info, true, true);
 	if (rc) {
 		CAM_ERR(CAM_CDM, "disable platform failed");
@@ -913,7 +929,9 @@ int cam_hw_cdm_probe(struct platform_device *pdev)
 		cdm_core->flags = CAM_CDM_FLAG_PRIVATE_CDM;
 
 	cdm_core->bl_tag = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	atomic_set(&cdm_core->work_record, 0);
+#endif
 	cdm_core->id = cam_hw_cdm_get_id_by_name(cdm_core->name);
 	if (cdm_core->id >= CAM_CDM_MAX) {
 		CAM_ERR(CAM_CDM, "Failed to get CDM HW name for %s",

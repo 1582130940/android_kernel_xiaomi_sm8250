@@ -14,7 +14,9 @@
 #include "cam_cdm_util.h"
 #include "cam_irq_controller.h"
 #include "cam_tasklet_util.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "cam_cpas_api.h"
+#endif
 
 struct cam_vfe_mux_rdi_data {
 	void __iomem                                *mem_base;
@@ -22,9 +24,13 @@ struct cam_vfe_mux_rdi_data {
 	struct cam_vfe_top_ver2_reg_offset_common   *common_reg;
 	struct cam_vfe_rdi_ver2_reg                 *rdi_reg;
 	struct cam_vfe_rdi_common_reg_data          *rdi_common_reg_data;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_vfe_rdi_overflow_status          *rdi_irq_status;
+#endif
 	struct cam_vfe_rdi_reg_data                 *reg_data;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_hw_soc_info                      *soc_info;
+#endif
 
 	cam_hw_mgr_event_cb_func              event_cb;
 	void                                 *priv;
@@ -36,8 +42,10 @@ struct cam_vfe_mux_rdi_data {
 	spinlock_t                            spin_lock;
 
 	enum cam_isp_hw_sync_mode          sync_mode;
+#ifndef CONFIG_MACH_XIAOMI
 	struct timeval                     sof_ts;
 	struct timeval                     error_ts;
+#endif
 };
 
 static int cam_vfe_rdi_get_evt_payload(
@@ -86,6 +94,7 @@ static int cam_vfe_rdi_put_evt_payload(
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_vfe_rdi_cpas_reg_dump(
 struct cam_vfe_mux_rdi_data *rdi_priv)
 {
@@ -123,6 +132,7 @@ struct cam_vfe_mux_rdi_data *rdi_priv)
 	return 0;
 
 }
+#endif
 
 static int cam_vfe_rdi_err_irq_top_half(
 	uint32_t                               evt_id,
@@ -167,12 +177,14 @@ static int cam_vfe_rdi_err_irq_top_half(
 	}
 
 	cam_isp_hw_get_timestamp(&evt_payload->ts);
+#ifndef CONFIG_MACH_XIAOMI
 	if (error_flag) {
 		rdi_priv->error_ts.tv_sec =
 			evt_payload->ts.mono_time.tv_sec;
 		rdi_priv->error_ts.tv_usec =
 			evt_payload->ts.mono_time.tv_usec;
 	}
+#endif
 
 	for (i = 0; i < th_payload->num_registers; i++)
 		evt_payload->irq_reg_val[i] = th_payload->evt_status_arr[i];
@@ -261,7 +273,11 @@ static int cam_vfe_rdi_resource_start(
 	struct cam_vfe_mux_rdi_data   *rsrc_data;
 	int                            rc = 0;
 	uint32_t                       err_irq_mask[CAM_IFE_IRQ_REGISTERS_MAX];
+#ifdef CONFIG_MACH_XIAOMI
+	uint32_t                       irq_mask[CAM_IFE_IRQ_REGISTERS_MAX];
+#else
 	uint32_t                 rdi_irq_mask[CAM_IFE_IRQ_REGISTERS_MAX] = {0};
+#endif
 
 	if (!rdi_res) {
 		CAM_ERR(CAM_ISP, "Error! Invalid input arguments");
@@ -279,6 +295,12 @@ static int cam_vfe_rdi_resource_start(
 		rsrc_data->rdi_common_reg_data->error_irq_mask0;
 	err_irq_mask[CAM_IFE_IRQ_CAMIF_REG_STATUS1] =
 		rsrc_data->rdi_common_reg_data->error_irq_mask1;
+#ifdef CONFIG_MACH_XIAOMI
+	irq_mask[CAM_IFE_IRQ_CAMIF_REG_STATUS0] =
+		rsrc_data->rdi_common_reg_data->subscribe_irq_mask0;
+	irq_mask[CAM_IFE_IRQ_CAMIF_REG_STATUS1] =
+		rsrc_data->rdi_common_reg_data->subscribe_irq_mask1;
+#endif
 
 	rdi_res->res_state = CAM_ISP_RESOURCE_STATE_STREAMING;
 
@@ -306,6 +328,7 @@ static int cam_vfe_rdi_resource_start(
 	if (!rdi_res->rdi_only_ctx)
 		goto end;
 
+#ifndef CONFIG_MACH_XIAOMI
 	rdi_irq_mask[0] =
 		(rsrc_data->reg_data->reg_update_irq_mask |
 			rsrc_data->reg_data->sof_irq_mask);
@@ -313,12 +336,17 @@ static int cam_vfe_rdi_resource_start(
 	CAM_DBG(CAM_ISP, "RDI%d irq_mask 0x%x",
 		rdi_res->res_id - CAM_ISP_HW_VFE_IN_RDI0,
 		rdi_irq_mask[0]);
+#endif
 
 	if (!rsrc_data->irq_handle) {
 		rsrc_data->irq_handle = cam_irq_controller_subscribe_irq(
 			rsrc_data->vfe_irq_controller,
 			CAM_IRQ_PRIORITY_1,
+#ifdef CONFIG_MACH_XIAOMI
+			irq_mask,
+#else
 			rdi_irq_mask,
+#endif
 			rdi_res,
 			rdi_res->top_half_handler,
 			rdi_res->bottom_half_handler,
@@ -331,10 +359,12 @@ static int cam_vfe_rdi_resource_start(
 		}
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	rsrc_data->sof_ts.tv_sec = 0;
 	rsrc_data->sof_ts.tv_usec = 0;
 	rsrc_data->error_ts.tv_sec = 0;
 	rsrc_data->error_ts.tv_usec = 0;
+#endif
 
 	CAM_DBG(CAM_ISP, "Start RDI %d",
 		rdi_res->res_id - CAM_ISP_HW_VFE_IN_RDI0);
@@ -446,11 +476,13 @@ static int cam_vfe_rdi_handle_irq_bottom_half(void *handler_priv,
 	struct cam_vfe_top_irq_evt_payload  *payload;
 	struct cam_isp_hw_event_info         evt_info;
 	uint32_t                             irq_status0;
+#ifndef CONFIG_MACH_XIAOMI
 	uint32_t                             irq_status1;
 	uint32_t                             irq_rdi_status;
 	struct cam_hw_soc_info              *soc_info = NULL;
 	struct cam_vfe_soc_private          *soc_private = NULL;
 	struct timespec64                    ts;
+#endif
 
 	if (!handler_priv || !evt_payload_priv) {
 		CAM_ERR(CAM_ISP, "Invalid params");
@@ -460,12 +492,16 @@ static int cam_vfe_rdi_handle_irq_bottom_half(void *handler_priv,
 	rdi_node = handler_priv;
 	rdi_priv = rdi_node->res_priv;
 	payload = evt_payload_priv;
+#ifndef CONFIG_MACH_XIAOMI
 	soc_info = rdi_priv->soc_info;
 	soc_private =
 		(struct cam_vfe_soc_private *)soc_info->soc_private;
+#endif
 
 	irq_status0 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS0];
+#ifndef CONFIG_MACH_XIAOMI
 	irq_status1 = payload->irq_reg_val[CAM_IFE_IRQ_CAMIF_REG_STATUS1];
+#endif
 
 	evt_info.hw_idx   = rdi_node->hw_intf->hw_idx;
 	evt_info.res_id   = rdi_node->res_id;
@@ -475,10 +511,12 @@ static int cam_vfe_rdi_handle_irq_bottom_half(void *handler_priv,
 
 	if (irq_status0 & rdi_priv->reg_data->sof_irq_mask) {
 		CAM_DBG(CAM_ISP, "Received SOF");
+#ifndef CONFIG_MACH_XIAOMI
 		rdi_priv->sof_ts.tv_sec =
 			payload->ts.mono_time.tv_sec;
 		rdi_priv->sof_ts.tv_usec =
 			payload->ts.mono_time.tv_usec;
+#endif
 		if (rdi_priv->event_cb)
 			rdi_priv->event_cb(rdi_priv->priv,
 				CAM_ISP_HW_EVENT_SOF, (void *)&evt_info);
@@ -496,6 +534,7 @@ static int cam_vfe_rdi_handle_irq_bottom_half(void *handler_priv,
 		ret = CAM_VFE_IRQ_STATUS_SUCCESS;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (!rdi_priv->rdi_irq_status)
 		goto end;
 
@@ -547,6 +586,7 @@ static int cam_vfe_rdi_handle_irq_bottom_half(void *handler_priv,
 		cam_cpas_log_votes();
 	}
 end:
+#endif
 	cam_vfe_rdi_put_evt_payload(rdi_priv, &payload);
 	CAM_DBG(CAM_ISP, "returing status = %d", ret);
 	return ret;
@@ -578,8 +618,10 @@ int cam_vfe_rdi_ver2_init(
 	rdi_priv->rdi_reg    = rdi_info->rdi_reg;
 	rdi_priv->vfe_irq_controller  = vfe_irq_controller;
 	rdi_priv->rdi_common_reg_data = rdi_info->common_reg_data;
+#ifndef CONFIG_MACH_XIAOMI
 	rdi_priv->soc_info = soc_info;
 	rdi_priv->rdi_irq_status = rdi_info->rdi_irq_status;
+#endif
 
 	switch (rdi_node->res_id) {
 	case CAM_ISP_HW_VFE_IN_RDI0:

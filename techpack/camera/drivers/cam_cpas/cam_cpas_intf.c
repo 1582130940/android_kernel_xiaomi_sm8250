@@ -17,7 +17,9 @@
 #include "cam_subdev.h"
 #include "cam_cpas_hw_intf.h"
 #include "cam_cpas_soc.h"
+#ifndef CONFIG_MACH_XIAOMI
 #include "cam_cpas_api.h"
+#endif
 
 #define CAM_CPAS_DEV_NAME    "cam-cpas"
 #define CAM_CPAS_INTF_INITIALIZED() (g_cpas_intf && g_cpas_intf->probe_done)
@@ -158,6 +160,7 @@ int cam_cpas_get_cpas_hw_version(uint32_t *hw_version)
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 int cam_cpas_get_camnoc_fifo_fill_level_info(
 	uint32_t cpas_version,
 	uint32_t client_handle)
@@ -176,6 +179,7 @@ int cam_cpas_get_camnoc_fifo_fill_level_info(
 
 	return rc;
 }
+#endif
 
 int cam_cpas_get_hw_info(uint32_t *camera_family,
 	struct cam_hw_version *camera_version,
@@ -412,6 +416,7 @@ int cam_cpas_start(uint32_t client_handle,
 }
 EXPORT_SYMBOL(cam_cpas_start);
 
+#ifndef CONFIG_MACH_XIAOMI
 void cam_cpas_log_votes(void)
 {
 	uint32_t dummy_args;
@@ -435,6 +440,7 @@ void cam_cpas_log_votes(void)
 
 }
 EXPORT_SYMBOL(cam_cpas_log_votes);
+#endif
 
 int cam_cpas_unregister_client(uint32_t client_handle)
 {

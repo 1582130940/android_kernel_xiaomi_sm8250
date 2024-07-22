@@ -62,11 +62,17 @@ static int cam_cpas_util_vote_bus_client_level(
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (level >= bus_client->num_usecases) {
+		CAM_ERR(CAM_CPAS, "Invalid vote level=%d, usecases=%d", level,
+			bus_client->num_usecases);
+#else
 	if (level >= CAM_MAX_VOTE) {
 		CAM_ERR(CAM_CPAS,
 			"Invalid votelevel=%d,usecases=%d,Bus client=[%d][%s]",
 			level, bus_client->num_usecases,
 			bus_client->client_id, bus_client->name);
+#endif
 		return -EINVAL;
 	}
 
@@ -83,7 +89,11 @@ static int cam_cpas_util_vote_bus_client_level(
 
 static int cam_cpas_util_vote_bus_client_bw(
 	struct cam_cpas_bus_client *bus_client, uint64_t ab, uint64_t ib,
+#ifdef CONFIG_MACH_XIAOMI
+	bool camnoc_bw)
+#else
 	bool camnoc_bw, uint64_t *applied_ab, uint64_t *applied_ib)
+#endif
 {
 	struct msm_bus_paths *path;
 	struct msm_bus_scale_pdata *pdata;
@@ -146,10 +156,12 @@ static int cam_cpas_util_vote_bus_client_bw(
 	CAM_DBG(CAM_CPAS, "Bus client=[%d][%s] :ab[%llu] ib[%llu], index[%d]",
 		bus_client->client_id, bus_client->name, ab, ib, idx);
 	msm_bus_scale_client_update_request(bus_client->client_id, idx);
+#ifndef CONFIG_MACH_XIAOMI
 	if (applied_ab)
 		*applied_ab = ab;
 	if (applied_ib)
 		*applied_ib = ib;
+#endif
 
 	return 0;
 }
@@ -225,8 +237,12 @@ static int cam_cpas_util_unregister_bus_client(
 		return -EINVAL;
 
 	if (bus_client->dyn_vote)
+#ifdef CONFIG_MACH_XIAOMI
+		cam_cpas_util_vote_bus_client_bw(bus_client, 0, 0, false);
+#else
 		cam_cpas_util_vote_bus_client_bw(bus_client, 0, 0, false,
 		NULL, NULL);
+#endif
 	else
 		cam_cpas_util_vote_bus_client_level(bus_client, 0);
 
@@ -249,11 +265,13 @@ static int cam_cpas_util_axi_cleanup(struct cam_cpas *cpas_core,
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	if (cpas_core->num_camnoc_axi_ports > CAM_CPAS_MAX_AXI_PORTS) {
 		CAM_ERR(CAM_CPAS, "Invalid num_camnoc_axi_ports: %d",
 			cpas_core->num_camnoc_axi_ports);
 		return -EINVAL;
 	}
+#endif
 
 	for (i = 0; i < cpas_core->num_axi_ports; i++) {
 		cam_cpas_util_unregister_bus_client(
@@ -262,12 +280,14 @@ static int cam_cpas_util_axi_cleanup(struct cam_cpas *cpas_core,
 		cpas_core->axi_port[i].axi_port_node = NULL;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	for (i = 0; i < cpas_core->num_camnoc_axi_ports; i++) {
 		cam_cpas_util_unregister_bus_client(
 			&cpas_core->camnoc_axi_port[i].bus_client);
 		of_node_put(cpas_core->camnoc_axi_port[i].axi_port_node);
 		cpas_core->camnoc_axi_port[i].axi_port_node = NULL;
 	}
+#endif
 
 	return 0;
 }
@@ -277,7 +297,9 @@ static int cam_cpas_util_axi_setup(struct cam_cpas *cpas_core,
 {
 	int i = 0, rc = 0;
 	struct device_node *axi_port_mnoc_node = NULL;
+#ifndef CONFIG_MACH_XIAOMI
 	struct device_node *axi_port_camnoc_node = NULL;
+#endif
 
 	if (cpas_core->num_axi_ports > CAM_CPAS_MAX_AXI_PORTS) {
 		CAM_ERR(CAM_CPAS, "Invalid num_axi_ports: %d",
@@ -292,6 +314,7 @@ static int cam_cpas_util_axi_setup(struct cam_cpas *cpas_core,
 		if (rc)
 			goto bus_register_fail;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	for (i = 0; i < cpas_core->num_camnoc_axi_ports; i++) {
 		axi_port_camnoc_node =
 			cpas_core->camnoc_axi_port[i].axi_port_node;
@@ -301,6 +324,7 @@ static int cam_cpas_util_axi_setup(struct cam_cpas *cpas_core,
 		if (rc)
 			goto bus_register_fail;
 	}
+#endif
 
 	return 0;
 bus_register_fail:
@@ -314,7 +338,9 @@ static int cam_cpas_util_vote_default_ahb_axi(struct cam_hw_info *cpas_hw,
 	int rc, i = 0;
 	struct cam_cpas *cpas_core = (struct cam_cpas *)cpas_hw->core_info;
 	uint64_t ab_bw, ib_bw;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t applied_ab_bw = 0, applied_ib_bw = 0;
+#endif
 
 	rc = cam_cpas_util_vote_bus_client_level(&cpas_core->ahb_bus_client,
 		(enable == true) ? CAM_SVS_VOTE : CAM_SUSPEND_VOTE);
@@ -335,15 +361,21 @@ static int cam_cpas_util_vote_default_ahb_axi(struct cam_hw_info *cpas_hw,
 	for (i = 0; i < cpas_core->num_axi_ports; i++) {
 		rc = cam_cpas_util_vote_bus_client_bw(
 			&cpas_core->axi_port[i].bus_client,
+#ifdef CONFIG_MACH_XIAOMI
+			ab_bw, ib_bw, false);
+#else
 			ab_bw, ib_bw, false, &applied_ab_bw, &applied_ib_bw);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in mnoc vote, enable=%d, rc=%d",
 				enable, rc);
 			goto remove_ahb_vote;
 		}
+#ifndef CONFIG_MACH_XIAOMI
 		cpas_core->axi_port[i].applied_ab_bw = applied_ab_bw;
 		cpas_core->axi_port[i].applied_ib_bw = applied_ib_bw;
+#endif
 	}
 
 	return 0;
@@ -478,12 +510,14 @@ static int cam_cpas_util_set_camnoc_axi_clk_rate(
 		do_div(intermediate_result, 100);
 		required_camnoc_bw += intermediate_result;
 
+#ifndef CONFIG_MACH_XIAOMI
 		if (cpas_core->streamon_clients && (required_camnoc_bw == 0)) {
 			CAM_DBG(CAM_CPAS,
 				"Set min vote if streamon_clients is non-zero : streamon_clients=%d",
 				cpas_core->streamon_clients);
 			required_camnoc_bw = CAM_CPAS_DEFAULT_AXI_BW;
 		}
+#endif
 
 		if ((required_camnoc_bw > 0) &&
 			(required_camnoc_bw <
@@ -510,7 +544,9 @@ static int cam_cpas_util_set_camnoc_axi_clk_rate(
 				"Failed in setting camnoc axi clk %llu %lld %d",
 				required_camnoc_bw, clk_rate, rc);
 
+#ifndef CONFIG_MACH_XIAOMI
 			cpas_core->applied_camnoc_axi_rate = clk_rate;
+#endif
 		}
 	}
 
@@ -650,6 +686,7 @@ static int cam_cpas_axi_consolidate_path_votes(
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_cpas_update_axi_vote_bw(
 	struct cam_hw_info *cpas_hw,
 	struct cam_cpas_tree_node *cpas_tree_node,
@@ -756,6 +793,7 @@ static int cam_cpas_camnoc_set_vote_axi_clk_rate(
 	}
 	return rc;
 }
+#endif
 
 static int cam_cpas_util_apply_client_axi_vote(
 	struct cam_hw_info *cpas_hw,
@@ -764,18 +802,28 @@ static int cam_cpas_util_apply_client_axi_vote(
 {
 	struct cam_cpas *cpas_core = (struct cam_cpas *) cpas_hw->core_info;
 	struct cam_axi_vote *con_axi_vote = NULL;
+#ifdef CONFIG_MACH_XIAOMI
+	struct cam_cpas_axi_port *axi_port = NULL;
+#else
 	struct cam_cpas_axi_port *mnoc_axi_port = NULL;
+#endif
 	struct cam_cpas_tree_node *curr_tree_node = NULL;
 	struct cam_cpas_tree_node *par_tree_node = NULL;
 	uint32_t transac_type;
 	uint32_t path_data_type;
+#ifdef CONFIG_MACH_XIAOMI
+	bool axi_port_updated[CAM_CPAS_MAX_AXI_PORTS] = {false};
+#else
 	bool mnoc_axi_port_updated[CAM_CPAS_MAX_AXI_PORTS] = {false};
 	bool camnoc_axi_port_updated[CAM_CPAS_MAX_AXI_PORTS] = {false};
+#endif
 	uint64_t mnoc_ab_bw = 0, mnoc_ib_bw = 0,
 		curr_camnoc_old = 0, curr_mnoc_ab_old = 0, curr_mnoc_ib_old = 0,
 		par_camnoc_old = 0, par_mnoc_ab_old = 0, par_mnoc_ib_old = 0;
 	int rc = 0, i = 0;
+#ifndef CONFIG_MACH_XIAOMI
 	uint64_t applied_ab = 0, applied_ib = 0;
+#endif
 
 	mutex_lock(&cpas_core->tree_lock);
 	if (!cpas_client->tree_node_valid) {
@@ -794,9 +842,14 @@ static int cam_cpas_util_apply_client_axi_vote(
 				cpas_core->axi_port[i].additional_bw -=
 					CAM_CPAS_DEFAULT_AXI_BW;
 			}
+#ifdef CONFIG_MACH_XIAOMI
+			axi_port_updated[i] = true;
+#else
 			mnoc_axi_port_updated[i] = true;
+#endif
 		}
 
+#ifndef CONFIG_MACH_XIAOMI
 		for (i = 0; i < cpas_core->num_camnoc_axi_ports; i++) {
 			if (axi_vote->axi_path[0].camnoc_bw) {
 				/* start case */
@@ -809,6 +862,7 @@ static int cam_cpas_util_apply_client_axi_vote(
 			}
 			camnoc_axi_port_updated[i] = true;
 		}
+#endif
 
 		goto vote_start_clients;
 	}
@@ -898,6 +952,16 @@ static int cam_cpas_util_apply_client_axi_vote(
 					rc = -EINVAL;
 					goto unlock_tree;
 				}
+#ifdef CONFIG_MACH_XIAOMI
+				cpas_core->axi_port
+				[par_tree_node->axi_port_idx].ab_bw =
+				par_tree_node->mnoc_ab_bw;
+				cpas_core->axi_port
+				[par_tree_node->axi_port_idx].ib_bw =
+				par_tree_node->mnoc_ib_bw;
+				axi_port_updated[par_tree_node->axi_port_idx] =
+					true;
+#else
 				rc = cam_cpas_update_axi_vote_bw(cpas_hw,
 					par_tree_node,
 					mnoc_axi_port_updated,
@@ -907,6 +971,7 @@ static int cam_cpas_util_apply_client_axi_vote(
 						"Update Vote failed");
 					goto unlock_tree;
 				}
+#endif
 			}
 
 			curr_tree_node = par_tree_node;
@@ -924,46 +989,81 @@ static int cam_cpas_util_apply_client_axi_vote(
 
 vote_start_clients:
 	for (i = 0; i < cpas_core->num_axi_ports; i++) {
+#ifdef CONFIG_MACH_XIAOMI
+		if (axi_port_updated[i])
+			axi_port = &cpas_core->axi_port[i];
+#else
 		if (mnoc_axi_port_updated[i])
 			mnoc_axi_port = &cpas_core->axi_port[i];
+#endif
 		else
 			continue;
 
+#ifdef CONFIG_MACH_XIAOMI
+		CAM_DBG(CAM_PERF, "Port[%s] : ab=%lld ib=%lld additional=%lld",
+			axi_port->axi_port_name, axi_port->ab_bw,
+			axi_port->ib_bw, axi_port->additional_bw);
+#else
 		CAM_DBG(CAM_PERF,
 			"Port[%s] : ab=%lld ib=%lld additional=%lld, streamon_clients=%d",
 			mnoc_axi_port->axi_port_name, mnoc_axi_port->ab_bw,
 			mnoc_axi_port->ib_bw, mnoc_axi_port->additional_bw,
 			cpas_core->streamon_clients);
+#endif
 
+#ifdef CONFIG_MACH_XIAOMI
+		if (axi_port->ab_bw)
+			mnoc_ab_bw = axi_port->ab_bw;
+#else
 		if (mnoc_axi_port->ab_bw)
 			mnoc_ab_bw = mnoc_axi_port->ab_bw;
 		else if (mnoc_axi_port->additional_bw)
 			mnoc_ab_bw = mnoc_axi_port->additional_bw;
 		else if (cpas_core->streamon_clients)
 			mnoc_ab_bw = CAM_CPAS_DEFAULT_AXI_BW;
+#endif
 		else
+#ifdef CONFIG_MACH_XIAOMI
+			mnoc_ab_bw = axi_port->additional_bw;
+#else
 			mnoc_ab_bw = 0;
+#endif
 
 		if (cpas_core->axi_port[i].ib_bw_voting_needed)
+#ifdef CONFIG_MACH_XIAOMI
+			mnoc_ib_bw = axi_port->ib_bw;
+#else
 			mnoc_ib_bw = mnoc_axi_port->ib_bw;
+#endif
 		else
 			mnoc_ib_bw = 0;
 
+#ifdef CONFIG_MACH_XIAOMI
+		rc = cam_cpas_util_vote_bus_client_bw(&axi_port->bus_client,
+			mnoc_ab_bw, mnoc_ib_bw, false);
+#else
 		rc = cam_cpas_util_vote_bus_client_bw(
 			&mnoc_axi_port->bus_client,
 			mnoc_ab_bw, mnoc_ib_bw, false, &applied_ab,
 			&applied_ib);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in mnoc vote ab[%llu] ib[%llu] rc=%d",
 				mnoc_ab_bw, mnoc_ib_bw, rc);
 			goto unlock_tree;
 		}
+#ifndef CONFIG_MACH_XIAOMI
 		mnoc_axi_port->applied_ab_bw = applied_ab;
 		mnoc_axi_port->applied_ib_bw = applied_ib;
+#endif
 	}
+#ifdef CONFIG_MACH_XIAOMI
+	rc = cam_cpas_util_set_camnoc_axi_clk_rate(cpas_hw);
+#else
 	rc = cam_cpas_camnoc_set_vote_axi_clk_rate(
 		cpas_hw, camnoc_axi_port_updated);
+#endif
 	if (rc)
 		CAM_ERR(CAM_CPAS, "Failed in setting axi clk rate rc=%d", rc);
 
@@ -972,6 +1072,7 @@ unlock_tree:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_cpas_util_apply_default_axi_vote(
 	struct cam_hw_info *cpas_hw, bool enable)
 {
@@ -1035,6 +1136,7 @@ unlock_tree:
 	mutex_unlock(&cpas_core->tree_lock);
 	return rc;
 }
+#endif
 
 static int cam_cpas_hw_update_axi_vote(struct cam_hw_info *cpas_hw,
 	uint32_t client_handle, struct cam_axi_vote *client_axi_vote)
@@ -1301,10 +1403,16 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 	struct cam_cpas_hw_cmd_start *cmd_hw_start;
 	struct cam_cpas_client *cpas_client;
 	struct cam_ahb_vote *ahb_vote;
+#ifndef CONFIG_MACH_XIAOMI
 	struct cam_ahb_vote remove_ahb;
+#endif
 	struct cam_axi_vote axi_vote = {0};
 	enum cam_vote_level applied_level = CAM_SVS_VOTE;
+#ifdef CONFIG_MACH_XIAOMI
+	int rc, i = 0;
+#else
 	int rc, ret = 0, i = 0;
+#endif
 	struct cam_cpas_private_soc *soc_private = NULL;
 	bool invalid_start = true;
 
@@ -1363,15 +1471,24 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 		CAM_ERR(CAM_CPAS, "client=[%d] is not registered",
 			client_indx);
 		rc = -EPERM;
+#ifdef CONFIG_MACH_XIAOMI
+		goto done;
+#else
 		goto error;
+#endif
 	}
 
 	if (CAM_CPAS_CLIENT_STARTED(cpas_core, client_indx)) {
 		CAM_ERR(CAM_CPAS, "client=[%d][%s][%d] is in start state",
 			client_indx, cpas_client->data.identifier,
 			cpas_client->data.cell_index);
+#ifdef CONFIG_MACH_XIAOMI
+		rc = -EALREADY;
+		goto done;
+#else
 		rc = -EPERM;
 		goto error;
+#endif
 	}
 
 	CAM_DBG(CAM_CPAS,
@@ -1382,7 +1499,11 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 	rc = cam_cpas_util_apply_client_ahb_vote(cpas_hw, cpas_client,
 		ahb_vote, &applied_level);
 	if (rc)
+#ifdef CONFIG_MACH_XIAOMI
+		goto done;
+#else
 		goto error;
+#endif
 
 	cam_cpas_dump_axi_vote_info(cpas_client, "CPAS Start Vote",
 		&axi_vote);
@@ -1403,7 +1524,11 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 	if (rc) {
 		CAM_ERR(CAM_CPAS, "Unable to create or translate paths rc: %d",
 			rc);
+#ifdef CONFIG_MACH_XIAOMI
+		goto done;
+#else
 		goto remove_ahb_vote;
+#endif
 	}
 
 	cam_cpas_dump_axi_vote_info(cpas_client, "CPAS Start Translated Vote",
@@ -1412,12 +1537,18 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 	rc = cam_cpas_util_apply_client_axi_vote(cpas_hw,
 		cpas_client, &axi_vote);
 	if (rc)
+#ifdef CONFIG_MACH_XIAOMI
+		goto done;
+#else
 		goto remove_ahb_vote;
+#endif
 
 	if (cpas_core->streamon_clients == 0) {
+#ifndef CONFIG_MACH_XIAOMI
 		rc = cam_cpas_util_apply_default_axi_vote(cpas_hw, true);
 		if (rc)
 			goto remove_ahb_vote;
+#endif
 
 		atomic_set(&cpas_core->irq_count, 1);
 		rc = cam_cpas_soc_enable_resources(&cpas_hw->soc_info,
@@ -1425,7 +1556,11 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 		if (rc) {
 			atomic_set(&cpas_core->irq_count, 0);
 			CAM_ERR(CAM_CPAS, "enable_resorce failed, rc=%d", rc);
+#ifdef CONFIG_MACH_XIAOMI
+			goto done;
+#else
 			goto remove_axi_vote;
+#endif
 		}
 
 		if (cpas_core->internal_ops.power_on) {
@@ -1437,7 +1572,11 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 				CAM_ERR(CAM_CPAS,
 					"failed in power_on settings rc=%d",
 					rc);
+#ifdef CONFIG_MACH_XIAOMI
+				goto done;
+#else
 				goto remove_axi_vote;
+#endif
 			}
 		}
 		CAM_DBG(CAM_CPAS, "irq_count=%d\n",
@@ -1452,6 +1591,9 @@ static int cam_cpas_hw_start(void *hw_priv, void *start_args,
 		client_indx, cpas_client->data.identifier,
 		cpas_client->data.cell_index, cpas_core->streamon_clients);
 
+#ifdef CONFIG_MACH_XIAOMI
+done:
+#else
 	mutex_unlock(&cpas_core->client_mutex[client_indx]);
 	mutex_unlock(&cpas_hw->hw_mutex);
 	return rc;
@@ -1480,6 +1622,7 @@ remove_ahb_vote:
 		CAM_ERR(CAM_CPAS, "Removing AHB vote failed, ret: %d", ret);
 
 error:
+#endif
 	mutex_unlock(&cpas_core->client_mutex[client_indx]);
 	mutex_unlock(&cpas_hw->hw_mutex);
 	return rc;
@@ -1599,11 +1742,13 @@ static int cam_cpas_hw_stop(void *hw_priv, void *stop_args,
 
 	rc = cam_cpas_util_apply_client_axi_vote(cpas_hw,
 		cpas_client, &axi_vote);
+#ifndef CONFIG_MACH_XIAOMI
 	if (rc)
 		goto done;
 
 	if (cpas_core->streamon_clients == 0)
 		rc = cam_cpas_util_apply_default_axi_vote(cpas_hw, false);
+#endif
 done:
 	mutex_unlock(&cpas_core->client_mutex[client_indx]);
 	mutex_unlock(&cpas_hw->hw_mutex);
@@ -1781,6 +1926,7 @@ static int cam_cpas_hw_get_hw_info(void *hw_priv,
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_cpas_log_vote(struct cam_hw_info *cpas_hw)
 {
 	struct cam_cpas *cpas_core = (struct cam_cpas *) cpas_hw->core_info;
@@ -1821,6 +1967,7 @@ static int cam_cpas_log_vote(struct cam_hw_info *cpas_hw)
 
 	return rc;
 }
+#endif
 
 static int cam_cpas_hw_process_cmd(void *hw_priv,
 	uint32_t cmd_type, void *cmd_args, uint32_t arg_size)
@@ -1924,10 +2071,12 @@ static int cam_cpas_hw_process_cmd(void *hw_priv,
 			cmd_axi_vote->client_handle, cmd_axi_vote->axi_vote);
 		break;
 	}
+#ifndef CONFIG_MACH_XIAOMI
 	case CAM_CPAS_HW_CMD_LOG_VOTE: {
 		rc = cam_cpas_log_vote(hw_priv);
 		break;
 	}
+#endif
 	default:
 		CAM_ERR(CAM_CPAS, "CPAS HW command not valid =%d", cmd_type);
 		break;
@@ -2181,10 +2330,15 @@ ahb_cleanup:
 	cam_cpas_util_unregister_bus_client(&cpas_core->ahb_bus_client);
 client_cleanup:
 	cam_cpas_util_client_cleanup(cpas_hw);
+#ifndef CONFIG_MACH_XIAOMI
 	cam_cpas_node_tree_cleanup(cpas_core, cpas_hw->soc_info.soc_private);
+#endif
 deinit_platform_res:
 	cam_cpas_soc_deinit_resources(&cpas_hw->soc_info);
 release_workq:
+#ifdef CONFIG_MACH_XIAOMI
+	cam_cpas_node_tree_cleanup(cpas_core, cpas_hw->soc_info.soc_private);
+#endif
 	flush_workqueue(cpas_core->work_queue);
 	destroy_workqueue(cpas_core->work_queue);
 release_mem:

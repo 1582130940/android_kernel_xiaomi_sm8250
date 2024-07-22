@@ -35,8 +35,10 @@ struct cam_vfe_soc_private {
 	int32_t     dsp_clk_rate;
 	uint32_t    ubwc_static_ctrl[UBWC_STATIC_CONFIG_MAX];
 	bool        is_ife_lite;
+#ifndef CONFIG_MACH_XIAOMI
 	bool        dsp_disabled;
 	uint64_t    ife_clk_src;
+#endif
 };
 
 /*
@@ -82,8 +84,12 @@ int cam_vfe_deinit_soc_resources(struct cam_hw_soc_info *soc_info);
  * @Return:                  0: Success
  *                           Non-zero: Failure
  */
+#ifdef CONFIG_MACH_XIAOMI
+int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info);
+#else
 int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info,
 	int num_pix_rsrc, int num_pd_rsrc, int num_rdi_rsrc);
+#endif
 
 /*
  * cam_vfe_disable_soc_resources()

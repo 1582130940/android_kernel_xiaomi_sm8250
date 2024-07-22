@@ -27,6 +27,7 @@ static long cam_ois_subdev_ioctl(struct v4l2_subdev *sd,
 	return rc;
 }
 
+#ifndef CONFIG_MACH_XIAOMI
 static int cam_ois_subdev_open(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -45,6 +46,7 @@ static int cam_ois_subdev_open(struct v4l2_subdev *sd,
 
 	return 0;
 }
+#endif
 
 static int cam_ois_subdev_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
@@ -58,6 +60,9 @@ static int cam_ois_subdev_close(struct v4l2_subdev *sd,
 	}
 
 	mutex_lock(&(o_ctrl->ois_mutex));
+#ifdef CONFIG_MACH_XIAOMI
+	cam_ois_shutdown(o_ctrl);
+#else
 	if (o_ctrl->open_cnt <= 0) {
 		mutex_unlock(&(o_ctrl->ois_mutex));
 		return -EINVAL;
@@ -66,6 +71,7 @@ static int cam_ois_subdev_close(struct v4l2_subdev *sd,
 	CAM_DBG(CAM_OIS, "OIS open count %d", o_ctrl->open_cnt);
 	if (o_ctrl->open_cnt == 0)
 		cam_ois_shutdown(o_ctrl);
+#endif
 	mutex_unlock(&(o_ctrl->ois_mutex));
 
 	return 0;
@@ -137,7 +143,9 @@ static long cam_ois_init_subdev_do_ioctl(struct v4l2_subdev *sd,
 #endif
 
 static const struct v4l2_subdev_internal_ops cam_ois_internal_ops = {
+#ifndef CONFIG_MACH_XIAOMI
 	.open  = cam_ois_subdev_open,
+#endif
 	.close = cam_ois_subdev_close,
 };
 
@@ -225,7 +233,9 @@ static int cam_ois_i2c_driver_probe(struct i2c_client *client,
 		goto soc_free;
 
 	o_ctrl->cam_ois_state = CAM_OIS_INIT;
+#ifndef CONFIG_MACH_XIAOMI
 	o_ctrl->open_cnt = 0;
+#endif
 
 	return rc;
 
@@ -308,6 +318,9 @@ static int32_t cam_ois_platform_driver_probe(
 	INIT_LIST_HEAD(&(o_ctrl->i2c_init_data.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_calib_data.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_mode_data.list_head));
+#ifdef CONFIG_MACH_XIAOMI
+	INIT_LIST_HEAD(&(o_ctrl->i2c_pre_init_data.list_head));
+#endif
 	mutex_init(&(o_ctrl->ois_mutex));
 	rc = cam_ois_driver_soc_init(o_ctrl);
 	if (rc) {
@@ -328,7 +341,9 @@ static int32_t cam_ois_platform_driver_probe(
 
 	platform_set_drvdata(pdev, o_ctrl);
 	o_ctrl->cam_ois_state = CAM_OIS_INIT;
+#ifndef CONFIG_MACH_XIAOMI
 	o_ctrl->open_cnt = 0;
+#endif
 
 	return rc;
 unreg_subdev:

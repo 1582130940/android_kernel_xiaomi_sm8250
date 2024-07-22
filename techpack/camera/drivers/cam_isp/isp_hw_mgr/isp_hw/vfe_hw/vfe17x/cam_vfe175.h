@@ -179,6 +179,7 @@ static struct cam_vfe_rdi_reg_data  vfe_175_rdi_2_data = {
 	.reg_update_irq_mask      = 0x80,
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 struct cam_vfe_top_dump_data vfe175_dump_data = {
 	.num_reg_dump_entries  =  2,
 	.num_lut_dump_entries  =  1,
@@ -204,6 +205,7 @@ struct cam_vfe_top_dump_data vfe175_dump_data = {
 		},
 	},
 };
+#endif
 
 static struct cam_vfe_top_ver2_hw_info vfe175_top_hw_info = {
 	.common_reg = &vfe175_top_common_reg,
@@ -236,7 +238,9 @@ static struct cam_vfe_top_ver2_hw_info vfe175_top_hw_info = {
 		CAM_VFE_RDI_VER_1_0,
 		CAM_VFE_CAMIF_LITE_VER_2_0,
 	},
+#ifndef CONFIG_MACH_XIAOMI
 	.dump_data = &vfe175_dump_data,
+#endif
 };
 
 static struct cam_irq_register_set vfe175_bus_irq_reg[3] = {
@@ -268,7 +272,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
 	.mode_cfg_0       = 0x00002544,
 	.mode_cfg_1       = 0x000025A4,
 	.bw_limit         = 0x000025A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
@@ -282,7 +288,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
 	.mode_cfg_0       = 0x00002644,
 	.mode_cfg_1       = 0x000026A4,
 	.bw_limit         = 0x000026A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
@@ -296,7 +304,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
 	.mode_cfg_0       = 0x00003644,
 	.mode_cfg_1       = 0x000036A4,
 	.bw_limit         = 0x000036A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
@@ -310,7 +320,9 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_3_client
 	.mode_cfg_0       = 0x00003744,
 	.mode_cfg_1       = 0x000037A4,
 	.bw_limit         = 0x000037A0,
+#ifndef CONFIG_MACH_XIAOMI
 	.ubwc_comp_en_bit = BIT(1),
+#endif
 };
 
 static struct cam_vfe_bus_ver2_hw_info vfe175_bus_hw_info = {
@@ -1024,7 +1036,9 @@ static struct cam_vfe_bus_ver2_hw_info vfe175_bus_hw_info = {
 			.max_height    = 1080,
 		},
 	},
+#ifndef CONFIG_MACH_XIAOMI
 	.support_consumed_addr = false,
+#endif
 };
 
 struct cam_vfe_hw_info cam_vfe175_hw_info = {

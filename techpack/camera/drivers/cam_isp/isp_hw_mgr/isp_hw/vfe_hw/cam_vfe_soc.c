@@ -85,8 +85,10 @@ static int cam_vfe_get_dt_properties(struct cam_hw_soc_info *soc_info)
 		break;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	vfe_soc_private->dsp_disabled = of_property_read_bool(of_node,
 		"dsp-disabled");
+#endif
 
 end:
 	return rc;
@@ -220,8 +222,12 @@ int cam_vfe_deinit_soc_resources(struct cam_hw_soc_info *soc_info)
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI
+int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info)
+#else
 int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info,
 	int num_pix_rsrc, int num_pd_rsrc, int num_rdi_rsrc)
+#endif
 {
 	int                               rc = 0;
 	struct cam_vfe_soc_private       *soc_private;
@@ -243,6 +249,10 @@ int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info,
 		axi_vote.axi_path[0].path_data_type =
 			CAM_AXI_PATH_DATA_IFE_RDI1;
 	} else {
+#ifdef CONFIG_MACH_XIAOMI
+		axi_vote.axi_path[0].path_data_type =
+			CAM_AXI_PATH_DATA_IFE_VID;
+#else
 		if (num_pix_rsrc)
 			axi_vote.axi_path[0].path_data_type =
 				CAM_AXI_PATH_DATA_IFE_VID;
@@ -255,6 +265,7 @@ int cam_vfe_enable_soc_resources(struct cam_hw_soc_info *soc_info,
 		else
 			axi_vote.axi_path[0].path_data_type =
 				CAM_AXI_PATH_DATA_IFE_VID;
+#endif
 	}
 
 	axi_vote.axi_path[0].transac_type = CAM_AXI_TRANSACTION_WRITE;

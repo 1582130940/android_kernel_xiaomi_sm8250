@@ -32,6 +32,7 @@ enum cam_cpas_reg_base {
 	CAM_CPAS_REG_MAX
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * enum cam_cpas_camera_version Enum for Titan Camera Versions
  */
@@ -83,6 +84,7 @@ enum cam_cpas_version_map_id {
 	CAM_CPAS_VERSION_ID_200  = 0x5,
 	CAM_CPAS_VERSION_ID_MAX
 };
+#endif
 
 /**
  * enum cam_cpas_hw_version - Enum for Titan CPAS HW Versions
@@ -93,7 +95,9 @@ enum cam_cpas_hw_version {
 	CAM_CPAS_TITAN_170_V100 = 0x170100,
 	CAM_CPAS_TITAN_170_V110 = 0x170110,
 	CAM_CPAS_TITAN_170_V120 = 0x170120,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_CPAS_TITAN_170_V200 = 0x170200,
+#endif
 	CAM_CPAS_TITAN_175_V100 = 0x175100,
 	CAM_CPAS_TITAN_175_V101 = 0x175101,
 	CAM_CPAS_TITAN_175_V120 = 0x175120,
@@ -146,10 +150,14 @@ enum cam_cpas_hw_version {
 enum cam_camnoc_irq_type {
 	CAM_CAMNOC_IRQ_SLAVE_ERROR,
 	CAM_CAMNOC_IRQ_IFE_UBWC_STATS_ENCODE_ERROR,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_CAMNOC_IRQ_IFE01_UBWC_ENCODE_ERROR,
+#endif
 	CAM_CAMNOC_IRQ_IFE02_UBWC_ENCODE_ERROR,
 	CAM_CAMNOC_IRQ_IFE13_UBWC_ENCODE_ERROR,
+#ifndef CONFIG_MACH_XIAOMI
 	CAM_CAMNOC_IRQ_IFE23_UBWC_ENCODE_ERROR,
+#endif
 	CAM_CAMNOC_IRQ_IFE0_UBWC_ENCODE_ERROR,
 	CAM_CAMNOC_IRQ_IFE1_WRITE_UBWC_ENCODE_ERROR,
 	CAM_CAMNOC_IRQ_IPE1_BPS_UBWC_DECODE_ERROR,
@@ -585,6 +593,7 @@ int cam_cpas_get_hw_info(
 int cam_cpas_get_cpas_hw_version(
 	uint32_t				 *hw_version);
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_cpas_get_camnoc_fifo_fill_level_info()
  *
@@ -599,6 +608,7 @@ int cam_cpas_get_cpas_hw_version(
 int cam_cpas_get_camnoc_fifo_fill_level_info(
 	uint32_t                               cpas_version,
 	uint32_t                               client_handle);
+#endif
 
 /**
  * cam_cpas_is_feature_supported()
@@ -639,6 +649,7 @@ const char *cam_cpas_axi_util_path_type_to_string(
 const char *cam_cpas_axi_util_trans_type_to_string(
 	uint32_t path_data_type);
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_cpas_log_votes()
  *
@@ -664,5 +675,6 @@ void cam_cpas_log_votes(void);
 int cam_cpas_hw_get_camnoc_fill_level_info(
 	uint32_t cpas_version,
 	uint32_t client_handle);
+#endif
 
 #endif /* _CAM_CPAS_API_H_ */

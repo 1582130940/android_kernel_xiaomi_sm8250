@@ -6,8 +6,10 @@
 #ifndef _CAM_CDM_UTIL_H_
 #define _CAM_CDM_UTIL_H_
 
+#ifndef CONFIG_MACH_XIAOMI
 /* Max len for tag name for header while dumping cmd buffer*/
 #define CAM_CDM_CMD_TAG_MAX_LEN 32
+#endif
 
 enum cam_cdm_command {
 	CAM_CDM_CMD_UNUSED = 0x0,
@@ -147,6 +149,7 @@ void (*cdm_write_genirq)(
 	uint32_t  userdata);
 };
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * struct cam_cdm_cmd_buf_dump_info; - Camera CDM dump info
  * @dst_offset:      dst offset
@@ -174,6 +177,7 @@ struct cam_cdm_cmd_dump_header {
 	uint64_t  size;
 	uint32_t  word_size;
 };
+#endif
 
 /**
  * cam_cdm_util_log_cmd_bufs()
@@ -187,6 +191,7 @@ struct cam_cdm_cmd_dump_header {
 void cam_cdm_util_dump_cmd_buf(
 	uint32_t *cmd_buffer_start, uint32_t *cmd_buffer_end);
 
+#ifndef CONFIG_MACH_XIAOMI
 /**
  * cam_cdm_util_dump_cmd_bufs_v2()
  *
@@ -199,6 +204,7 @@ void cam_cdm_util_dump_cmd_buf(
  */
 int cam_cdm_util_dump_cmd_bufs_v2(
 	struct cam_cdm_cmd_buf_dump_info *dump_info);
+#endif
 
 
 #endif /* _CAM_CDM_UTIL_H_ */
