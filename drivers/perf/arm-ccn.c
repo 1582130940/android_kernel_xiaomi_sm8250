@@ -228,7 +228,7 @@ static ssize_t arm_ccn_pmu_format_show(struct device *dev,
 	struct dev_ext_attribute *ea = container_of(attr,
 			struct dev_ext_attribute, attr);
 
-	return snprintf(buf, PAGE_SIZE, "%s\n", (char *)ea->var);
+	return scnprintf(buf, PAGE_SIZE, "%s\n", (char *)ea->var);
 }
 
 #define CCN_FORMAT_ATTR(_name, _config) \
@@ -335,15 +335,15 @@ static ssize_t arm_ccn_pmu_event_show(struct device *dev,
 			struct arm_ccn_pmu_event, attr);
 	ssize_t res;
 
-	res = snprintf(buf, PAGE_SIZE, "type=0x%x", event->type);
+	res = scnprintf(buf, PAGE_SIZE, "type=0x%x", event->type);
 	if (event->event)
-		res += snprintf(buf + res, PAGE_SIZE - res, ",event=0x%x",
+		res += scnprintf(buf + res, PAGE_SIZE - res, ",event=0x%x",
 				event->event);
 	if (event->def)
-		res += snprintf(buf + res, PAGE_SIZE - res, ",%s",
+		res += scnprintf(buf + res, PAGE_SIZE - res, ",%s",
 				event->def);
 	if (event->mask)
-		res += snprintf(buf + res, PAGE_SIZE - res, ",mask=0x%x",
+		res += scnprintf(buf + res, PAGE_SIZE - res, ",mask=0x%x",
 				event->mask);
 
 	/* Arguments required by an event */
@@ -351,25 +351,25 @@ static ssize_t arm_ccn_pmu_event_show(struct device *dev,
 	case CCN_TYPE_CYCLES:
 		break;
 	case CCN_TYPE_XP:
-		res += snprintf(buf + res, PAGE_SIZE - res,
+		res += scnprintf(buf + res, PAGE_SIZE - res,
 				",xp=?,vc=?");
 		if (event->event == CCN_EVENT_WATCHPOINT)
-			res += snprintf(buf + res, PAGE_SIZE - res,
+			res += scnprintf(buf + res, PAGE_SIZE - res,
 					",port=?,dir=?,cmp_l=?,cmp_h=?,mask=?");
 		else
-			res += snprintf(buf + res, PAGE_SIZE - res,
+			res += scnprintf(buf + res, PAGE_SIZE - res,
 					",bus=?");
 
 		break;
 	case CCN_TYPE_MN:
-		res += snprintf(buf + res, PAGE_SIZE - res, ",node=%d", ccn->mn_id);
+		res += scnprintf(buf + res, PAGE_SIZE - res, ",node=%d", ccn->mn_id);
 		break;
 	default:
-		res += snprintf(buf + res, PAGE_SIZE - res, ",node=?");
+		res += scnprintf(buf + res, PAGE_SIZE - res, ",node=?");
 		break;
 	}
 
-	res += snprintf(buf + res, PAGE_SIZE - res, "\n");
+	res += scnprintf(buf + res, PAGE_SIZE - res, "\n");
 
 	return res;
 }
@@ -483,7 +483,7 @@ static ssize_t arm_ccn_pmu_cmp_mask_show(struct device *dev,
 	struct arm_ccn *ccn = pmu_to_arm_ccn(dev_get_drvdata(dev));
 	u64 *mask = arm_ccn_pmu_get_cmp_mask(ccn, attr->attr.name);
 
-	return mask ? snprintf(buf, PAGE_SIZE, "0x%016llx\n", *mask) : -EINVAL;
+	return mask ? scnprintf(buf, PAGE_SIZE, "0x%016llx\n", *mask) : -EINVAL;
 }
 
 static ssize_t arm_ccn_pmu_cmp_mask_store(struct device *dev,
