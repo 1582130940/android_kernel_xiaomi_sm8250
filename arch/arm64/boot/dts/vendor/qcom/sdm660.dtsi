@@ -31,7 +31,7 @@
 
 	chosen {
 		stdout-path = "serial0";
-		bootargs = "rcupdate.rcu_expedited=1 mce=ignore_ce rcu_nocbs=0-7";
+		bootargs = "rcupdate.rcu_expedited=1 mce=ignore_ce rcu_nocbs=0-7 kpti=off";
 	};
 
 	psci {
