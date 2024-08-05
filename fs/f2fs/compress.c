@@ -1857,8 +1857,8 @@ bool f2fs_load_compressed_page(struct f2fs_sb_info *sbi, struct page *page,
 	if (cpage) {
 		if (PageUptodate(cpage)) {
 			atomic_inc(&sbi->compress_page_hit);
-			memcpy(page_address(page),
-				page_address(cpage), PAGE_SIZE);
+			copy_page(page_address(page),
+				page_address(cpage));
 			hitted = true;
 		}
 		f2fs_put_page(cpage, 1);
