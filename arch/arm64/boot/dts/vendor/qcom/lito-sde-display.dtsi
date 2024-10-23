@@ -21,6 +21,8 @@
 #include "dsi-panel-rm69299-visionox-fhd-plus-video.dtsi"
 #include "dsi-panel-r66451-dsc-fhd-plus-144hz-cmd.dtsi"
 #include <dt-bindings/clock/mdss-7nm-pll-clk.h>
+#include <dt-bindings/clock/qcom,dispcc-lito.h>
+#include <dt-bindings/clock/qcom,gcc-lito.h>
 
 &pm8150l_gpios {
 	disp_pins {
@@ -134,6 +136,7 @@
 		qcom,dsi-ctrl = <&mdss_dsi0 &mdss_dsi1>;
 		qcom,dsi-phy = <&mdss_dsi_phy0 &mdss_dsi_phy1>;
 
+		qcom,msm-bus,name = "dsi-display";
 		clocks = <&mdss_dsi0_pll BYTECLK_MUX_0_CLK>,
 			 <&mdss_dsi0_pll PCLK_MUX_0_CLK>,
 			 <&mdss_dsi0_pll BYTECLK_SRC_0_CLK>,
@@ -145,13 +148,16 @@
 			 <&mdss_dsi1_pll BYTECLK_SRC_1_CLK>,
 			 <&mdss_dsi1_pll PCLK_SRC_1_CLK>,
 			 <&mdss_dsi1_pll SHADOW_BYTECLK_SRC_1_CLK>,
-			 <&mdss_dsi1_pll SHADOW_PCLK_SRC_1_CLK>;
+			 <&mdss_dsi1_pll SHADOW_PCLK_SRC_1_CLK>,
+			 <&dispcc DISP_CC_MDSS_AHB_CLK>,
+			 <&gcc GCC_DISP_AHB_CLK>;
 		clock-names = "mux_byte_clk0", "mux_pixel_clk0",
 				"src_byte_clk0", "src_pixel_clk0",
 				"shadow_byte_clk0", "shadow_pixel_clk0",
 				"mux_byte_clk1", "mux_pixel_clk1",
 				"src_byte_clk1", "src_pixel_clk1",
-				"shadow_byte_clk1", "shadow_pixel_clk1";
+				"shadow_byte_clk1", "shadow_pixel_clk1", "iface_clk",
+				"gcc_clk";
 
 		pinctrl-names = "panel_active", "panel_suspend";
 		pinctrl-0 = <&sde_te_active &disp_pins_default>;

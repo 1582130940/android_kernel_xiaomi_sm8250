@@ -36,7 +36,7 @@
 		mboxes = <&qmp_aop 0>;
 	};
 
-	aliases {
+	aliases: aliases {
 		serial0 = &qupv3_se2_2uart;	/*RUMI*/
 		ufshc1 = &ufshc_mem; /* Embedded UFS slot */
 		swr0 = &swr0;
@@ -304,34 +304,12 @@
 		};
 	};
 
-	firmware: firmware {
-		android {
-			compatible = "android,firmware";
-			vbmeta {
-				compatible = "android,vbmeta";
-				parts = "vbmeta,boot,system,vendor,dtbo";
-			};
-
-			fstab {
-				compatible = "android,fstab";
-				vendor {
-					compatible = "android,vendor";
-					dev = "/dev/block/platform/soc/1d84000.ufshc/by-name/vendor";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1,discard";
-					fsmgr_flags = "wait,slotselect,avb";
-					status = "ok";
-				};
-			};
-		};
-	};
-
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
 	};
 
-	reserved-memory {
+	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -529,7 +507,7 @@
 	};
 
 	chosen {
-		bootargs = "rcupdate.rcu_expedited=1 rcu_nocbs=0-7 earlycon=msm_geni_serial,0x888000 kpti=off";
+		bootargs = "rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
 	};
 
 	soc: soc { };
@@ -1257,7 +1235,7 @@
 				<DCC_READ 0x92c8064 1 0>;
 	};
 
-	restart@c264000 {
+	msm_poweroff: restart@c264000 {
 		compatible = "qcom,pshold";
 		reg = <0xc264000 0x4>,
 		      <0x1fd3000 0x4>;
@@ -1521,6 +1499,7 @@
 		qcom,active-only;
 		status = "ok";
 		operating-points-v2 = <&keepalive_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	bus_proxy_client: qcom,bus_proxy_client {
@@ -1532,7 +1511,7 @@
 			<22 512 0 0>, <23 512 0 0>,
 			<22 512 0 5000000>, <23 512 0 5000000>;
 		qcom,msm-bus,active-only;
-		status = "ok";
+		status = "disabled";
 	};
 
 	qcom,sps {
@@ -1610,6 +1589,8 @@
 		reg-names = "cc_base";
 		vdd_cx-supply = <&VDD_CX_LEVEL>;
 		vdd_cx_ao-supply = <&VDD_CX_LEVEL_AO>;
+		gdsc_cx-supply = <&gpu_cx_gdsc>;
+		clocks = <&rpmhcc RPMH_CXO_CLK>;
 		#clock-cells = <1>;
 		#reset-cells = <1>;
 	};
@@ -1656,6 +1637,7 @@
 		reg-names = "cc_base";
 		vdd_cx-supply = <&VDD_CX_LEVEL>;
 		vdd_mx-supply = <&VDD_MX_LEVEL>;
+		gdsc_cx-supply = <&gpu_cx_gdsc>;
 		clocks = <&rpmhcc RPMH_CXO_CLK>;
 		clock-names = "xo";
 		#clock-cells = <1>;
@@ -1669,6 +1651,7 @@
 			<0x9810000 0x10000>;
 		reg-names = "cc", "qdsp6ss", "qdsp6ss_pll";
 		vdd_cx-supply = <&VDD_CX_LEVEL>;
+		npu_core-supply = <&npu_core_gdsc>;
 		nvmem-cells = <&npu_efuse>;
 		nvmem-cell-names = "npu-bin";
 		#clock-cells = <1>;
@@ -1706,8 +1689,6 @@
 			<0x18327800 0x1000>;
 		reg-names = "freq-domain0", "freq-domain1",
 			    "freq-domain2";
-		clocks = <&rpmhcc RPMH_CXO_CLK>, <&gcc GPLL0>;
-		clock-names = "xo", "alternate";
 		qcom,no-accumulative-counter;
 		#freq-domain-cells = <2>;
 	};
@@ -2834,6 +2815,8 @@
 		clock-names = "xo";
 		qcom,proxy-clock-names = "xo";
 
+		qcom,msm-bus,name = "pil-lpass";
+
 		qcom,pas-id = <1>;
 		qcom,proxy-timeout-ms = <10000>;
 		qcom,smem-id = <423>;
@@ -3195,6 +3178,7 @@
 			<MSM_BUS_MASTER_AMPSS_M0 MSM_BUS_SLAVE_LLCC>;
 		qcom,active-only;
 		operating-points-v2 = <&llcc_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-perf";
 	};
 
 	cpu_cpu_llcc_bwmon: qcom,cpu-cpu-llcc-bwmon@90b6400 {
@@ -3230,6 +3214,7 @@
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-perf";
 	};
 
 	cpu_llcc_ddr_bwmon: qcom,cpu-llcc-ddr-bwmon@90cd000 {
@@ -3263,6 +3248,7 @@
 		governor = "performance";
 		qcom,src-dst-ports = <MSM_BUS_MASTER_NPU MSM_BUS_SLAVE_LLCC>;
 		operating-points-v2 = <&suspendable_llcc_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-perf";
 	};
 
 	npu_npu_llcc_bwmon: qcom,npu-npu-llcc-bwmon@9960300 {
@@ -3290,6 +3276,7 @@
 		governor = "performance";
 		qcom,src-dst-ports = <MSM_BUS_SLAVE_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		operating-points-v2 = <&suspendable_ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-perf";
 	};
 
 	npu_llcc_ddr_bwmon: qcom,npu-llcc-ddr-bwmon@90CE000 {
@@ -3308,6 +3295,7 @@
 		governor = "performance";
 		qcom,src-dst-ports = <MSM_BUS_MASTER_NPU MSM_BUS_SLAVE_EBI_CH0>;
 		operating-points-v2 = <&suspendable_ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-perf";
 	};
 
 	npudsp_npu_ddr_bwmon: qcom,npudsp-npu-ddr-bwmon@70200 {
@@ -3332,29 +3320,32 @@
 
 	cpu0_cpu_llcc_lat: qcom,cpu0-cpu-llcc-lat {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_AMPSS_M0 MSM_BUS_SLAVE_LLCC>;
 		qcom,active-only;
 		operating-points-v2 = <&llcc_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu0_llcc_ddr_lat: qcom,cpu0-llcc-ddr-lat {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu0_cpu_ddr_latfloor: qcom,cpu0-cpu-ddr-latfloor {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu0_memlat_cpugrp: qcom,cpu0-cpugrp {
@@ -3412,38 +3403,42 @@
 
 	cpu6_cpu_llcc_lat: qcom,cpu6-cpu-llcc-lat {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_AMPSS_M0 MSM_BUS_SLAVE_LLCC>;
 		qcom,active-only;
 		operating-points-v2 = <&llcc_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu6_llcc_ddr_lat: qcom,cpu6-llcc-ddr-lat {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu6_cpu_ddr_latfloor: qcom,cpu6-cpu-ddr-latfloor {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu7_cpu_ddr_latfloor: qcom,cpu7-cpu-ddr-latfloor {
 		compatible = "qcom,devbw";
-		governor = "performance";
+		governor = "powersave";
 		qcom,src-dst-ports =
 			<MSM_BUS_MASTER_LLCC MSM_BUS_SLAVE_EBI_CH0>;
 		qcom,active-only;
 		operating-points-v2 = <&ddr_bw_opp_table>;
+		qcom,msm-bus,name = "devbw-powersave";
 	};
 
 	cpu4_memlat_cpugrp: qcom,cpu4-cpugrp {
@@ -3549,6 +3544,7 @@
 		qcom,firmware-name = "ipa_fws";
 		qcom,pil-force-shutdown;
 		memory-region = <&pil_ipa_fw_mem>;
+		qcom,msm-bus,name = "pil-ipa_fws";
 	};
 
 	ipa_hw: qcom,ipa@1e00000 {
@@ -3703,6 +3699,7 @@
 		qcom,pas-id = <23>;
 		qcom,firmware-name = "npu";
 		memory-region = <&pil_npu_mem>;
+		qcom,msm-bus,name = "pil-npu";
 
 		/* Outputs to npu */
 		qcom,smem-states = <&npu_smp2p_out 0>;
