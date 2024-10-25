@@ -49,6 +49,24 @@ $(warning Detected assembler with broken .inst; disassembly will be unreliable)
   endif
 endif
 
+ifeq ($(CONFIG_ARCH_BENGAL), y)
+ifeq ($(CONFIG_ARCH_KHAJE), y)
+ifeq ($(CONFIG_ARCH_SCUBA), y)
+ifeq ($(CONFIG_ARCH_SDM660), y)
+KBUILD_CFLAGS   += -mcpu=cortex-a73.cortex-a53 -mtune=cortex-a73.cortex-a53 -march=armv8-a+aes+crc+crypto+fp16+sha2
+KBUILD_AFLAGS   += -mcpu=cortex-a73.cortex-a53 -mtune=cortex-a73.cortex-a53 -march=armv8-a+aes+crc+crypto+fp16+sha2
+KBUILD_LDFLAGS  += -mllvm -mcpu=cortex-a73 -mtune=cortex-a73 -march=armv8-a+aes+crc+crypto+fp16+sha2
+endif
+endif
+endif
+endif
+
+ifeq ($(CONFIG_ARCH_KONA), y)
+KBUILD_CFLAGS   += -mcpu=cortex-a77.cortex-a55 -mtune=cortex-a77.cortex-a55 -march=armv8.2-a+dotprod+aes+crypto+fp16+sha2
+KBUILD_AFLAGS   += -mcpu=cortex-a77.cortex-a55 -mtune=cortex-a77.cortex-a55 -march=armv8.2-a+dotprod+aes+crypto+fp16+sha2
+KBUILD_LDFLAGS  += -mllvm -mcpu=cortex-a77 -mtune=cortex-a77 -march=armv8.2-a+dotprod+aes+crypto+fp16+sha2
+endif
+
 KBUILD_CFLAGS	+= -mgeneral-regs-only
 KBUILD_CFLAGS	+= $(lseinstr) $(brokengasinst) $(compat_vdso)
 KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
