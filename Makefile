@@ -699,6 +699,8 @@ KBUILD_CFLAGS   += -O2
 # Enable fast FMA optimizations
 KBUILD_CFLAGS   += -ffp-contract=fast
 KBUILD_CFLAGS   += -fno-trapping-math -fno-math-errno
+# Enable hot cold split optimization
+KBUILD_CFLAGS   += -mllvm -hot-cold-split=true
 endif
 
 ifdef CONFIG_CC_WERROR
