@@ -698,6 +698,7 @@ else
 KBUILD_CFLAGS   += -O2
 # Enable fast FMA optimizations
 KBUILD_CFLAGS   += -ffp-contract=fast
+KBUILD_CFLAGS   += -fno-trapping-math -fno-math-errno
 endif
 
 ifdef CONFIG_CC_WERROR
