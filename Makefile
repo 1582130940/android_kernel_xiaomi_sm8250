@@ -699,6 +699,9 @@ else
 KBUILD_CFLAGS   += -O2
 endif
 
+# Enable fast FMA optimizations
+KBUILD_CFLAGS += -ffp-contract=fast
+
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS  += -Werror
 endif
