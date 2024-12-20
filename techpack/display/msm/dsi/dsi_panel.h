@@ -20,6 +20,9 @@
 #include "dsi_pwr.h"
 #include "dsi_parser.h"
 #include "msm_drv.h"
+#ifdef CONFIG_MACH_XIAOMI
+#include "dsi_panel_mi.h"
+#endif
 
 #define MAX_BL_LEVEL 4096
 #define MAX_BL_SCALE_LEVEL 1024
@@ -119,6 +122,9 @@ struct dsi_backlight_config {
 	u32 bl_min_level;
 	u32 bl_max_level;
 	u32 brightness_max_level;
+#ifdef CONFIG_MACH_XIAOMI
+	u32 brightness_init_level;
+#endif
 	u32 bl_level;
 	u32 bl_scale;
 	u32 bl_scale_sv;
@@ -147,8 +153,14 @@ struct dsi_panel_reset_config {
 	u32 count;
 
 	int reset_gpio;
+#ifdef CONFIG_MACH_XIAOMI
+	int tp_reset_gpio;
+#endif
 	int disp_en_gpio;
 	int lcd_mode_sel_gpio;
+#ifdef CONFIG_MACH_XIAOMI
+	u32 reset_powerdown_delay;
+#endif
 	u32 mode_sel_state;
 };
 
@@ -165,6 +177,9 @@ struct drm_panel_esd_config {
 	bool esd_enabled;
 
 	enum esd_check_status_mode status_mode;
+#ifdef CONFIG_MACH_XIAOMI
+	struct dsi_panel_cmd_set offset_cmd;
+#endif
 	struct dsi_panel_cmd_set status_cmd;
 	u32 *status_cmds_rlen;
 	u32 *status_valid_params;
@@ -207,6 +222,9 @@ struct dsi_panel {
 
 	struct dsi_regulator_info power_info;
 	struct dsi_backlight_config bl_config;
+#ifdef CONFIG_MACH_XIAOMI
+	struct dsi_backlight_config bl_slaver_config;
+#endif
 	struct dsi_panel_reset_config reset_config;
 	struct dsi_pinctrl_info pinctrl;
 	struct drm_panel_hdr_properties hdr_props;
@@ -230,6 +248,9 @@ struct dsi_panel {
 
 	bool sync_broadcast_en;
 
+#ifdef CONFIG_MACH_XIAOMI
+	struct dsi_panel_mi_cfg mi_cfg;
+#endif
 	int panel_test_gpio;
 	int power_mode;
 	enum dsi_panel_physical_type panel_type;
@@ -341,6 +362,10 @@ int dsi_panel_switch(struct dsi_panel *panel);
 
 int dsi_panel_post_switch(struct dsi_panel *panel);
 
+#ifdef CONFIG_MACH_XIAOMI
+int dsi_panel_dc_switch(struct dsi_panel *panel);
+#endif
+
 void dsi_dsc_pclk_param_calc(struct msm_display_dsc_info *dsc, int intf_width);
 
 void dsi_panel_bl_handoff(struct dsi_panel *panel);
@@ -356,6 +381,12 @@ void dsi_panel_ext_bridge_put(struct dsi_panel *panel);
 void dsi_panel_calc_dsi_transfer_time(struct dsi_host_common_cfg *config,
 		struct dsi_display_mode *mode, u32 frame_threshold_us);
 
+#ifdef CONFIG_MACH_XIAOMI
+int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
+				enum dsi_cmd_set_type type);
+int dsi_panel_update_backlight(struct dsi_panel *panel,
+				u32 bl_lvl);
+#endif
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt);
 
 int dsi_panel_alloc_cmd_packets(struct dsi_panel_cmd_set *cmd,
