@@ -2,4 +2,13 @@ menu "Tech packages"
 
 source "techpack/data/Kconfig"
 
+menu "Camera packages"
+
+config TECHPACK_CAMERA_XIAOMI_TABLET
+    bool "Xiaomi camera tablet"
+    help
+      Xiaomi camera tablet
+
+endmenu
+
 endmenu
