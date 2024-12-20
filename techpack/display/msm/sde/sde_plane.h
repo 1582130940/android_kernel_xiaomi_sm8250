@@ -310,4 +310,12 @@ bool sde_plane_is_cache_required(struct drm_plane *plane);
 
 int sde_plane_is_fod_layer(const struct drm_plane_state *drm_state);
 
+#ifdef CONFIG_MACH_XIAOMI
+/*
+ * sde_plane_get_mi_layer_info - get mi layer info
+ * @plane: Pointer to DRM plane object
+ */
+uint32_t sde_plane_get_mi_layer_info(const struct drm_plane_state *drm_state);
+#endif
+
 #endif /* _SDE_PLANE_H_ */
