@@ -202,6 +202,9 @@ struct dsi_display {
 	const char *display_type;
 	struct list_head list;
 	bool is_cont_splash_enabled;
+#ifdef CONFIG_MACH_XIAOMI
+	bool is_prim_display;
+#endif
 	bool sw_te_using_wd;
 	struct mutex display_lock;
 	int disp_te_gpio;
@@ -754,6 +757,20 @@ int dsi_display_cont_splash_config(void *display);
  */
 int dsi_display_get_panel_vfp(void *display,
 	int h_active, int v_active);
+
+#ifdef CONFIG_MACH_XIAOMI
+int dsi_display_cmd_engine_enable(struct dsi_display *display);
+int dsi_display_cmd_engine_disable(struct dsi_display *display);
+int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display);
+
+char *dsi_display_get_cmdline_panel_info(void);
+
+int dsi_display_hbm_set_disp_param(struct drm_connector *connector,
+				u32 param_type);
+
+int dsi_display_esd_irq_ctrl(struct dsi_display *display,
+		bool enable);
+#endif
 
 struct dsi_display *get_main_display(void);
 

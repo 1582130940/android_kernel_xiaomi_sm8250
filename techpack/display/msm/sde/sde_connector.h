@@ -402,6 +402,24 @@ struct sde_connector_dyn_hdr_metadata {
 	bool dynamic_hdr_update;
 };
 
+#ifdef CONFIG_MACH_XIAOMI
+enum mi_dimlayer_type {
+	MI_DIMLAYER_NULL = 0x0,
+	MI_DIMLAYER_FOD_HBM_OVERLAY = 0x1,
+	MI_DIMLAYER_FOD_ICON = 0x2,
+	MI_DIMLAYER_AOD = 0x4,
+	MI_LAYER_FOD_ANIM = 0x8,
+	MI_FOD_UNLOCK_SUCCESS = 0x10,
+	MI_DIMLAYER_MAX,
+};
+
+struct mi_dimlayer_state
+{
+	enum mi_dimlayer_type mi_dimlayer_type;
+	uint32_t current_backlight;
+};
+#endif
+
 /**
  * struct sde_connector - local sde connector structure
  * @base: Base drm connector structure
@@ -482,6 +500,9 @@ struct sde_connector {
 	spinlock_t event_lock;
 
 	struct backlight_device *bl_device;
+#ifdef CONFIG_MACH_XIAOMI
+	struct sde_clone_cdev *cdev_clone;
+#endif
 	struct delayed_work status_work;
 	u32 esd_status_interval;
 	bool panel_dead;
@@ -503,6 +524,11 @@ struct sde_connector {
 
 	u8 cmd_rx_buf[MAX_CMD_RECEIVE_SIZE];
 	int rx_len;
+
+#ifdef CONFIG_MACH_XIAOMI
+	struct mi_dimlayer_state mi_dimlayer_state;
+	u32 fod_frame_count;
+#endif
 };
 
 /**
@@ -987,5 +1013,25 @@ int sde_connector_get_panel_vfp(struct drm_connector *connector,
  * @connector: Pointer to DRM connector object
  */
 int sde_connector_esd_status(struct drm_connector *connector);
+
+#ifdef CONFIG_MACH_XIAOMI
+/**
+ * sde_connector_hbm_ctl - mi function to control hbm
+ * @connector: Pointer to DRM connector object
+ * @op_code: hbm operation code
+ */
+int sde_connector_hbm_ctl(struct drm_connector *connector, uint32_t op_code);
+
+int sde_connector_pre_hbm_ctl(struct drm_connector *connector);
+
+void sde_connector_mi_update_dimlayer_state(struct drm_connector *connector,
+	enum mi_dimlayer_type mi_dimlayer_type);
+
+void sde_connector_mi_get_current_backlight(struct drm_connector *connector, uint32_t *brightness);
+
+void sde_connector_mi_get_current_alpha(struct drm_connector *connector, uint32_t brightness, uint32_t *alpha);
+
+void sde_connector_fod_notify(struct drm_connector *connector);
+#endif
 
 #endif /* _SDE_CONNECTOR_H_ */
