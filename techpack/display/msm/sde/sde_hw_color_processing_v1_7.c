@@ -688,7 +688,15 @@ void sde_setup_dspp_pcc_v1_7(struct sde_hw_dspp *ctx, void *cfg)
 		return;
 	}
 	DRM_DEBUG_DRIVER("Enable PCC feature\n");
+#ifdef CONFIG_MACH_XIAOMI
+	if (hw_cfg->payload_clear) {
+		pcc = hw_cfg->payload_clear;
+	} else {
+		pcc = hw_cfg->payload;
+	}
+#else
 	pcc = hw_cfg->payload;
+#endif
 
 	SDE_REG_WRITE(&ctx->hw, ctx->cap->sblk->pcc.base + PCC_CONST_COEFF_OFF,
 				  pcc->r.c & PCC_CONST_COEFF_MASK);

@@ -40,6 +40,12 @@
 #include "sde_core_irq.h"
 #include "sde_hw_top.h"
 #include "sde_hw_qdss.h"
+#ifdef CONFIG_MACH_XIAOMI
+#include "dsi_display.h"
+#include "dsi_panel_mi.h"
+#include "dsi_drm.h"
+#include "xiaomi_frame_stat.h"
+#endif
 
 #define SDE_DEBUG_ENC(e, fmt, ...) SDE_DEBUG("enc%d " fmt,\
 		(e) ? (e)->base.base.id : -1, ##__VA_ARGS__)
@@ -87,6 +93,9 @@
 		(msm_is_mode_seamless_dms(adj_mode) || \
 		(msm_is_mode_seamless_dyn_clk(adj_mode) && \
 		is_cmd_mode) || msm_is_mode_seamless_poms(adj_mode))
+#ifdef CONFIG_MACH_XIAOMI
+extern struct frame_stat fm_stat;
+#endif
 
 /**
  * enum sde_enc_rc_events - events for resource control state machine
@@ -283,6 +292,9 @@ struct sde_encoder_virt {
 	struct kthread_delayed_work delayed_off_work;
 	struct kthread_work vsync_event_work;
 	struct kthread_work input_event_work;
+#ifdef CONFIG_MACH_XIAOMI
+	struct kthread_work touch_notify_work;
+#endif
 	struct kthread_work esd_trigger_work;
 	struct input_handler *input_handler;
 	bool input_handler_registered;
@@ -301,9 +313,47 @@ struct sde_encoder_virt {
 	bool elevated_ahb_vote;
 	struct pm_qos_request pm_qos_cpu_req;
 	struct msm_mode_info mode_info;
+#ifdef CONFIG_MACH_XIAOMI
+	bool prepare_kickoff;
+	bool ready_kickoff;
+#endif
 };
 
 #define to_sde_encoder_virt(x) container_of(x, struct sde_encoder_virt, base)
+
+#ifdef CONFIG_MACH_XIAOMI
+bool get_sde_encoder_virt_prepare_kickoff(struct drm_connector *connector)
+{
+	struct sde_encoder_virt *sde_enc;
+
+	sde_enc = to_sde_encoder_virt(connector->encoder);
+	return sde_enc->prepare_kickoff;
+}
+
+bool get_sde_encoder_virt_ready_kickoff(struct drm_connector *connector)
+{
+	struct sde_encoder_virt *sde_enc;
+
+	sde_enc = to_sde_encoder_virt(connector->encoder);
+	return sde_enc->ready_kickoff;
+}
+
+void set_sde_encoder_virt_prepare_kickoff(struct drm_connector *connector,bool enable)
+{
+	struct sde_encoder_virt *sde_enc;
+
+	sde_enc = to_sde_encoder_virt(connector->encoder);
+	sde_enc->prepare_kickoff = enable;
+}
+
+void set_sde_encoder_virt_ready_kickoff(struct drm_connector *connector,bool enable)
+{
+	struct sde_encoder_virt *sde_enc;
+
+	sde_enc = to_sde_encoder_virt(connector->encoder);
+	sde_enc->ready_kickoff = enable;
+}
+#endif
 
 void sde_encoder_uidle_enable(struct drm_encoder *drm_enc, bool enable)
 {
@@ -2318,6 +2368,10 @@ static void sde_encoder_input_event_handler(struct input_handle *handle,
 		return;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	SDE_DEBUG("%s: type[%d] code[%d] value[%d]\n", __func__, type, code, value);
+#endif
+
 	drm_enc = (struct drm_encoder *)handle->handler->private;
 	if (!drm_enc->dev || !drm_enc->dev->dev_private) {
 		SDE_ERROR("invalid parameters\n");
@@ -2340,7 +2394,16 @@ static void sde_encoder_input_event_handler(struct input_handle *handle,
 	disp_thread = &priv->disp_thread[sde_enc->crtc->index];
 
 	kthread_queue_work(&disp_thread->worker,
+#ifdef CONFIG_MACH_XIAOMI
+				&sde_enc->touch_notify_work);
+
+	/* Only consider EV_ABS (touch) events in QC original design */
+	if (type == EV_ABS && sde_encoder_check_curr_mode(drm_enc, MSM_DISPLAY_CMD_MODE))
+		kthread_queue_work(&disp_thread->worker,
+					&sde_enc->input_event_work);
+#else
 				&sde_enc->input_event_work);
+#endif
 }
 
 void sde_encoder_control_idle_pc(struct drm_encoder *drm_enc, bool enable)
@@ -3167,6 +3230,10 @@ static int _sde_encoder_input_connect(struct input_handler *handler,
 		goto error_unregister;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	SDE_EVT32(handle, SDE_EVTLOG_FUNC_ENTRY);
+#endif
+
 	return 0;
 
 error_unregister:
@@ -3180,6 +3247,9 @@ error:
 
 static void _sde_encoder_input_disconnect(struct input_handle *handle)
 {
+#ifdef CONFIG_MACH_XIAOMI
+	SDE_EVT32(handle, SDE_EVTLOG_FUNC_EXIT);
+#endif
 	 input_close_device(handle);
 	 input_unregister_handle(handle);
 	 kfree(handle);
@@ -3198,6 +3268,12 @@ static const struct input_device_id sde_input_ids[] = {
 					BIT_MASK(ABS_MT_POSITION_X) |
 					BIT_MASK(ABS_MT_POSITION_Y) },
 	},
+#ifdef CONFIG_MACH_XIAOMI
+	{
+		.flags = INPUT_DEVICE_ID_MATCH_EVBIT,
+		.evbit = { BIT_MASK(EV_KEY) },
+	},
+#endif
 	{ },
 };
 
@@ -3207,8 +3283,10 @@ static void _sde_encoder_input_handler_register(
 	struct sde_encoder_virt *sde_enc = to_sde_encoder_virt(drm_enc);
 	int rc;
 
+#if 0
 	if (!sde_encoder_check_curr_mode(drm_enc, MSM_DISPLAY_CMD_MODE))
 		return;
+#endif
 
 	if (sde_enc->input_handler && !sde_enc->input_handler->private) {
 		sde_enc->input_handler->private = sde_enc;
@@ -3406,7 +3484,9 @@ static void sde_encoder_virt_enable(struct drm_encoder *drm_enc)
 	/* register input handler if not already registered */
 	if (sde_enc->input_handler && !sde_enc->input_handler_registered &&
 			!msm_is_mode_seamless_dms(cur_mode) &&
+#if 0
 		sde_encoder_check_curr_mode(drm_enc, MSM_DISPLAY_CMD_MODE) &&
+#endif
 			!msm_is_mode_seamless_dyn_clk(cur_mode)) {
 		_sde_encoder_input_handler_register(drm_enc);
 		if (!sde_enc->input_handler || !sde_enc->input_handler->private)
@@ -3774,6 +3854,9 @@ static void sde_encoder_underrun_callback(struct drm_encoder *drm_enc,
 		atomic_read(&phy_enc->underrun_cnt));
 
 	SDE_DBG_CTRL("stop_ftrace");
+#ifdef CONFIG_MACH_XIAOMI
+	SDE_ERROR("underrun: %d\n", atomic_read(&phy_enc->underrun_cnt));
+#endif
 	SDE_DBG_CTRL("panic_underrun");
 
 	SDE_ATRACE_END("encoder_underrun_callback");
@@ -4501,10 +4584,32 @@ static void _sde_encoder_setup_dither(struct sde_encoder_phys *phys)
 	struct msm_display_dsc_info *dsc = NULL;
 	struct sde_encoder_virt *sde_enc;
 	struct sde_hw_pingpong *hw_pp;
+#ifdef CONFIG_MACH_XIAOMI
+	struct dsi_display *dsi_display;
+	struct sde_connector *c_conn;
+	struct dsi_panel_mi_cfg *mi_cfg;
+#endif
 
 	if (!phys || !phys->connector || !phys->hw_pp ||
 			!phys->hw_pp->ops.setup_dither || !phys->parent)
 		return;
+
+#ifdef CONFIG_MACH_XIAOMI
+	c_conn = to_sde_connector(phys->connector);
+	if (c_conn->connector_type == DRM_MODE_CONNECTOR_DSI) {
+		dsi_display = (struct dsi_display *) c_conn->display;
+		if (!dsi_display || !dsi_display->panel) {
+			SDE_ERROR("invalid display/panel\n");
+			return;
+		}
+
+		mi_cfg = &dsi_display->panel->mi_cfg;
+		if (!mi_cfg->dither_enabled) {
+			SDE_DEBUG("dither_enabled = %d\n", mi_cfg->dither_enabled);
+			return;
+		}
+	}
+#endif
 
 	topology = sde_connector_get_topology_name(phys->connector);
 	if ((topology == SDE_RM_TOPOLOGY_PPSPLIT) &&
@@ -4667,6 +4772,36 @@ static void sde_encoder_input_event_work_handler(struct kthread_work *work)
 	sde_encoder_resource_control(&sde_enc->base,
 			SDE_ENC_RC_EVENT_EARLY_WAKEUP);
 }
+
+#ifdef CONFIG_MACH_XIAOMI
+static void sde_encoder_touch_notify_work_handler(struct kthread_work *work)
+{
+	struct dsi_bridge *c_bridge = NULL;
+	struct dsi_display *dsi_display = NULL;
+	struct drm_encoder *drm_enc = NULL;
+	struct sde_encoder_virt *sde_enc = container_of(work,
+				struct sde_encoder_virt, touch_notify_work);
+
+	if (!sde_enc) {
+		SDE_ERROR("invalid encoder for the touch notify\n");
+		return;
+	}
+
+	drm_enc = &sde_enc->base;
+
+	c_bridge = container_of(drm_enc->bridge, struct dsi_bridge, base);
+	if (c_bridge)
+		dsi_display = c_bridge->display;
+
+	if (dsi_display && dsi_display->is_prim_display && dsi_display->panel
+		&& dsi_display->panel->mi_cfg.smart_fps_restore) {
+		if (dsi_display->panel->mi_cfg.smart_fps_support && fm_stat.enabled) {
+			calc_fps(0, (int)true);
+			dsi_display->panel->mi_cfg.smart_fps_restore = false;
+		}
+	}
+}
+#endif
 
 static void sde_encoder_vsync_event_work_handler(struct kthread_work *work)
 {
@@ -5005,6 +5140,11 @@ int sde_encoder_prepare_for_kickoff(struct drm_encoder *drm_enc,
 				sde_enc->cur_master, sde_kms->qdss_enabled);
 
 end:
+#ifdef CONFIG_MACH_XIAOMI
+	if (sde_enc->ready_kickoff) {
+		sde_enc->prepare_kickoff = true;
+	}
+#endif
 	SDE_ATRACE_END("sde_encoder_prepare_for_kickoff");
 	return ret;
 }
@@ -5052,8 +5192,17 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error)
 {
 	struct sde_encoder_virt *sde_enc;
 	struct sde_encoder_phys *phys;
+#ifdef CONFIG_MACH_XIAOMI
+	struct dsi_bridge *bridge = NULL;
+	struct dsi_display *dsi_display = NULL;
+	struct dsi_display_mode adj_mode;
+#endif
 	ktime_t wakeup_time;
+#ifdef CONFIG_MACH_XIAOMI
+	unsigned int i,rc = 0;
+#else
 	unsigned int i;
+#endif
 
 	if (!drm_enc) {
 		SDE_ERROR("invalid encoder\n");
@@ -5067,6 +5216,41 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error)
 	/* create a 'no pipes' commit to release buffers on errors */
 	if (is_error)
 		_sde_encoder_reset_ctl_hw(drm_enc);
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (sde_enc->disp_info.intf_type == DRM_MODE_CONNECTOR_DSI
+		&& drm_enc->bridge)
+		bridge = container_of(drm_enc->bridge, struct dsi_bridge, base);
+	if (bridge) {
+		adj_mode = bridge->dsi_mode;
+		dsi_display = bridge->display;
+		if (dsi_display && dsi_display->panel
+			&& (dsi_display->panel->host_config.phy_type == DSI_PHY_TYPE_CPHY || dsi_display->panel->mi_cfg.panel_id == 0x4C38314100420400)
+			&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
+			mutex_lock(&dsi_display->panel->panel_lock);
+			sde_encoder_vid_wait_for_active(drm_enc);
+		} else if (dsi_display && dsi_display->panel
+			&& (dsi_display->panel->mi_cfg.panel_id == 0x4D38324100360200 || dsi_display->panel->mi_cfg.panel_id == 0x4D38324100420200)
+			&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
+			SDE_INFO("sde_encoder_vid_wait_for_active\n");
+			mutex_lock(&dsi_display->panel->panel_lock);
+			sde_encoder_vid_wait_for_active(drm_enc);
+		}
+	}
+
+	if (dsi_display && dsi_display->panel
+		&& (dsi_display->panel->mi_cfg.panel_id == 0x4D38324100360200 || dsi_display->panel->mi_cfg.panel_id == 0x4D38324100420200)
+		&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
+		if (dsi_display->panel->mi_cfg.last_fps == 60 && adj_mode.timing.refresh_rate != 120) {
+		    rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_SET_DISP_PEN_CLEAR);
+			if (rc) {
+				pr_err("Failed to send DSI_CMD_SET_DISP_PEN_CLEAR command\n");
+			}
+			sde_encoder_wait_for_event(drm_enc,MSM_ENC_VBLANK);
+			sde_encoder_vid_wait_for_active(drm_enc);
+		}
+	}
+#endif
 
 	/* All phys encs are ready to go, trigger the kickoff */
 	_sde_encoder_kickoff_phys(sde_enc);
@@ -5084,6 +5268,21 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error)
 		mod_timer(&sde_enc->vsync_event_timer,
 				nsecs_to_jiffies(ktime_to_ns(wakeup_time)));
 	}
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (dsi_display && dsi_display->panel
+		&& (dsi_display->panel->host_config.phy_type == DSI_PHY_TYPE_CPHY || dsi_display->panel->mi_cfg.panel_id == 0x4C38314100420400)
+		&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
+		dsi_panel_match_fps_pen_setting(dsi_display->panel, &adj_mode);
+		mutex_unlock(&dsi_display->panel->panel_lock);
+	} else if (dsi_display && dsi_display->panel
+		&& (dsi_display->panel->mi_cfg.panel_id == 0x4D38324100360200 || dsi_display->panel->mi_cfg.panel_id == 0x4D38324100420200)
+		&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
+		SDE_INFO("sde_dsi_panel_match_fps_pen_setting\n");
+		dsi_panel_match_fps_pen_setting(dsi_display->panel, &adj_mode);
+		mutex_unlock(&dsi_display->panel->panel_lock);
+	}
+#endif
 
 	SDE_ATRACE_END("encoder_kickoff");
 }
@@ -5818,7 +6017,11 @@ struct drm_encoder *sde_encoder_init_with_ops(
 		sde_enc->rsc_client = NULL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (disp_info->capabilities & (MSM_DISPLAY_CAP_CMD_MODE | MSM_DISPLAY_CAP_VID_MODE)) {
+#else
 	if (disp_info->capabilities & MSM_DISPLAY_CAP_CMD_MODE) {
+#endif
 		ret = _sde_encoder_input_handler(sde_enc);
 		if (ret)
 			SDE_ERROR(
@@ -5836,6 +6039,11 @@ struct drm_encoder *sde_encoder_init_with_ops(
 
 	kthread_init_work(&sde_enc->input_event_work,
 			sde_encoder_input_event_work_handler);
+
+#ifdef CONFIG_MACH_XIAOMI
+	kthread_init_work(&sde_enc->touch_notify_work,
+			sde_encoder_touch_notify_work_handler);
+#endif
 
 	kthread_init_work(&sde_enc->esd_trigger_work,
 			sde_encoder_esd_trigger_work_handler);
@@ -5860,6 +6068,39 @@ struct drm_encoder *sde_encoder_init(
 {
 	return sde_encoder_init_with_ops(dev, disp_info, NULL);
 }
+
+#ifdef CONFIG_MACH_XIAOMI
+int sde_encoder_vid_wait_for_active(
+			struct drm_encoder *drm_enc)
+{
+	struct drm_display_mode mode;
+	struct sde_encoder_virt *sde_enc = NULL;
+	u32 ln_cnt, min_ln_cnt, active_mark_region;
+	u32 i, retry = 15;
+	if (!drm_enc) {
+		SDE_ERROR("invalid encoder\n");
+		return -EINVAL;
+	}
+	sde_enc = to_sde_encoder_virt(drm_enc);
+	for (i = 0; i < sde_enc->num_phys_encs; i++) {
+		struct sde_encoder_phys *phys = sde_enc->phys_encs[i];
+		if (!phys || (phys->ops.is_master && !phys->ops.is_master(phys)))
+			continue;
+		mode = phys->cached_mode;
+		min_ln_cnt = (mode.vtotal - mode.vsync_start) +
+			(mode.vsync_end - mode.vsync_start);
+		active_mark_region = mode.vdisplay + min_ln_cnt - mode.vdisplay / 4;
+		while (retry) {
+			ln_cnt = phys->ops.get_line_count(phys);
+			if ((ln_cnt > min_ln_cnt) && (ln_cnt < active_mark_region))
+				return 0;
+			udelay(2000);
+			retry--;
+		}
+	}
+	return -EINVAL;
+}
+#endif
 
 int sde_encoder_wait_for_event(struct drm_encoder *drm_enc,
 	enum msm_event_wait event)
@@ -6316,3 +6557,50 @@ void sde_encoder_recovery_events_handler(struct drm_encoder *encoder,
 	sde_enc = to_sde_encoder_virt(encoder);
 	sde_enc->recovery_events_enabled = enabled;
 }
+
+#ifdef CONFIG_MACH_XIAOMI
+void sde_encoder_save_vsync_info(struct sde_encoder_phys *phys_enc)
+{
+	struct sde_encoder_virt *sde_enc;
+	struct msm_mode_info *info;
+	struct calc_hw_vsync *calc_vsync;
+	ktime_t current_ktime;
+	u32 diff_us = 0;
+	u32 config_vsync_period_us = 0;
+
+	if (!phys_enc || !phys_enc->parent)
+		return;
+
+	sde_enc = to_sde_encoder_virt(phys_enc->parent);
+	if (sde_enc->disp_info.display_type == SDE_CONNECTOR_PRIMARY)
+		calc_vsync = get_hw_calc_vsync_struct(DSI_PRIMARY);
+	else if (sde_enc->disp_info.display_type == SDE_CONNECTOR_SECONDARY)
+		calc_vsync = get_hw_calc_vsync_struct(DSI_SECONDARY);
+	else
+		return;
+
+	if (!calc_vsync)
+		return;
+
+	info = &sde_enc->mode_info;
+	config_vsync_period_us = USEC_PER_SEC / info->frame_rate;
+
+	current_ktime = ktime_get();
+	diff_us = (u64)ktime_us_delta(current_ktime, calc_vsync->last_timestamp);
+	if ((diff_us * 10) <= (config_vsync_period_us * 9) ||
+		(diff_us * 10) >= (config_vsync_period_us * 11)) {
+		calc_vsync->last_timestamp = current_ktime;
+		return;
+	}
+
+	calc_vsync->vsyc_info[calc_vsync->vsync_count].config_fps = info->frame_rate;
+	calc_vsync->vsyc_info[calc_vsync->vsync_count].timestamp = current_ktime;
+	calc_vsync->vsyc_info[calc_vsync->vsync_count].real_vsync_period_ns =
+			ktime_to_ns(ktime_sub(current_ktime, calc_vsync->last_timestamp));
+
+	calc_vsync->last_timestamp = current_ktime;
+
+	calc_vsync->vsync_count++;
+	calc_vsync->vsync_count %= MAX_VSYNC_COUNT;
+}
+#endif

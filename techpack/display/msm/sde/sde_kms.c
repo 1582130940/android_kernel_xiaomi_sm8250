@@ -1199,6 +1199,10 @@ static void sde_kms_complete_commit(struct msm_kms *kms,
 			pr_err("Connector Post kickoff failed rc=%d\n",
 					 rc);
 		}
+
+#ifdef CONFIG_MACH_XIAOMI
+		sde_connector_fod_notify(connector);
+#endif
 	}
 
 	_sde_kms_drm_check_dpms(old_state, DRM_PANEL_EVENT_BLANK);
@@ -1273,7 +1277,11 @@ static void sde_kms_wait_for_commit_done(struct msm_kms *kms,
 			sde_encoder_virt_reset(encoder);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	SDE_ATRACE_END("sde_kms_wait_for_commit_done");
+#else
 	SDE_ATRACE_END("sde_ksm_wait_for_commit_done");
+#endif
 }
 
 static void sde_kms_prepare_fence(struct msm_kms *kms,
@@ -1932,6 +1940,16 @@ static void _sde_kms_hw_destroy(struct sde_kms *sde_kms,
 	if (sde_kms->sid)
 		msm_iounmap(pdev, sde_kms->sid);
 	sde_kms->sid = NULL;
+
+#ifdef CONFIG_MACH_XIAOMI
+	if (sde_kms->hw_sw_fuse)
+		sde_hw_sw_fuse_destroy(sde_kms->hw_sw_fuse);
+	sde_kms->hw_sw_fuse = NULL;
+
+	if (sde_kms->sw_fuse)
+		msm_iounmap(pdev, sde_kms->sw_fuse);
+	sde_kms->sw_fuse = NULL;
+#endif
 
 	if (sde_kms->reg_dma)
 		msm_iounmap(pdev, sde_kms->reg_dma);
@@ -3555,6 +3573,21 @@ static int _sde_kms_hw_init_ioremap(struct sde_kms *sde_kms,
 	if (rc)
 		SDE_ERROR("dbg base register sid failed: %d\n", rc);
 
+#ifdef CONFIG_MACH_XIAOMI
+	sde_kms->sw_fuse = msm_ioremap(platformdev, "swfuse_phys",
+					"swfuse_phys");
+	if (IS_ERR(sde_kms->sw_fuse)) {
+		sde_kms->sw_fuse = NULL;
+		SDE_DEBUG("sw_fuse is not defined");
+	} else {
+		sde_kms->sw_fuse_len = msm_iomap_size(platformdev,
+							"swfuse_phys");
+		rc =  sde_dbg_reg_register_base("sw_fuse", sde_kms->sw_fuse,
+						sde_kms->sw_fuse_len);
+		if (rc)
+			SDE_ERROR("dbg base register sw_fuse failed: %d\n", rc);
+	}
+#endif
 error:
 	return rc;
 }
@@ -3759,6 +3792,19 @@ static int _sde_kms_hw_init_blocks(struct sde_kms *sde_kms,
 		goto perf_err;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (sde_kms->sw_fuse) {
+		sde_kms->hw_sw_fuse = sde_hw_sw_fuse_init(sde_kms->sw_fuse,
+				sde_kms->sw_fuse_len, sde_kms->catalog);
+		if (IS_ERR(sde_kms->hw_sw_fuse)) {
+			SDE_ERROR("failed to init sw_fuse %ld\n",
+					PTR_ERR(sde_kms->hw_sw_fuse));
+			sde_kms->hw_sw_fuse = NULL;
+		}
+	} else {
+		sde_kms->hw_sw_fuse = NULL;
+	}
+#endif
 	/*
 	 * _sde_kms_drm_obj_init should create the DRM related objects
 	 * i.e. CRTCs, planes, encoders, connectors and so forth
@@ -3936,3 +3982,19 @@ int sde_kms_handle_recovery(struct drm_encoder *encoder)
 	SDE_EVT32(DRMID(encoder), MSM_ENC_ACTIVE_REGION);
 	return sde_encoder_wait_for_event(encoder, MSM_ENC_ACTIVE_REGION);
 }
+
+#ifdef CONFIG_MACH_XIAOMI
+void sde_kms_kickoff_count(struct sde_kms *sde_kms)
+{
+	int i;
+	struct dsi_display *display = NULL;
+
+	if (sde_kms != NULL) {
+		for (i = 0; i < sde_kms->dsi_display_count; ++i) {
+			display = sde_kms->dsi_displays[i];
+		}
+	}
+
+	return;
+}
+#endif
