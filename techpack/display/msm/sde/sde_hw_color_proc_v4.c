@@ -222,7 +222,15 @@ void sde_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 		return;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI
+	if (hw_cfg->payload_clear) {
+		pcc_cfg = hw_cfg->payload_clear;
+	} else {
+		pcc_cfg = hw_cfg->payload;
+	}
+#else
 	pcc_cfg = hw_cfg->payload;
+#endif
 
 	for (i = 0; i < PCC_NUM_PLANES; i++) {
 		base = ctx->cap->sblk->pcc.base + (i * sizeof(u32));
