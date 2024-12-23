@@ -2556,51 +2556,6 @@ static u8 nvt_panel_display_read(void)
 }
 #endif
 
-static int nvt_power_supply_event(struct notifier_block *nb,
-				  unsigned long event, void *ptr)
-{
-	struct nvt_ts_data *ts =
-		container_of(nb, struct nvt_ts_data, power_supply_notifier);
-
-	if (ts && &ts->power_supply_work != NULL && ts->event_wq != NULL)
-		queue_work(ts->event_wq, &ts->power_supply_work);
-
-	return 0;
-}
-
-static void nvt_power_supply_work(struct work_struct *work)
-{
-	struct nvt_ts_data *ts =
-		container_of(work, struct nvt_ts_data, power_supply_work);
-	int is_usb_exist = 0;
-	uint8_t buf[3] = { 0 };
-	int32_t ret;
-
-	mutex_lock(&ts->power_supply_lock);
-	if (bTouchIsAwake) {
-		is_usb_exist = !!power_supply_is_system_supplied();
-		if (is_usb_exist != ts->is_usb_exist || ts->is_usb_exist < 0) {
-			ts->is_usb_exist = is_usb_exist;
-			NVT_ERR("Power_supply_event:%d", is_usb_exist);
-			buf[0] = EVENT_MAP_HOST_CMD;
-			if (is_usb_exist) {
-				NVT_ERR("USB is exist");
-				buf[1] = 0x53;
-			} else {
-				NVT_ERR("USB is not exist");
-				buf[1] = 0x51;
-			}
-			buf[2] = 0x00;
-			ret = CTP_SPI_WRITE(ts->client, buf, 3);
-			if (ret) {
-				NVT_ERR("USB status set failed, ret = %d!",
-					ret);
-			}
-		}
-	}
-	mutex_unlock(&ts->power_supply_lock);
-}
-
 static void get_lockdown_info(struct work_struct *work)
 {
 	int ret = 0;
@@ -2860,8 +2815,6 @@ void nvt_tp_state_recovery(struct nvt_ts_data *ts)
 #endif
 	msleep(50);
 	NVT_ERR("Recovery power supply");
-	ts->is_usb_exist = -1;
-	queue_work(ts->event_wq, &ts->power_supply_work);
 	msleep(50);
 	NVT_ERR("Recovery pen charger mode");
 	schedule_work(&ts->pen_charge_state_change_work);
@@ -3305,17 +3258,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
-	/* is usb exit init */
-	ts->is_usb_exist = -1;
-	mutex_init(&ts->power_supply_lock);
-	INIT_WORK(&ts->power_supply_work, nvt_power_supply_work);
-	ts->power_supply_notifier.notifier_call = nvt_power_supply_event;
-	ret = power_supply_reg_notifier(&ts->power_supply_notifier);
-	if (ret) {
-		NVT_ERR("register power_supply_notifier failed. ret=%d\n", ret);
-		goto err_register_power_supply_notif_failed;
-	}
-
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	xiaomi_touch_interfaces.touch_vendor_read = nvt_touch_vendor_read;
 	xiaomi_touch_interfaces.panel_display_read = nvt_panel_display_read;
@@ -3346,8 +3288,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	return 0;
 
-err_register_power_supply_notif_failed:
-	mutex_destroy(&ts->power_supply_lock);
 #if defined (CONFIG_DRM)
 	if (mi_drm_unregister_client(&ts->drm_notif))
 		NVT_ERR("Error occurred while unregistering drm_notifier.\n");
@@ -3469,11 +3409,6 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 {
 	NVT_LOG("Removing driver...\n");
 
-	if (ts->power_supply_notifier.notifier_call) {
-		power_supply_unreg_notifier(&ts->power_supply_notifier);
-		ts->power_supply_notifier.notifier_call = NULL;
-	}
-
 #if defined(CONFIG_FB)
 #ifdef CONFIG_DRM
 	if (mi_drm_unregister_client(&ts->drm_notif))
@@ -3498,7 +3433,6 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 	nvt_flash_proc_deinit();
 #endif
 
-	mutex_destroy(&ts->power_supply_lock);
 	destroy_workqueue(ts->event_wq);
 	ts->event_wq = NULL;
 
@@ -3568,11 +3502,6 @@ static void nvt_ts_shutdown(struct spi_device *client)
 
 	nvt_irq_enable(false);
 
-	if (ts->power_supply_notifier.notifier_call) {
-		power_supply_unreg_notifier(&ts->power_supply_notifier);
-		ts->power_supply_notifier.notifier_call = NULL;
-	}
-
 #if defined(CONFIG_FB)
 #ifdef CONFIG_DRM
 	if (mi_drm_unregister_client(&ts->drm_notif))
@@ -3597,7 +3526,6 @@ static void nvt_ts_shutdown(struct spi_device *client)
 	nvt_flash_proc_deinit();
 #endif
 
-	mutex_destroy(&ts->power_supply_lock);
 	destroy_workqueue(ts->event_wq);
 	ts->event_wq = NULL;
 
@@ -3814,8 +3742,6 @@ static int32_t nvt_ts_resume(struct device *dev)
 			ts->db_wakeup);
 		dsi_panel_doubleclick_enable(!!ts->db_wakeup);
 	}
-	ts->is_usb_exist = -1;
-	queue_work(ts->event_wq, &ts->power_supply_work);
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 	NVT_LOG("reload the game mode cmd");
 	nvt_game_mode_recovery();
