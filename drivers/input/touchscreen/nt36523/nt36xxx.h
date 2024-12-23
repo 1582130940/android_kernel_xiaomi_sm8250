@@ -139,12 +139,8 @@ struct nvt_ts_data {
 	struct input_dev *input_dev;
 	struct delayed_work nvt_fwu_work;
 	struct delayed_work nvt_lockdown_work;
-	struct mutex power_supply_lock;
-	struct work_struct power_supply_work;
-	struct notifier_block power_supply_notifier;
 	struct work_struct pen_charge_state_change_work;
 	bool pen_is_charge;
-	int is_usb_exist;
 	struct notifier_block pen_charge_state_notifier;
 
 	int db_wakeup;
