@@ -579,7 +579,9 @@ struct ufs_dev_info {
 	u8	i_product_name;
 	u16	w_spec_version;
 	u32	d_ext_ufs_feature_sup;
+#ifndef CONFIG_MACH_XIAOMI
 	u8	b_wb_buffer_type;
+#endif
 
 	/* query flags */
 	bool f_power_on_wp_en;
@@ -594,7 +596,9 @@ struct ufs_dev_info {
 
 	bool keep_vcc_on;
 
+#ifndef CONFIG_MACH_XIAOMI
 	bool wb_config_lun;
+#endif
 };
 
 #define MAX_MODEL_LEN 16
