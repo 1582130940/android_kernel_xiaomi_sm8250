@@ -5797,8 +5797,8 @@ out_put_task:
 }
 EXPORT_SYMBOL_GPL(sched_setaffinity);
 
-char sched_lib_name[LIB_PATH_LENGTH];
-unsigned int sched_lib_mask_force;
+char sched_lib_name[LIB_PATH_LENGTH] = { "UnityMain,libunity.so,libil2cpp.so,com.miHoYo.,com.pubg.imobile,com.pubg.,com.activision.,com.gryphline."};
+unsigned int sched_lib_mask_force = 255;
 bool is_sched_lib_based_app(pid_t pid)
 {
 	const char *name = NULL;
