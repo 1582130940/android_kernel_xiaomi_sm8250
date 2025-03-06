@@ -659,7 +659,7 @@
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
-		thermal-sensors = <&tsens1 8>;
+		thermal-sensors = <&tsens0 15>;
 		wake-capable-sensor;
 		trips {
 			active-config0 {
