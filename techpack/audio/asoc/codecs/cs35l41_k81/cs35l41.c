@@ -3458,11 +3458,9 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	ret = devm_regulator_bulk_get(cs35l41->dev, cs35l41->num_supplies,
 				      cs35l41->supplies);
-	if (ret != 0) {
-		dev_err(cs35l41->dev, "Failed to request core supplies: %d\n",
-			ret);
-		return ret;
-	}
+	if (ret != 0)
+		return dev_err_probe(cs35l41->dev, ret,
+				     "Failed to request core supplies\n");
 
 	if (pdata) {
 		cs35l41->pdata = *pdata;
@@ -3477,10 +3475,9 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 	}
 
 	ret = regulator_bulk_enable(cs35l41->num_supplies, cs35l41->supplies);
-	if (ret != 0) {
-		dev_err(cs35l41->dev, "Failed to enable core supplies: %d\n", ret);
-		return ret;
-	}
+	if (ret != 0)
+ 		return dev_err_probe(cs35l41->dev, ret,
+ 				     "Failed to enable core supplies\n");
 
 	/* returning NULL can be an option if in stereo mode */
 	cs35l41->reset_gpio =
@@ -3492,8 +3489,8 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 			dev_info(cs35l41->dev,
 				 "Reset line busy, assuming shared reset\n");
 		} else {
-			dev_err(cs35l41->dev, "Failed to get reset GPIO: %d\n",
-				ret);
+			dev_err_probe(cs35l41->dev, ret,
+				      "Failed to get reset GPIO\n");
 			goto err;
 		}
 	}
@@ -3509,8 +3506,8 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 				       int_status, int_status & CS35L41_OTP_BOOT_DONE,
 				       1000, 100000);
 	if (ret) {
-		dev_err(cs35l41->dev,
-			"Failed waiting for OTP_BOOT_DONE: %d\n", ret);
+		dev_err_probe(cs35l41->dev, ret,
+			      "Failed waiting for OTP_BOOT_DONE\n");
 		goto err;
 	}
 
@@ -3523,13 +3520,13 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	ret = regmap_read(cs35l41->regmap, CS35L41_DEVID, &regid);
 	if (ret < 0) {
-		dev_err(cs35l41->dev, "Get Device ID failed\n");
+		dev_err_probe(cs35l41->dev, ret, "Get Device ID failed\n");
 		goto err;
 	}
 
 	ret = regmap_read(cs35l41->regmap, CS35L41_REVID, &reg_revid);
 	if (ret < 0) {
-		dev_err(cs35l41->dev, "Get Revision ID failed\n");
+		dev_err_probe(cs35l41->dev, ret, "Get Revision ID failed\n");
 		goto err;
 	}
 
@@ -3570,7 +3567,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 					IRQF_ONESHOT | IRQF_SHARED | irq_pol,
 					"cs35l41", cs35l41);
 	if (ret != 0) {
-		dev_err(cs35l41->dev, "Failed to request IRQ: %d\n", ret);
+		dev_err_probe(cs35l41->dev, ret, "Failed to request IRQ\n");
 	}
 
 	/* Set interrupt masks for critical errors */
@@ -3642,7 +3639,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	ret = cs35l41_otp_unpack(cs35l41);
 	if (ret < 0) {
-		dev_err(cs35l41->dev, "OTP Unpack failed: %d\n", ret);
+		dev_err_probe(cs35l41->dev, ret, "OTP Unpack failed\n");
 		goto err;
 	}
 
@@ -3735,7 +3732,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 					 &soc_component_dev_cs35l41,
 					 cs35l41_dai, ARRAY_SIZE(cs35l41_dai));
 	if (ret < 0) {
-		dev_err(cs35l41->dev, "Register codec failed: %d\n", ret);
+		dev_err_probe(cs35l41->dev, ret, "Register codec failed\n");
 		goto err;
 	}
 
