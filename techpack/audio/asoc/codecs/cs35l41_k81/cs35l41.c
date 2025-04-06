@@ -2798,6 +2798,8 @@ static struct snd_soc_component_driver soc_component_dev_cs35l41 = {
 	.num_dapm_widgets = ARRAY_SIZE(cs35l41_dapm_widgets),
 
 	.set_sysclk = cs35l41_component_set_sysclk,
+
+	.endianness = 1,
 };
 
 static int cs35l41_handle_of_data(struct device *dev,
