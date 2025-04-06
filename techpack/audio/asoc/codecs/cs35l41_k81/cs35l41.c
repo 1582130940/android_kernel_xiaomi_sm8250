@@ -1477,7 +1477,6 @@ static int cs35l41_otp_unpack(void *data)
 	ret = regmap_read(cs35l41->regmap, CS35L41_OTPID, &otp_id_reg);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Read OTP ID failed\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 
@@ -1508,7 +1507,6 @@ static int cs35l41_otp_unpack(void *data)
 			       CS35L41_OTP_SIZE_WORDS);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Read OTP Mem failed\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 
@@ -1525,13 +1523,11 @@ static int cs35l41_otp_unpack(void *data)
 	ret = regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x00000055);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Write Unlock key failed 1/2\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 	ret = regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x000000AA);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Write Unlock key failed 2/2\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 
@@ -1570,7 +1566,6 @@ static int cs35l41_otp_unpack(void *data)
 				otp_val << otp_map[i].shift);
 			if (ret < 0) {
 				dev_err(cs35l41->dev, "Write OTP val failed\n");
-				ret = -EINVAL;
 				goto err_otp_unpack;
 			}
 		}
@@ -1579,13 +1574,11 @@ static int cs35l41_otp_unpack(void *data)
 	ret = regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x000000CC);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Write Lock key failed 1/2\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 	ret = regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x00000033);
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "Write Lock key failed 2/2\n");
-		ret = -EINVAL;
 		goto err_otp_unpack;
 	}
 	ret = 0;
