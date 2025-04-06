@@ -3792,7 +3792,7 @@ err:
 	return ret;
 }
 
-int cs35l41_remove(struct cs35l41_private *cs35l41)
+void cs35l41_remove(struct cs35l41_private *cs35l41)
 {
 	destroy_workqueue(cs35l41->wq);
 	mutex_destroy(&cs35l41->hb_lock);
@@ -3801,8 +3801,6 @@ int cs35l41_remove(struct cs35l41_private *cs35l41)
 	wm_adsp2_remove(&cs35l41->dsp);
 	regulator_bulk_disable(cs35l41->num_supplies, cs35l41->supplies);
 	snd_soc_unregister_component(cs35l41->dev);
-
-	return 0;
 }
 
 MODULE_DESCRIPTION("ASoC CS35L41 driver");

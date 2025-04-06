@@ -90,7 +90,9 @@ static int cs35l41_i2c_remove(struct i2c_client *client)
 {
 	struct cs35l41_private *cs35l41 = i2c_get_clientdata(client);
 
-	return cs35l41_remove(cs35l41);
+	cs35l41_remove(cs35l41);
+
+	return 0;
 }
 
 static const struct of_device_id cs35l41_of_match[] = {
