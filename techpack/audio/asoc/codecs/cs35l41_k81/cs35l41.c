@@ -3474,7 +3474,6 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 {
 	int ret;
 	u32 regid, reg_revid, i, mtl_revid, int_status, chipid_match;
-	int timeout = 100;
 	int irq_pol = 0;
 	u32 *p_trim_data;
 	struct snd_kcontrol_new *cs35l41_ctl;
@@ -3546,17 +3545,14 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	usleep_range(2000, 2100);
 
-	do {
-		if (timeout == 0) {
-			dev_err(cs35l41->dev,
-				"Timeout waiting for OTP_BOOT_DONE\n");
-			ret = -EBUSY;
-			goto err;
-		}
-		usleep_range(1000, 1100);
-		regmap_read(cs35l41->regmap, CS35L41_IRQ1_STATUS4, &int_status);
-		timeout--;
-	} while (!(int_status & CS35L41_OTP_BOOT_DONE));
+	ret = regmap_read_poll_timeout(cs35l41->regmap, CS35L41_IRQ1_STATUS4,
+				       int_status, int_status & CS35L41_OTP_BOOT_DONE,
+				       1000, 100000);
+	if (ret) {
+		dev_err(cs35l41->dev,
+			"Failed waiting for OTP_BOOT_DONE: %d\n", ret);
+		goto err;
+	}
 
 	regmap_read(cs35l41->regmap, CS35L41_IRQ1_STATUS3, &int_status);
 	if (int_status & CS35L41_OTP_BOOT_ERR) {
