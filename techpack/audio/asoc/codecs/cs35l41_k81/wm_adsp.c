@@ -1074,7 +1074,7 @@ static int wm_coeff_write_acked_control(struct wm_coeff_ctl *ctl,
 					unsigned int event_id)
 {
 	struct wm_adsp *dsp = ctl->dsp;
-	u32 val = cpu_to_be32(event_id);
+	__be32 val = cpu_to_be32(event_id);
 	unsigned int reg;
 	int i, ret;
 
@@ -4224,6 +4224,7 @@ static int wm_adsp_write_data_word(struct wm_adsp *dsp, int mem_type,
 				   unsigned int mem_addr, u32 data)
 {
 	struct wm_adsp_region const *mem = wm_adsp_find_region(dsp, mem_type);
+	__be32 val = cpu_to_be32(data & 0x00ffffffu);
 	unsigned int reg;
 
 	if (!mem)
@@ -4231,9 +4232,7 @@ static int wm_adsp_write_data_word(struct wm_adsp *dsp, int mem_type,
 
 	reg = dsp->ops->region_to_reg(mem, mem_addr);
 
-	data = cpu_to_be32(data & dsp->data_word_mask);
-
-	return regmap_raw_write(dsp->regmap, reg, &data, sizeof(data));
+	return regmap_raw_write(dsp->regmap, reg, &val, sizeof(val));
 }
 
 static inline int wm_adsp_buffer_read(struct wm_adsp_compr_buf *buf,
@@ -4403,7 +4402,8 @@ static int wm_adsp_buffer_parse_legacy(struct wm_adsp *dsp)
 static int wm_adsp_buffer_parse_coeff(struct wm_coeff_ctl *ctl)
 {
 	int ret, i;
-	unsigned int val, reg;
+	unsigned int reg, version;
+ 	__be32 bufp;
 	struct wm_adsp_host_buf_coeff_v1 coeff_v1;
 	struct wm_adsp_compr_buf *buf;
 
@@ -4412,17 +4412,17 @@ static int wm_adsp_buffer_parse_coeff(struct wm_coeff_ctl *ctl)
 		return ret;
 
 	for (i = 0; i < 5; ++i) {
-		ret = regmap_raw_read(ctl->dsp->regmap, reg, &val, sizeof(val));
+		ret = regmap_raw_read(ctl->dsp->regmap, reg, &bufp, sizeof(bufp));
 		if (ret < 0)
 			return ret;
 
-		if (val)
+		if (bufp)
 			break;
 
 		usleep_range(1000, 2000);
 	}
 
-	if (!val) {
+	if (!bufp) {
 		adsp_err(ctl->dsp, "Failed to acquire host buffer\n");
 		return -EIO;
 	}
@@ -4432,7 +4432,7 @@ static int wm_adsp_buffer_parse_coeff(struct wm_coeff_ctl *ctl)
 		return -ENOMEM;
 
 	buf->host_buf_mem_type = ctl->alg_region.type;
-	buf->host_buf_ptr = be32_to_cpu(val);
+	buf->host_buf_ptr = be32_to_cpu(bufp);
 
 	ret = wm_adsp_buffer_populate(buf);
 	if (ret < 0)
@@ -4452,14 +4452,13 @@ static int wm_adsp_buffer_parse_coeff(struct wm_coeff_ctl *ctl)
 	if (ret < 0)
 		return ret;
 
-	coeff_v1.versions = be32_to_cpu(coeff_v1.versions);
-	val = coeff_v1.versions & HOST_BUF_COEFF_COMPAT_VER_MASK;
-	val >>= HOST_BUF_COEFF_COMPAT_VER_SHIFT;
+	version = be32_to_cpu(coeff_v1.versions) & HOST_BUF_COEFF_COMPAT_VER_MASK;
+	version >>= HOST_BUF_COEFF_COMPAT_VER_SHIFT;
 
-	if (val > HOST_BUF_COEFF_SUPPORTED_COMPAT_VER) {
+	if (version > HOST_BUF_COEFF_SUPPORTED_COMPAT_VER) {
 		adsp_err(ctl->dsp,
 			 "Host buffer coeff ver %u > supported version %u\n",
-			 val, HOST_BUF_COEFF_SUPPORTED_COMPAT_VER);
+			 version, HOST_BUF_COEFF_SUPPORTED_COMPAT_VER);
 		return -EINVAL;
 	}
 
@@ -4469,9 +4468,9 @@ static int wm_adsp_buffer_parse_coeff(struct wm_coeff_ctl *ctl)
 			      (char *)&coeff_v1.name);
 
 	compr_dbg(buf, "host_buf_ptr=%x coeff version %u\n", buf->host_buf_ptr,
-		  val);
+		  version);
 
-	return val;
+	return version;
 }
 
 static int wm_adsp_buffer_init(struct wm_adsp *dsp)
@@ -4803,7 +4802,7 @@ static int wm_adsp_buffer_capture_block(struct wm_adsp_compr *compr, int target)
 
 	/* Read data from DSP */
 	ret = wm_adsp_read_raw_data_block(buf->dsp, mem_type, adsp_addr,
-					  nwords, compr->raw_buf);
+					  nwords, (__be32 *)compr->raw_buf);
 	if (ret < 0)
 		return ret;
 
