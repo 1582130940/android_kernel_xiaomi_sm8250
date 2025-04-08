@@ -3442,7 +3442,7 @@ int wm_adsp2_preloader_put(struct snd_kcontrol *kcontrol,
 
 	snd_soc_dapm_sync(dapm);
 
-	return 0;
+	return 1;
 }
 
 static void wm_adsp_stop_watchdog(struct wm_adsp *dsp)
