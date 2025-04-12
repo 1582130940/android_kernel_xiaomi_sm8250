@@ -188,16 +188,12 @@ struct nvt_ts_data {
 	bool fw_debug;
 	uint8_t x_gang_num;
 	uint8_t y_gang_num;
-	uint8_t debug_flag;
 	struct input_dev *pen_input_dev;
 	bool pen_input_dev_enable;
 	int8_t pen_phys[32];
 	int result_type;
 	int panel_index;
 	uint32_t spi_max_freq;
-#ifdef CONFIG_TOUCHSCREEN_NVT_DEBUG_FS
-	struct dentry *debugfs;
-#endif
 
 #ifdef CONFIG_MTK_SPI
 	struct mt_chip_conf spi_ctrl;
@@ -265,7 +261,6 @@ void nvt_boot_ready(void);
 void nvt_bld_crc_enable(void);
 void nvt_fw_crc_enable(void);
 void nvt_tx_auto_copy_mode(void);
-void nvt_set_dbgfw_status(bool enable);
 void nvt_match_fw(void);
 int32_t nvt_update_firmware(const char *firmware_name);
 int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state);
