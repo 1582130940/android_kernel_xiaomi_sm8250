@@ -867,10 +867,7 @@ static int fpc_fb_notif_callback(struct notifier_block *nb, unsigned long val,
 	struct fb_event *evdata = data;
 	unsigned int blank;
 
-	if (!fpc1020)
-		return 0;
-
-	if (val != MI_DRM_EVENT_BLANK || fpc1020->prepared == false)
+	if (!fpc1020 || val != MI_DRM_EVENT_BLANK || fpc1020->prepared == false)
 		return 0;
 
 	pr_debug("[info] %s value = %d\n", __func__, (int)val);
