@@ -133,9 +133,9 @@ static int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
 		      bool enable);
 static int device_prepare(struct fpc1020_data *fpc1020, bool enable);
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle);
-static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
+static inline int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 				      const char *label, int *gpio);
-static int hw_reset(struct fpc1020_data *fpc1020);
+static inline int hw_reset(struct fpc1020_data *fpc1020);
 
 static int reset_gpio_res(struct fpc1020_data *fpc1020)
 {
@@ -292,7 +292,7 @@ static int irq_setup(struct fpc1020_data *fpc1020, bool enable)
 	return rc;
 }
 
-static int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
+static inline int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
 		      bool enable)
 {
 	size_t i;
@@ -400,7 +400,7 @@ static DEVICE_ATTR(clk_enable, S_IWUSR, NULL, clk_enable_set);
  * @see pctl_names
  * @see fpc1020_probe
  */
-static int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
+static inline int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
 {
 	size_t i;
 	int rc;
@@ -471,7 +471,7 @@ static ssize_t regulator_enable_set(struct device *dev,
 }
 static DEVICE_ATTR(regulator_enable, S_IWUSR, NULL, regulator_enable_set);
 
-static int hw_reset(struct fpc1020_data *fpc1020)
+static inline int hw_reset(struct fpc1020_data *fpc1020)
 {
 	int irq_gpio;
 	struct device *dev = fpc1020->dev;
@@ -532,7 +532,7 @@ static DEVICE_ATTR(hw_reset, S_IWUSR, NULL, hw_reset_set);
  * @note This function will not send any commands to the sensor it will only
  *       control it "electrically".
  */
-static int device_prepare(struct fpc1020_data *fpc1020, bool enable)
+static inline int device_prepare(struct fpc1020_data *fpc1020, bool enable)
 {
 	int rc = 0;
 
@@ -809,7 +809,7 @@ static void notification_work(struct work_struct *work)
 }
 #endif
 
-static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
+static inline irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
 	struct fpc1020_data *fpc1020 = handle;
 
@@ -836,7 +836,7 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
+static inline int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 				      const char *label, int *gpio)
 {
 	struct device *dev = fpc1020->dev;
@@ -863,7 +863,7 @@ static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 	return 0;
 }
 
-static int fpc_fb_notif_callback(struct notifier_block *nb, unsigned long val,
+static inline int fpc_fb_notif_callback(struct notifier_block *nb, unsigned long val,
 				 void *data)
 {
 	struct fpc1020_data *fpc1020 =
@@ -897,7 +897,7 @@ static struct notifier_block fpc_notif_block = {
 	.notifier_call = fpc_fb_notif_callback,
 };
 
-static int fpc1020_probe(struct platform_device *pdev)
+static inline int fpc1020_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	int rc = 0;
@@ -1003,7 +1003,7 @@ exit:
 	return rc;
 }
 
-static int fpc1020_remove(struct platform_device *pdev)
+static inline int fpc1020_remove(struct platform_device *pdev)
 {
 	struct fpc1020_data *fpc1020 = platform_get_drvdata(pdev);
 
