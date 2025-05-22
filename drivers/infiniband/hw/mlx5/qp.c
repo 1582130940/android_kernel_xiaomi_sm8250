@@ -4439,7 +4439,7 @@ static int _mlx5_ib_post_send(struct ib_qp *ibqp, const struct ib_send_wr *wr,
 	struct mlx5_wqe_data_seg *dpseg;
 	struct mlx5_wqe_xrc_seg *xrc;
 	struct mlx5_bf *bf;
-	int uninitialized_var(size);
+	int size;
 	void *qend;
 	unsigned long flags;
 	unsigned idx;
@@ -4694,7 +4694,7 @@ static int _mlx5_ib_post_send(struct ib_qp *ibqp, const struct ib_send_wr *wr,
 		}
 
 		if (wr->send_flags & IB_SEND_INLINE && num_sge) {
-			int uninitialized_var(sz);
+			int sz;
 
 			err = set_data_inl_seg(qp, wr, seg, &sz);
 			if (unlikely(err)) {
