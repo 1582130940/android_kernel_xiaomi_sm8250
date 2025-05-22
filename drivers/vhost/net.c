@@ -455,7 +455,7 @@ static int vhost_net_tx_get_vq_desc(struct vhost_net *net,
 				    bool *busyloop_intr)
 {
 	struct vhost_virtqueue *vq = &nvq->vq;
-	unsigned long uninitialized_var(endtime);
+	unsigned long endtime;
 	int r = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
 				  out_num, in_num, NULL, NULL);
 
@@ -617,7 +617,7 @@ static void handle_tx_zerocopy(struct vhost_net *net, struct socket *sock)
 	};
 	size_t len, total_len = 0;
 	int err;
-	struct vhost_net_ubuf_ref *uninitialized_var(ubufs);
+	struct vhost_net_ubuf_ref *ubufs;
 	struct ubuf_info *ubuf;
 	bool zcopy_used;
 	int sent_pkts = 0;
@@ -765,7 +765,7 @@ static int vhost_net_rx_peek_head_len(struct vhost_net *net, struct sock *sk,
 	struct vhost_net_virtqueue *tnvq = &net->vqs[VHOST_NET_VQ_TX];
 	struct vhost_virtqueue *rvq = &rnvq->vq;
 	struct vhost_virtqueue *tvq = &tnvq->vq;
-	unsigned long uninitialized_var(endtime);
+	unsigned long endtime;
 	int len = peek_head_len(rnvq, sk);
 
 	if (!len && tvq->busyloop_timeout) {
