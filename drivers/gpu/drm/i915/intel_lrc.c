@@ -325,7 +325,7 @@ static void unwind_wa_tail(struct i915_request *rq)
 static void __unwind_incomplete_requests(struct intel_engine_cs *engine)
 {
 	struct i915_request *rq, *rn;
-	struct i915_priolist *uninitialized_var(p);
+	struct i915_priolist *p;
 	int last_prio = I915_PRIORITY_INVALID;
 
 	lockdep_assert_held(&engine->timeline.lock);
@@ -1169,7 +1169,7 @@ sched_lock_engine(struct i915_sched_node *node, struct intel_engine_cs *locked)
 static void execlists_schedule(struct i915_request *request,
 			       const struct i915_sched_attr *attr)
 {
-	struct i915_priolist *uninitialized_var(pl);
+	struct i915_priolist *pl;
 	struct intel_engine_cs *engine, *last;
 	struct i915_dependency *dep, *p;
 	struct i915_dependency stack;

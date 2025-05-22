@@ -1252,7 +1252,7 @@ static int get_e_source(struct aer_rpc *rpc, struct aer_err_source *e_src)
 static void aer_isr(struct work_struct *work)
 {
 	struct aer_rpc *rpc = container_of(work, struct aer_rpc, dpc_handler);
-	struct aer_err_source uninitialized_var(e_src);
+	struct aer_err_source e_src;
 
 	mutex_lock(&rpc->rpc_mutex);
 	while (get_e_source(rpc, &e_src))

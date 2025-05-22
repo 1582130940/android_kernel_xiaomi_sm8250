@@ -670,7 +670,7 @@ static int create_linear_device(struct dm_target *ti, dev_t dev,
  */
 static int android_verity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 {
-	dev_t uninitialized_var(dev);
+	dev_t dev;
 	struct android_metadata *metadata;
 	int err = 0, i, mode;
 	char *key_id = NULL, *table_ptr, dummy, *target_device;
@@ -679,8 +679,8 @@ static int android_verity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 	sector_t data_sectors;
 	u32 data_block_size;
 	unsigned int no_of_args = VERITY_TABLE_ARGS + 2 + VERITY_TABLE_OPT_FEC_ARGS;
-	struct fec_header uninitialized_var(fec);
-	struct fec_ecc_metadata uninitialized_var(ecc);
+	struct fec_header fec;
+	struct fec_ecc_metadata ecc;
 	char buf[FEC_ARG_LENGTH], *buf_ptr;
 	unsigned long long tmpll;
 
