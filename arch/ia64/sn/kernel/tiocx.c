@@ -371,7 +371,7 @@ static void tio_corelet_reset(nasid_t nasid, int corelet)
 
 static int is_fpga_tio(int nasid, int *bt)
 {
-	u16 uninitialized_var(ioboard_type);	/* GCC be quiet */
+	u16 ioboard_type;
 	long rc;
 
 	rc = ia64_sn_sysctl_ioboard_get(nasid, &ioboard_type);

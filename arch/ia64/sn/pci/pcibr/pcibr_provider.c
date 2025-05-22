@@ -82,7 +82,7 @@ static int sal_pcibr_error_interrupt(struct pcibus_info *soft)
 u16 sn_ioboard_to_pci_bus(struct pci_bus *pci_bus)
 {
 	long rc;
-	u16 uninitialized_var(ioboard);		/* GCC be quiet */
+	u16 ioboard;
 	nasid_t nasid = NASID_GET(SN_PCIBUS_BUSSOFT(pci_bus)->bs_base);
 
 	rc = ia64_sn_sysctl_ioboard_get(nasid, &ioboard);

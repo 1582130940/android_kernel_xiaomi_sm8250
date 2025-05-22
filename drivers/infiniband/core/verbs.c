@@ -983,8 +983,8 @@ int ib_destroy_srq(struct ib_srq *srq)
 {
 	struct ib_pd *pd;
 	enum ib_srq_type srq_type;
-	struct ib_xrcd *uninitialized_var(xrcd);
-	struct ib_cq *uninitialized_var(cq);
+	struct ib_xrcd *xrcd;
+	struct ib_cq *cq;
 	int ret;
 
 	if (atomic_read(&srq->usecnt))
