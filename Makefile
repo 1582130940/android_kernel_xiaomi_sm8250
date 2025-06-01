@@ -702,6 +702,29 @@ KBUILD_AFLAGS   += -O3
 KBUILD_LDFLAGS  += -O3
 endif
 
+ifneq ($(filter y, \
+	$(CONFIG_ARCH_KONA) \
+	$(CONFIG_ARCH_LITO) \
+	$(CONFIG_ARCH_LAGOON)),)
+KBUILD_CFLAGS   += -mcpu=cortex-a55
+KBUILD_AFLAGS   += -mcpu=cortex-a55
+KBUILD_LDFLAGS  += -mllvm -mcpu=cortex-a55
+else ifneq ($(filter y, \
+	$(CONFIG_ARCH_BENGAL) \
+	$(CONFIG_ARCH_KHAJE) \
+	$(CONFIG_ARCH_SCUBA) \
+	$(CONFIG_ARCH_QM215) \
+	$(CONFIG_ARCH_MSM8937) \
+	$(CONFIG_ARCH_SDM660) \
+	$(CONFIG_ARCH_SDM429) \
+	$(CONFIG_ARCH_SDM439) \
+	$(CONFIG_ARCH_MSM8953) \
+	$(CONFIG_ARCH_SDM450)),)
+KBUILD_CFLAGS   += -mcpu=cortex-a53
+KBUILD_AFLAGS   += -mcpu=cortex-a53
+KBUILD_LDFLAGS  += -mllvm -mcpu=cortex-a53
+endif
+
 # Enable fast FMA optimizations
 KBUILD_CFLAGS += -ffp-contract=fast
 # Enable hot cold split optimization
