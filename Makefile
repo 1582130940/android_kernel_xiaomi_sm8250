@@ -743,6 +743,29 @@ KBUILD_CFLAGS += $(call cc-option,-mllvm -polly-run-dce)
 KBUILD_CFLAGS += $(call cc-option,-mllvm -polly-vectorizer=stripmine)
 endif
 
+ifneq ($(filter y, \
+	$(CONFIG_ARCH_KONA) \
+	$(CONFIG_ARCH_LITO) \
+	$(CONFIG_ARCH_LAGOON)),)
+KBUILD_CFLAGS   += $(call cc-option,-mcpu=cortex-a55)
+KBUILD_AFLAGS   += $(call cc-option,-mcpu=cortex-a55)
+KBUILD_LDFLAGS  += $(call cc-option,-mllvm -mcpu=cortex-a55)
+else ifneq ($(filter y, \
+	$(CONFIG_ARCH_BENGAL) \
+	$(CONFIG_ARCH_KHAJE) \
+	$(CONFIG_ARCH_SCUBA) \
+	$(CONFIG_ARCH_QM215) \
+	$(CONFIG_ARCH_MSM8937) \
+	$(CONFIG_ARCH_SDM660) \
+	$(CONFIG_ARCH_SDM429) \
+	$(CONFIG_ARCH_SDM439) \
+	$(CONFIG_ARCH_MSM8953) \
+	$(CONFIG_ARCH_SDM450)),)
+KBUILD_CFLAGS   += $(call cc-option,-mcpu=cortex-a53)
+KBUILD_AFLAGS   += $(call cc-option,-mcpu=cortex-a53)
+KBUILD_LDFLAGS  += $(call cc-option,-mllvm -mcpu=cortex-a53)
+endif
+
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
