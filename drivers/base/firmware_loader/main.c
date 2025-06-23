@@ -281,7 +281,11 @@ static void free_fw_priv(struct fw_priv *fw_priv)
 }
 
 /* direct firmware loading support */
+#ifdef CONFIG_MACH_XIAOMI
+static char fw_path_para[256] = "/vendor/firmware";
+#else
 static char fw_path_para[256];
+#endif
 static const char * const fw_path[] = {
 	fw_path_para,
 	"/odm/firmware/",
