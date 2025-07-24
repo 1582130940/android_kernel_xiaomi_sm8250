@@ -1,5 +1,4 @@
 #include "lito.dtsi"
-#include "camera/lito-v2-camera.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. Lito v2";
