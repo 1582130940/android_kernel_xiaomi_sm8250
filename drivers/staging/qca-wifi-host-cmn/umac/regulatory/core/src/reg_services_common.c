@@ -2700,21 +2700,13 @@ QDF_STATUS reg_modify_pdev_chan_range(struct wlan_objmgr_pdev *pdev)
 	}
 
 	reg_cap_ptr = psoc_priv_obj->reg_cap;
-
 	for (cnt = 0; cnt < PSOC_MAX_PHY_REG_CAP; cnt++) {
-		if (!reg_cap_ptr) {
-			qdf_mem_free(pdev_priv_obj);
-			reg_err("reg cap ptr is NULL");
-			return QDF_STATUS_E_FAULT;
-		}
-
 		if (reg_cap_ptr->phy_id == phy_id)
 			break;
 		reg_cap_ptr++;
 	}
 
 	if (cnt == PSOC_MAX_PHY_REG_CAP) {
-		qdf_mem_free(pdev_priv_obj);
 		reg_err("extended capabilities not found for pdev");
 		return QDF_STATUS_E_FAULT;
 	}
