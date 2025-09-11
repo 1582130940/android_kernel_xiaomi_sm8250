@@ -1235,6 +1235,9 @@ static ssize_t __force_on_store(struct device *dev,
 	struct kgsl_device *device = dev_get_drvdata(dev);
 	int ret;
 
+	if (gmu_core_gpmu_isenabled(device))
+		return -EOPNOTSUPP;
+
 	ret = kgsl_sysfs_store(buf, &val);
 	if (ret)
 		return ret;
