@@ -33,7 +33,7 @@
 #define DEFAULT_BUS_P 25
 
 /* Order deeply matters here because reasons. New entries go on the end */
-static const char * const clocks[] = {
+static const char * const clocks[KGSL_MAX_CLKS] = {
 	"src_clk",
 	"core_clk",
 	"iface_clk",
