@@ -1949,14 +1949,14 @@ void a6xx_snapshot(struct adreno_device *adreno_dev,
 	a6xx_snapshot_mempool(device, snapshot);
 
 	if (sptprac_on) {
-		/* Shader memory */
-		a6xx_snapshot_shader(device, snapshot);
-
 		/* MVC register section */
 		a6xx_snapshot_mvc_regs(device, snapshot);
 
 		/* registers dumped through DBG AHB */
 		a6xx_snapshot_dbgahb_regs(device, snapshot);
+
+		/* Shader memory */
+		a6xx_snapshot_shader(device, snapshot);
 
 		/* if SMMU is stalled we don't run crash dump */
 		kgsl_regread(device, A6XX_RBBM_STATUS3, &val);
