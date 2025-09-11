@@ -227,7 +227,7 @@ static void kgsl_iommu_add_global(struct kgsl_mmu *mmu,
 	if (memdesc->priv & KGSL_MEMDESC_RANDOM) {
 		u32 range = GLOBAL_MAP_PAGES - (size >> PAGE_SHIFT);
 
-		start = get_random_int() % range;
+		start = get_random_u32() % range;
 	}
 
 	while (start >= 0) {
