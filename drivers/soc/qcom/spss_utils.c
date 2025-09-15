@@ -512,7 +512,7 @@ static long spss_utils_ioctl(struct file *file,
 		}
 
 		if (copy_from_user(data, (void __user *)arg, size)) {
-			pr_err("copy_from_user() failed, cmd [0x%x]\n",
+			pr_err("copy_from_user() failed, cmd [0x%x] size [0x%x]\n",
 				cmd, size);
 			return -EFAULT;
 		}
