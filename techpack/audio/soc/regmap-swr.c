@@ -27,15 +27,15 @@ static int regmap_swr_gather_write(void *context,
 	u8 *value;
 
 	if (map == NULL) {
-		dev_err(dev, "%s: regmap is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: regmap is NULL\n", __func__);
 		return -EINVAL;
 	}
 	if (swr == NULL) {
-		dev_err(dev, "%s: swr device is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: swr device is NULL\n", __func__);
 		return -EINVAL;
 	}
 	if (reg_size != ADDR_BYTES) {
-		dev_err(dev, "%s: reg size %zd bytes not supported\n",
+		dev_err_ratelimited(dev, "%s: reg size %zd bytes not supported\n",
 			__func__, reg_size);
 		return -EINVAL;
 	}
@@ -45,7 +45,7 @@ static int regmap_swr_gather_write(void *context,
 		value = (u8 *)val + (VAL_BYTES * i);
 		ret = swr_write(swr, swr->dev_num, (reg_addr + i), value);
 		if (ret < 0) {
-			dev_err(dev, "%s: write reg 0x%x failed, err %d\n",
+			dev_err_ratelimited(dev, "%s: write reg 0x%x failed, err %d\n",
 				__func__, (reg_addr + i), ret);
 			break;
 		}
@@ -67,17 +67,17 @@ static int regmap_swr_raw_multi_reg_write(void *context, const void *data,
 	u8 *buf;
 
 	if (swr == NULL) {
-		dev_err(dev, "%s: swr device is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: swr device is NULL\n", __func__);
 		return -EINVAL;
 	}
 
 	if (map == NULL) {
-		dev_err(dev, "%s: regmap is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: regmap is NULL\n", __func__);
 		return -EINVAL;
 	}
 
 	if (ADDR_BYTES + VAL_BYTES + PAD_BYTES == 0) {
-		dev_err(dev, "%s: sum of addr, value and pad is 0\n", __func__);
+		dev_err_ratelimited(dev, "%s: sum of addr, value and pad is 0\n", __func__);
 		return -EINVAL;
 	}
 	num_regs = count / (ADDR_BYTES + VAL_BYTES + PAD_BYTES);
@@ -101,7 +101,7 @@ static int regmap_swr_raw_multi_reg_write(void *context, const void *data,
 	}
 	ret = swr_bulk_write(swr, swr->dev_num, reg, val, num_regs);
 	if (ret)
-		dev_err(dev, "%s: multi reg write failed\n", __func__);
+		dev_err_ratelimited(dev, "%s: multi reg write failed\n", __func__);
 
 	kfree(val);
 mem_fail:
@@ -115,7 +115,7 @@ static int regmap_swr_write(void *context, const void *data, size_t count)
 	struct regmap *map = dev_get_regmap(dev, NULL);
 
 	if (map == NULL) {
-		dev_err(dev, "%s: regmap is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: regmap is NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -140,22 +140,22 @@ static int regmap_swr_read(void *context,
 	u16 reg_addr = 0;
 
 	if (map == NULL) {
-		dev_err(dev, "%s: regmap is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: regmap is NULL\n", __func__);
 		return -EINVAL;
 	}
 	if (swr == NULL) {
-		dev_err(dev, "%s: swr is NULL\n", __func__);
+		dev_err_ratelimited(dev, "%s: swr is NULL\n", __func__);
 		return -EINVAL;
 	}
 	if (reg_size != ADDR_BYTES) {
-		dev_err(dev, "%s: register size %zd bytes not supported\n",
+		dev_err_ratelimited(dev, "%s: register size %zd bytes not supported\n",
 			__func__, reg_size);
 		return -EINVAL;
 	}
 	reg_addr = *(u16 *)reg;
 	ret = swr_read(swr, swr->dev_num, reg_addr, val, val_size);
 	if (ret < 0)
-		dev_err(dev, "%s: codec reg 0x%x read failed %d\n",
+		dev_err_ratelimited(dev, "%s: codec reg 0x%x read failed %d\n",
 			__func__, reg_addr, ret);
 	return ret;
 }
