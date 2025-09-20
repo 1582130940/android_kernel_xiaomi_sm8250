@@ -148,7 +148,16 @@ int lpi_pinctrl_runtime_suspend(struct device *dev);
 static int lpi_gpio_read(struct lpi_gpio_pad *pad, unsigned int addr)
 {
 	int ret = 0;
-	struct lpi_gpio_state *state = dev_get_drvdata(lpi_dev);
+	struct lpi_gpio_state *state = NULL;
+
+	if (!lpi_dev) {
+		if (__ratelimit(&rtl))
+			pr_err_ratelimited("%s: lpi_dev is NULL, return\n",
+							__func__);
+		return -EINVAL;
+	}
+
+	state = dev_get_drvdata(lpi_dev);
 
 	if (!lpi_dev_up) {
 		pr_err_ratelimited("%s: ADSP is down due to SSR, return\n",
@@ -178,8 +187,17 @@ err:
 static int lpi_gpio_write(struct lpi_gpio_pad *pad, unsigned int addr,
 			  unsigned int val)
 {
-	struct lpi_gpio_state *state = dev_get_drvdata(lpi_dev);
+	struct lpi_gpio_state *state = NULL;
 	int ret = 0;
+
+	if (!lpi_dev) {
+		if (__ratelimit(&rtl))
+			pr_err_ratelimited("%s: lpi_dev is NULL, return\n",
+							__func__);
+		return -EINVAL;
+	}
+
+	state = dev_get_drvdata(lpi_dev);
 
 	if (!lpi_dev_up) {
 		return 0;
