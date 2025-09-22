@@ -83,8 +83,6 @@
 &usb1 {
 	status = "ok";
 
-	qcom,ignore-wakeup-src-in-hostmode;
-
 	dwc3@a800000 {
 		dr_mode = "host";
 	};
