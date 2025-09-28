@@ -1039,7 +1039,7 @@ int kgsl_pwrscale_init(struct device *dev, const char *governor)
 	} else
 		data->bus.num = 0;
 
-	pwrscale->devfreq_wq = create_freezable_workqueue("kgsl_devfreq_wq");
+	pwrscale->devfreq_wq = alloc_workqueue("kgsl_devfreq_wq", WQ_HIGHPRI | WQ_UNBOUND | WQ_FREEZABLE | WQ_MEM_RECLAIM, 0);
 	if (!pwrscale->devfreq_wq) {
 		dev_err(device->dev, "Failed to allocate kgsl devfreq workqueue\n");
 		device->pwrscale.enabled = false;
