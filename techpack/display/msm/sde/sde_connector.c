@@ -694,7 +694,7 @@ static int _sde_connector_update_hdr_metadata(struct sde_connector *c_conn,
 	return rc;
 }
 
-static int _sde_connector_update_dirty_properties(
+static inline int _sde_connector_update_dirty_properties(
 				struct drm_connector *connector)
 {
 	struct sde_connector *c_conn;
