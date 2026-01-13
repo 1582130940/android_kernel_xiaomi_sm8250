@@ -721,6 +721,9 @@ endif
 # Enable hot cold split optimization
 KBUILD_CFLAGS += $(call cc-option,-mllvm -hot-cold-split=true)
 
+# Enable MLGO for register allocation
+KBUILD_LDFLAGS += $(call cc-option,-mllvm -regalloc-enable-advisor=release)
+
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS  += -Werror
 endif
