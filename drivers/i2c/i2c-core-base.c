@@ -762,7 +762,7 @@ i2c_new_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
 							 info->num_resources);
 	client->irq = client->init_irq;
 
-	strlcpy(client->name, info->type, sizeof(client->name));
+	strscpy(client->name, info->type, sizeof(client->name));
 
 	status = i2c_check_addr_validity(client->addr, client->flags);
 	if (status) {
