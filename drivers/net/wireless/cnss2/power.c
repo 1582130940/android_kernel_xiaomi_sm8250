@@ -47,7 +47,7 @@ static struct cnss_clk_cfg cnss_clk_list[] = {
 #define WLAN_EN_ACTIVE			"wlan_en_active"
 #define WLAN_EN_SLEEP			"wlan_en_sleep"
 
-#define BOOTSTRAP_DELAY			1000
+#define BOOTSTRAP_DELAY			10000
 #define WLAN_ENABLE_DELAY		10000
 
 #define TCS_CMD_DATA_ADDR_OFFSET	0x4
