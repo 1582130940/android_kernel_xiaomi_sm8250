@@ -48,7 +48,7 @@ static struct cnss_clk_cfg cnss_clk_list[] = {
 #define WLAN_EN_SLEEP			"wlan_en_sleep"
 
 #define BOOTSTRAP_DELAY			1000
-#define WLAN_ENABLE_DELAY		1000
+#define WLAN_ENABLE_DELAY		10000
 
 #define TCS_CMD_DATA_ADDR_OFFSET	0x4
 #define TCS_OFFSET			0xC8
@@ -764,7 +764,13 @@ static int cnss_select_pinctrl_state(struct cnss_plat_data *plat_priv,
 					    ret);
 				goto out;
 			}
-			udelay(WLAN_ENABLE_DELAY);
+			/* As spec shown, it needs at least 4ms delay
+			 * between wlan_en become active and pcie reset
+			 * de-assert for qca6390. And it needs at least
+			 * 10ms for qca6174. So add 10ms-11ms delay here.
+			 */
+			usleep_range(WLAN_ENABLE_DELAY,
+				     WLAN_ENABLE_DELAY + 1000);
 		}
 	} else {
 		if (!IS_ERR_OR_NULL(pinctrl_info->wlan_en_sleep)) {
