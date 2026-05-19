@@ -41,6 +41,7 @@
 #ifdef CONFIG_MACH_XIAOMI
 extern struct frame_stat fm_stat;
 extern void sde_crtc_fod_ui_ready(struct dsi_display *display, int type, int value);
+extern int mi_get_fod_lhbm_target_brightness(struct dsi_panel *panel);
 #endif
 
 enum dsi_dsc_ratio_type {
@@ -978,9 +979,17 @@ u32 dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 {
 	int rc = 0;
+#ifdef CONFIG_MACH_XIAOMI
+	int lhbm_target = 0;
+#endif
 
 	if (status) {
+#ifdef CONFIG_MACH_XIAOMI
+		lhbm_target = mi_get_fod_lhbm_target_brightness(panel);
+		dsi_panel_set_disp_param(panel, DISPPARAM_HBM_FOD_ON | lhbm_target);
+#else
 		dsi_panel_set_disp_param(panel, DISPPARAM_HBM_FOD_ON);
+#endif
 	} else {
 		dsi_panel_set_disp_param(panel, DISPPARAM_HBM_FOD_OFF);
 	}
