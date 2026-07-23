@@ -1824,10 +1824,12 @@ static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 				hba->clk_gating.delay_ms_pwr_save;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	/* Enable Write Booster if we have scaled up else disable it */
 	up_write(&hba->lock);
 	ufshcd_wb_ctrl(hba, scale_up);
 	down_write(&hba->lock);
+#endif
 	goto clk_scaling_unprepare;
 
 scale_up_gear:
@@ -8504,9 +8506,13 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	model_index = desc_buf[DEVICE_DESC_PARAM_PRDCT_NAME];
 
 
-#ifndef CONFIG_MACH_XIAOMI
+#ifdef CONFIG_MACH_XIAOMI
+	/* Enable WB only for UFS-3.0 or UFS-2.2 OR if desc len >= 0x59 */
+	if ((dev_desc->wspecversion >= 0x300) ||
+#else
 	/* Enable WB only for UFS-3.1 or UFS-2.2 OR if desc len >= 0x59 */
 	if ((dev_desc->wspecversion >= 0x310) ||
+#endif
 	    (dev_desc->wspecversion == 0x220) ||
 	    (dev_desc->wmanufacturerid == UFS_VENDOR_TOSHIBA &&
 	     dev_desc->wspecversion >= 0x300 &&
@@ -8543,7 +8549,6 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 			}
 		}
 	}
-#endif
 
 skip_unit_desc:
 	/* Zero-pad entire buffer for string termination. */
