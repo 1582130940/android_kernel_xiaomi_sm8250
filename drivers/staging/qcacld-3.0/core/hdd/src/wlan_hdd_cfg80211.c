@@ -17211,6 +17211,7 @@ static bool hdd_is_client_mode(enum QDF_OPMODE mode)
 	case QDF_P2P_CLIENT_MODE:
 	case QDF_P2P_DEVICE_MODE:
 	case QDF_IBSS_MODE:
+	case QDF_MONITOR_MODE:
 		return true;
 	default:
 		return false;
@@ -17222,6 +17223,7 @@ static bool hdd_is_ap_mode(enum QDF_OPMODE mode)
 	switch (mode) {
 	case QDF_SAP_MODE:
 	case QDF_P2P_GO_MODE:
+	case QDF_MONITOR_MODE:
 		return true;
 	default:
 		return false;
