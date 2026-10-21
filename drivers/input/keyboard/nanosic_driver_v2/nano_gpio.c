@@ -44,7 +44,7 @@ bool g_panel_status = false; /*1:on, 0:off*/
  * @brief   Nanosic_i2c_irq
  *          GPIO 唤醒中断处理程序
  ** */
-irqreturn_t Nanosic_wakeup_irq(int irq, void *dev_id)
+static irqreturn_t Nanosic_wakeup_irq(int irq, void *dev_id)
 {
 	if (g_panel_status == false && gI2c_client != NULL) {
 		pm_wakeup_event(gI2c_client->dev, 1000);
