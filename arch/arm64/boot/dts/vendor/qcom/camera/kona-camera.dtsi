@@ -376,6 +376,7 @@
 				<&apps_smmu 0xC40 0x400>,
 				<&apps_smmu 0xC41 0x400>;
 			qcom,iommu-dma-addr-pool = <0x7400000 0xd8c00000>;
+			qcom,iommu-faults = "non-fatal";
 			label = "ife";
 			ife_iova_mem_map: iova-mem-map {
 				/* IO region is approximately 3.4 GB */
@@ -395,6 +396,7 @@
 				<&apps_smmu 0x2440 0x400>;
 			label = "jpeg";
 			qcom,iommu-dma-addr-pool = <0x7400000 0xd8c00000>;
+			qcom,iommu-faults = "non-fatal";
 			jpeg_iova_mem_map: iova-mem-map {
 				/* IO region is approximately 3.4 GB */
 				iova-mem-region-io {
@@ -431,6 +433,7 @@
 				<&apps_smmu 0x2421 0x400>;
 			label = "icp";
 			qcom,iommu-dma-addr-pool = <0x10c00000 0xee300000>;
+			qcom,iommu-faults = "non-fatal";
 			iova-region-discard = <0xdff00000 0x300000>;
 			icp_iova_mem_map: iova-mem-map {
 				iova-mem-region-firmware {
@@ -488,6 +491,7 @@
 				<&apps_smmu 0x24C0 0x400>;
 			label = "cpas-cdm0";
 			qcom,iommu-dma-addr-pool = <0x7400000 0xd8c00000>;
+			qcom,iommu-faults = "non-fatal";
 			cpas_cdm_iova_mem_map: iova-mem-map {
 				iova-mem-region-io {
 					/* IO region is approximately 3.4 GB */
