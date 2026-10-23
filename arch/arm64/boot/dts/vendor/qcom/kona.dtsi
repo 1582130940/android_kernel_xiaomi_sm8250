@@ -625,6 +625,7 @@
 			 <&apps_smmu 0x1830 0x1>;
 		qcom,iommu-dma-addr-pool = <0x40000000 0xc0000000>;
 		qcom,iommu-dma = "atomic";
+		qcom,iommu-faults = "non-fatal";
 		status = "ok";
 
 		/* Slimbus Slave DT for QCA6390 */
