@@ -83,16 +83,12 @@ extern int msm_vidc_err_recovery_disable;
 	do { \
 		if (is_print_allowed(sid, __level)) { \
 			if (msm_vidc_debug & VIDC_FTRACE) { \
-				char trace_logbuf[MAX_TRACER_LOG_LENGTH]; \
-				int log_length = snprintf(trace_logbuf, \
-					MAX_TRACER_LOG_LENGTH, \
-					VIDC_DBG_TAG __fmt, \
+				msm_vidc_ftrace( \
 					get_debug_level_str(__level), \
 					sid, \
 					get_codec_name(sid), \
+					__fmt, \
 					##__VA_ARGS__); \
-				trace_msm_vidc_printf(trace_logbuf, \
-					log_length); \
 			} \
 			if (msm_vidc_debug & VIDC_PRINTK) { \
 				pr_info(VIDC_DBG_TAG __fmt, \
@@ -129,14 +125,10 @@ extern int msm_vidc_err_recovery_disable;
 #define dprintk_firmware(__level, __fmt, ...)	\
 	do { \
 		if (__level & FW_FTRACE) { \
-			char trace_logbuf[MAX_TRACER_LOG_LENGTH]; \
-			int log_length = snprintf(trace_logbuf, \
-				MAX_TRACER_LOG_LENGTH, \
-				FW_DBG_TAG __fmt, \
+			msm_fw_ftrace( \
 				"fw", \
+				__fmt, \
 				##__VA_ARGS__); \
-			trace_msm_vidc_printf(trace_logbuf, \
-				log_length); \
 		} \
 		if (__level & FW_PRINTK) { \
 			pr_info(FW_DBG_TAG __fmt, \
@@ -169,6 +161,8 @@ void msm_vidc_debugfs_update(struct msm_vidc_inst *inst,
 int msm_vidc_check_ratelimit(void);
 int get_sid(u32 *sid, u32 session_type);
 void update_log_ctxt(u32 sid, u32 session_type, u32 fourcc);
+void msm_vidc_ftrace(const char *debug_level, u32 sid, const char *codec_name, const char *fmt, ...);
+void msm_fw_ftrace(const char *name, const char *fmt, ...);
 
 static inline char *get_debug_level_str(int level)
 {
