@@ -111,7 +111,7 @@ static int devfreq_gpubw_get_target(struct devfreq *df,
 			struct msm_busmon_extended_profile,
 			profile);
 	struct devfreq_dev_status *stats = &df->last_status;
-	struct xstats b;
+	struct xstats b = {0};
 	int result;
 	int level = 0;
 	int act_level;
