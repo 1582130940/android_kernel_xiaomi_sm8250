@@ -690,3 +690,32 @@ inline void update_log_ctxt(u32 sid, u32 session_type, u32 fourcc)
 	vidc_driver->ctxt[sid-1].name[5] = '\0';
 }
 
+void msm_vidc_ftrace(const char *debug_level, u32 sid, const char *codec_name, const char *fmt, ...)
+{
+	va_list args;
+	char trace_logbuf[MAX_TRACER_LOG_LENGTH];
+	int log_length;
+
+	va_start(args, fmt);
+	log_length = snprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
+		VIDC_DBG_TAG, debug_level, sid, codec_name);
+	log_length += vsnprintf(trace_logbuf+log_length, MAX_TRACER_LOG_LENGTH-log_length,
+		fmt, args);
+	va_end(args);
+	trace_msm_vidc_printf(trace_logbuf, log_length);
+}
+
+void msm_fw_ftrace(const char *name, const char *fmt, ...)
+{
+	va_list args;
+	char trace_logbuf[MAX_TRACER_LOG_LENGTH];
+	int log_length;
+
+	va_start(args, fmt);
+	log_length = snprintf(trace_logbuf, MAX_TRACER_LOG_LENGTH,
+		FW_DBG_TAG, name);
+	log_length += vsnprintf(trace_logbuf+log_length, MAX_TRACER_LOG_LENGTH-log_length,
+		fmt, args);
+	va_end(args);
+	trace_msm_vidc_printf(trace_logbuf, log_length);
+}
