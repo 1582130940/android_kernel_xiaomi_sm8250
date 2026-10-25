@@ -375,7 +375,7 @@ adreno_context_debugfs_init(struct adreno_device *adreno_dev,
 {
 	unsigned char name[16];
 
-	snprintf(name, sizeof(name), "%d", ctx->base.id);
+	scnprintf(name, sizeof(name), "%d", ctx->base.id);
 
 	ctx->debug_root = debugfs_create_file(name, 0444,
 				adreno_dev->ctx_d_debugfs,

@@ -279,7 +279,7 @@ static void kgsl_sync_timeline_value_str(struct dma_fence *fence,
 		kgsl_context_put(context);
 	}
 
-	snprintf(str, size, "%u queued:%u retired:%u",
+	scnprintf(str, size, "%u queued:%u retired:%u",
 		ktimeline->last_timestamp,
 		timestamp_queued, timestamp_retired);
 
@@ -292,7 +292,7 @@ static void kgsl_sync_fence_value_str(struct dma_fence *fence,
 {
 	struct kgsl_sync_fence *kfence = (struct kgsl_sync_fence *)fence;
 
-	snprintf(str, size, "%u", kfence->timestamp);
+	scnprintf(str, size, "%u", kfence->timestamp);
 }
 
 static const char *kgsl_sync_fence_driver_name(struct dma_fence *fence)
@@ -523,7 +523,7 @@ long kgsl_ioctl_syncsource_create(struct kgsl_device_private *dev_priv,
 	}
 
 	kref_init(&syncsource->refcount);
-	snprintf(syncsource->name, sizeof(syncsource->name),
+	scnprintf(syncsource->name, sizeof(syncsource->name),
 		"kgsl-syncsource-pid-%d", current->group_leader->pid);
 	syncsource->private = private;
 	INIT_LIST_HEAD(&syncsource->child_list_head);
@@ -829,7 +829,7 @@ static void kgsl_syncsource_fence_value_str(struct dma_fence *fence,
 	 * Each fence is independent of the others on the same timeline.
 	 * We use a different context for each of them.
 	 */
-	snprintf(str, size, "%llu", fence->context);
+	scnprintf(str, size, "%llu", fence->context);
 }
 
 static const struct dma_fence_ops kgsl_syncsource_fence_ops = {

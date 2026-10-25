@@ -1439,7 +1439,7 @@ struct msm_bus_scale_pdata *kgsl_get_bus_scale_table(struct kgsl_device *device)
 
 	parent = device->pdev->dev.of_node;
 
-	snprintf(str, sizeof(str), "qcom,gpu-bus-table-ddr%d",
+	scnprintf(str, sizeof(str), "qcom,gpu-bus-table-ddr%d",
 		of_fdt_get_ddrtype());
 
 	child = of_find_compatible_node(parent, NULL, str);
