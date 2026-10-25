@@ -1385,7 +1385,7 @@ static const char *a6xx_fault_block_uche(struct kgsl_device *device,
 		return "UCHE";
 
 	uche_client_id &= A6XX_UCHE_CLIENT_PF_CLIENT_ID_MASK;
-	snprintf(str, sizeof(str), "UCHE: %s",
+	scnprintf(str, sizeof(str), "UCHE: %s",
 			uche_client[uche_client_id][mid - 1]);
 
 	return str;

@@ -177,7 +177,7 @@ pagetable_add_sysfs_objects(struct kgsl_pagetable *pagetable)
 	char ptname[16];
 	int ret = -ENOMEM;
 
-	snprintf(ptname, sizeof(ptname), "%d", pagetable->name);
+	scnprintf(ptname, sizeof(ptname), "%d", pagetable->name);
 	pagetable->kobj = kobject_create_and_add(ptname,
 						 kgsl_driver.ptkobj);
 	if (pagetable->kobj == NULL)

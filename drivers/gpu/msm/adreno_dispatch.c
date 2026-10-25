@@ -1718,7 +1718,7 @@ static inline const char *_kgsl_context_comm(struct kgsl_context *context)
 	if (context && context->proc_priv)
 		strscpy(_pidname, context->proc_priv->comm, sizeof(_pidname));
 	else
-		snprintf(_pidname, TASK_COMM_LEN, "unknown");
+		scnprintf(_pidname, TASK_COMM_LEN, "unknown");
 
 	return _pidname;
 }

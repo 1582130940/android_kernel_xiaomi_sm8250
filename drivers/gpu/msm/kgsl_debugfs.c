@@ -401,7 +401,7 @@ void kgsl_process_init_debugfs(struct kgsl_process_private *private)
 	unsigned char name[16];
 	struct dentry *dentry;
 
-	snprintf(name, sizeof(name), "%d", pid_nr(private->pid));
+	scnprintf(name, sizeof(name), "%d", pid_nr(private->pid));
 
 	private->debug_root = debugfs_create_dir(name, proc_d_debugfs);
 

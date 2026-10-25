@@ -146,7 +146,7 @@ static struct kgsl_timeline *kgsl_timeline_alloc(
 	timeline->value = initial;
 	timeline->dev_priv = dev_priv;
 
-	snprintf((char *) timeline->name, sizeof(timeline->name),
+	scnprintf((char *) timeline->name, sizeof(timeline->name),
 		"kgsl-sw-timeline-%d", id);
 
 	trace_kgsl_timeline_alloc(id, initial);
@@ -223,7 +223,7 @@ static void timeline_get_value_str(struct dma_fence *fence,
 {
 	struct kgsl_timeline_fence *f = to_timeline_fence(fence);
 
-	snprintf(str, size, "%lld", f->timeline->value);
+	scnprintf(str, size, "%lld", f->timeline->value);
 }
 
 static const struct dma_fence_ops timeline_fence_ops = {
