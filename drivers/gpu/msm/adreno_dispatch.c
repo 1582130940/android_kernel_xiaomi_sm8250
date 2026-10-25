@@ -1152,9 +1152,9 @@ static inline bool _verify_ib(struct kgsl_device_private *dev_priv,
 		return false;
 	}
 
-	/* Make sure that the address is mapped */
+	/* Make sure that the address is in range and dword aligned */
 	if (!kgsl_mmu_gpuaddr_in_range(private->pagetable, ib->gpuaddr,
-		ib->size)) {
+		ib->size) || !IS_ALIGNED(ib->gpuaddr, 4)) {
 		pr_context(device, context, "ctxt %d invalid ib gpuaddr %llX\n",
 			context->id, ib->gpuaddr);
 		return false;
