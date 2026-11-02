@@ -460,6 +460,7 @@ int msm_gem_get_iova(struct drm_gem_object *obj,
 			if (ret) {
 				DRM_ERROR("delayed dma-buf import failed %d\n",
 						ret);
+				msm_obj->obj_dirty = true;
 				goto unlock;
 			}
 		}
