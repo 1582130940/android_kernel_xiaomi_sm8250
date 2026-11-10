@@ -8906,18 +8906,17 @@ static int ufs_init_serial(struct ufs_hba *hba)
 
 	/*SerialNumber*/
 	model_index = desc_buf[DEVICE_DESC_PARAM_SN];
-	memset(str_desc_buf, 0, QUERY_DESC_MAX_SIZE);
+	memset(str_desc_buf, 0, sizeof(str_desc_buf));
 	err = ufshcd_read_string_desc(hba, model_index, str_desc_buf,
 				      QUERY_DESC_MAX_SIZE, FALSE);
 	if (err)
 		goto out;
 
-	for (i = 2; ((i < str_desc_buf[QUERY_DESC_LENGTH_OFFSET]) &&
-		     (i < QUERY_DESC_MAX_SIZE / 2));
-	     i += 2) {
-		snprintf(serial + i * 2 - 4, QUERY_DESC_MAX_SIZE, "%02x%02x",
-			 str_desc_buf[i], str_desc_buf[i + 1]);
-	}
+	memset(serial, 0, sizeof(serial));
+	for (i = 2; i < str_desc_buf[QUERY_DESC_LENGTH_OFFSET] &&
+		    (i - 2) / 2 < QUERY_DESC_MAX_SIZE - 1; i += 2)
+		serial[(i - 2) / 2] = str_desc_buf[i];
+
 	pr_info("SerialNumber:%s\n", serial);
 
 out:
