@@ -346,6 +346,10 @@ enum req_flag_bits {
 	/* for driver use */
 	__REQ_DRV,
 	__REQ_SWAP,		/* swapping request. */
+#ifdef CONFIG_MACH_XIAOMI
+	/* for wbt use*/
+	__REQ_WBT,
+#endif
 	__REQ_NR_BITS,		/* stops here */
 };
 
@@ -369,6 +373,10 @@ enum req_flag_bits {
 
 #define REQ_DRV			(1ULL << __REQ_DRV)
 #define REQ_SWAP		(1ULL << __REQ_SWAP)
+
+#ifdef CONFIG_MACH_XIAOMI
+#define REQ_WBT 		(1ULL << __REQ_WBT)
+#endif
 
 #define REQ_FAILFAST_MASK \
 	(REQ_FAILFAST_DEV | REQ_FAILFAST_TRANSPORT | REQ_FAILFAST_DRIVER)
